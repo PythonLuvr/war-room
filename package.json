@@ -1,6 +1,6 @@
 {
   "name": "war-room",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "private": true,
   "description": "Shared cockpit dashboard. Self-hostable team workspace that wraps a local Claude Code agent in a Discord-style multi-server interface.",
   "license": "AGPL-3.0-or-later",

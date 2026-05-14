@@ -123,15 +123,23 @@ async function createMainWindow() {
 
   try {
     await waitForServer(targetUrl());
-    await mainWindow.loadURL(targetUrl());
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      await mainWindow.loadURL(targetUrl());
+    }
   } catch (e) {
     console.error("Failed to reach Next.js server:", e);
-    await mainWindow.loadURL(
-      "data:text/html,<h1 style='font-family:sans-serif;color:#eee;background:#0a0a0a;padding:2rem'>War Room could not start its local server.<br><small>" +
-        (e && e.message ? e.message.replace(/[<>]/g, "") : "unknown error") +
-        "</small></h1>",
-    );
-    mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        await mainWindow.loadURL(
+          "data:text/html,<h1 style='font-family:sans-serif;color:#eee;background:#0a0a0a;padding:2rem'>War Room could not start its local server.<br><small>" +
+            (e && e.message ? e.message.replace(/[<>]/g, "") : "unknown error") +
+            "</small></h1>",
+        );
+        mainWindow.show();
+      } catch {
+        // window died during the fallback — nothing to do, app will close
+      }
+    }
   }
 
   // Allow F12 / Ctrl+Shift+I to toggle DevTools even in production builds —
@@ -301,16 +309,32 @@ ipcMain.on("mini:expand-main", () => {
 
 // ─── App lifecycle ──────────────────────────────────────────────────────────
 
-app.whenReady().then(async () => {
-  await createMainWindow();
-  await createMiniWindow();
-
-  if (!isDev) wireAutoUpdater();
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+// Single-instance lock: a second launch (whether user double-clicks the icon
+// again or an auto-update relaunches before the old PID is gone) just focuses
+// the existing window instead of trying to spawn a duplicate. Avoids the
+// EADDRINUSE crash on the bundled server's port.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
   });
-});
+
+  app.whenReady().then(async () => {
+    await createMainWindow();
+    await createMiniWindow();
+
+    if (!isDev) wireAutoUpdater();
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    });
+  });
+}
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
