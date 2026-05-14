@@ -99,6 +99,19 @@ function main() {
 
   console.log(`\nWar Room release\n  version : ${version}\n  url     : ${UPDATE_URL}\n  host    : ${UPDATE_HOST}\n  ssh key : ${SSH_KEY}\n`);
 
+  // Native modules: nuke the cached .node binary so @electron/rebuild has to
+  // genuinely rebuild against Electron's ABI. Otherwise a previous
+  // `npm rebuild` for dev Node leaves an ABI-mismatched binary and the
+  // packaged app crashes with NODE_MODULE_VERSION mismatch (137 vs 145).
+  const nativeMods = ["better-sqlite3"];
+  for (const mod of nativeMods) {
+    const buildDir = path.join(__dirname, "..", "node_modules", mod, "build");
+    if (fs.existsSync(buildDir)) {
+      console.log(`\n▸ clearing cached native binary: node_modules/${mod}/build`);
+      fs.rmSync(buildDir, { recursive: true, force: true });
+    }
+  }
+
   // Bake the real UPDATE_URL into package.json just for the duration of the
   // build, then restore the placeholder. Keeps committed source clean.
   withPublishUrl(UPDATE_URL, () => {

@@ -39,5 +39,19 @@ exports.default = async function afterPack(context) {
     );
   }
 
+  // 4. Native modules — @electron/rebuild compiled better-sqlite3 against
+  //    Electron's ABI into the project root's node_modules. The standalone
+  //    bundle's own copy of node_modules/better-sqlite3 has the JS but no
+  //    /build dir (next build runs before the rebuild step). Copy the
+  //    rebuilt /build over so the standalone server can dlopen it.
+  for (const mod of ["better-sqlite3"]) {
+    const src = path.join(projectRoot, "node_modules", mod, "build");
+    const dst = path.join(dest, "node_modules", mod, "build");
+    if (fs.existsSync(src)) {
+      fs.cpSync(src, dst, { recursive: true });
+      console.log(`[after-pack] copied rebuilt ${mod} native binary into standalone`);
+    }
+  }
+
   console.log(`[after-pack] copied standalone bundle to ${dest}`);
 };
