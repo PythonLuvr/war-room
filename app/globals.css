@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(38 38 38);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(64 64 64);
+}
+
+/* highlight.js overrides for tighter look */
+.hljs {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+/* Subtle noise texture overlay — Linear/Vercel-style premium grain.
+   Sits above all backgrounds, never intercepts pointer events. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+/* Hairline gradient — single-pixel divider that fades at the edges.
+   Apply via <span className="hairline-h" /> inside a relative parent. */
+.hairline-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgb(64 64 64 / 0.8) 15%,
+    rgb(82 82 82 / 0.9) 50%,
+    rgb(64 64 64 / 0.8) 85%,
+    transparent
+  );
+  pointer-events: none;
+}
+.hairline-h.bottom {
+  bottom: 0;
+}
+.hairline-h.top {
+  top: 0;
+}
+
+/* Drawer animations */
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.drawer-slide {
+  animation: drawer-slide-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer-fade {
+  animation: drawer-fade-in 0.15s ease-out;
+}

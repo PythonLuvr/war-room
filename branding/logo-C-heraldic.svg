@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- Variant C: Heraldic / classic. Outlined shield, filled swords. -->
+  <!-- Reads as "insignia" — most "war room" of the three. -->
+
+  <!-- Shield outline -->
+  <path d="M128 24 L216 52 L216 132 C216 184 178 220 128 232 C78 220 40 184 40 132 L40 52 Z"
+        stroke="#f5f5f5" stroke-width="6" fill="none" stroke-linejoin="round"/>
+
+  <!-- Inner divider line (heraldic chief) -->
+  <line x1="48" y1="78" x2="208" y2="78" stroke="#f5f5f5" stroke-width="3" opacity="0.4"/>
+
+  <!-- Sword 1 (back) -->
+  <g transform="translate(128 130) rotate(45)">
+    <rect x="-4" y="-94" width="8" height="148" fill="#f5f5f5"/>
+    <polygon points="-4,-94 0,-104 4,-94" fill="#f5f5f5"/>
+    <rect x="-30" y="54" width="60" height="7" rx="2" fill="#f5f5f5"/>
+    <rect x="-3" y="61" width="6" height="20" fill="#f5f5f5"/>
+    <circle cx="0" cy="86" r="7" fill="#f5f5f5"/>
+  </g>
+
+  <!-- Sword 2 (front, crosses over) -->
+  <g transform="translate(128 130) rotate(-45)">
+    <rect x="-4" y="-94" width="8" height="148" fill="#f5f5f5"/>
+    <polygon points="-4,-94 0,-104 4,-94" fill="#f5f5f5"/>
+    <rect x="-30" y="54" width="60" height="7" rx="2" fill="#f5f5f5"/>
+    <rect x="-3" y="61" width="6" height="20" fill="#f5f5f5"/>
+    <circle cx="0" cy="86" r="7" fill="#f5f5f5"/>
+  </g>
+
+  <!-- Center rivet where swords cross -->
+  <circle cx="128" cy="130" r="5" fill="#0a0a0a" stroke="#f5f5f5" stroke-width="2"/>
+</svg>

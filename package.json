@@ -1,0 +1,101 @@
+{
+  "name": "war-room",
+  "version": "0.1.13",
+  "private": true,
+  "description": "Shared cockpit dashboard. Self-hostable team workspace that wraps a local Claude Code agent in a Discord-style multi-server interface.",
+  "license": "AGPL-3.0-or-later",
+  "author": {
+    "name": "pythonluvr",
+    "email": "ejredd2007@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pythonluvr/war-room.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pythonluvr/war-room/issues"
+  },
+  "homepage": "https://github.com/pythonluvr/war-room#readme",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "electron:dev:full": "concurrently -k \"npm:dev\" \"wait-on http://localhost:3000 && npm run electron:dev\"",
+    "electron:build": "next build --webpack && electron-builder",
+    "electron:pack": "next build --webpack && electron-builder --dir",
+    "release": "node scripts/release.js",
+    "ship": "node scripts/ship.js"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@xyflow/react": "^12.10.2",
+    "better-sqlite3": "^12.10.0",
+    "chokidar": "^5.0.0",
+    "electron-updater": "^6.8.3",
+    "highlight.js": "^11.11.1",
+    "livekit-client": "^2.19.0",
+    "livekit-server-sdk": "^2.15.2",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.1",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.6.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "png-to-ico": "^3.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "com.warroom.app",
+    "productName": "War Room",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "afterPack": "electron/after-pack.js",
+    "win": {
+      "target": "nsis",
+      "artifactName": "war-room-setup-${version}.${ext}",
+      "icon": "branding/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "branding/icon.ico",
+      "uninstallerIcon": "branding/icon.ico"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://your-host.example.com/war-room-updates/",
+      "channel": "latest"
+    }
+  }
+}

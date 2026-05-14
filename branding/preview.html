@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>War Room — logo concepts</title>
+<style>
+  body {
+    margin: 0;
+    background: #0a0a0a;
+    color: #d4d4d4;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    padding: 3rem;
+  }
+  h1 { font-weight: 600; font-size: 1.4rem; margin: 0 0 2rem; }
+  h2 { font-weight: 500; font-size: 0.9rem; color: #888; margin: 0 0 1rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .card {
+    background: #161616;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .card .label {
+    font-weight: 600;
+    color: #f5f5f5;
+    margin-bottom: 0.25rem;
+  }
+  .card .desc { font-size: 0.85rem; color: #888; margin-bottom: 1.5rem; line-height: 1.5; }
+  .sizes { display: flex; align-items: end; justify-content: center; gap: 1.5rem; margin-bottom: 1rem; }
+  .sizes div { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+  .sizes small { color: #555; font-size: 0.7rem; }
+  .light-bg { background: #f5f5f5; padding: 1rem; border-radius: 8px; display: inline-block; }
+  .light-bg img { filter: invert(1); }
+</style>
+</head>
+<body>
+  <h1>War Room — logo concepts</h1>
+
+  <h2>On dark (app context)</h2>
+  <div class="row">
+    <div class="card">
+      <div class="label">A · Bold filled</div>
+      <div class="desc">Strong silhouette, max contrast. Most "weight" at small sizes.</div>
+      <div class="sizes">
+        <div><img src="logo-A-bold.svg" width="128" /><small>128px</small></div>
+        <div><img src="logo-A-bold.svg" width="64" /><small>64</small></div>
+        <div><img src="logo-A-bold.svg" width="32" /><small>32</small></div>
+        <div><img src="logo-A-bold.svg" width="16" /><small>16</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">B · Outlined minimal</div>
+      <div class="desc">Stroke-only, modern app-icon vibe. Lightest visual weight.</div>
+      <div class="sizes">
+        <div><img src="logo-B-outlined.svg" width="128" /><small>128px</small></div>
+        <div><img src="logo-B-outlined.svg" width="64" /><small>64</small></div>
+        <div><img src="logo-B-outlined.svg" width="32" /><small>32</small></div>
+        <div><img src="logo-B-outlined.svg" width="16" /><small>16</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="label">C · Heraldic classic</div>
+      <div class="desc">Outlined shield + filled swords. Reads as insignia, most "war room" of the three.</div>
+      <div class="sizes">
+        <div><img src="logo-C-heraldic.svg" width="128" /><small>128px</small></div>
+        <div><img src="logo-C-heraldic.svg" width="64" /><small>64</small></div>
+        <div><img src="logo-C-heraldic.svg" width="32" /><small>32</small></div>
+        <div><img src="logo-C-heraldic.svg" width="16" /><small>16</small></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>On light (taskbar contrast check)</h2>
+  <div class="row">
+    <div class="card"><div class="light-bg"><img src="logo-A-bold.svg" width="96" /></div></div>
+    <div class="card"><div class="light-bg"><img src="logo-B-outlined.svg" width="96" /></div></div>
+    <div class="card"><div class="light-bg"><img src="logo-C-heraldic.svg" width="96" /></div></div>
+  </div>
+</body>
+</html>

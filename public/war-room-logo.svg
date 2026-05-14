@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <!-- Variant A: Bold / filled. Solid shield, solid crossed swords. -->
+  <!-- Strong silhouette, reads at 16px. -->
+
+  <!-- Shield: heater shape -->
+  <path d="M128 24 L216 52 L216 132 C216 184 178 220 128 232 C78 220 40 184 40 132 L40 52 Z"
+        fill="#f5f5f5"/>
+
+  <!-- Inner shield bevel for depth -->
+  <path d="M128 38 L204 62 L204 130 C204 174 174 204 128 215 C82 204 52 174 52 130 L52 62 Z"
+        fill="#0a0a0a"/>
+
+  <!-- Sword 1: top-left to bottom-right (back sword) -->
+  <g transform="translate(128 128) rotate(45)">
+    <!-- Blade -->
+    <rect x="-5" y="-90" width="10" height="140" fill="#f5f5f5"/>
+    <!-- Crossguard -->
+    <rect x="-26" y="50" width="52" height="6" rx="1" fill="#f5f5f5"/>
+    <!-- Hilt grip -->
+    <rect x="-3.5" y="56" width="7" height="22" fill="#f5f5f5"/>
+    <!-- Pommel -->
+    <circle cx="0" cy="82" r="6" fill="#f5f5f5"/>
+    <!-- Tip -->
+    <polygon points="-5,-90 0,-100 5,-90" fill="#f5f5f5"/>
+  </g>
+
+  <!-- Sword 2: top-right to bottom-left (front sword, crosses over #1) -->
+  <g transform="translate(128 128) rotate(-45)">
+    <rect x="-5" y="-90" width="10" height="140" fill="#f5f5f5"/>
+    <rect x="-26" y="50" width="52" height="6" rx="1" fill="#f5f5f5"/>
+    <rect x="-3.5" y="56" width="7" height="22" fill="#f5f5f5"/>
+    <circle cx="0" cy="82" r="6" fill="#f5f5f5"/>
+    <polygon points="-5,-90 0,-100 5,-90" fill="#f5f5f5"/>
+  </g>
+</svg>
