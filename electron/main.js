@@ -14,18 +14,48 @@ const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
 
+const net = require("net");
+
 const isDev = !app.isPackaged;
 const DEV_URL = "http://localhost:3000";
-const PROD_PORT = 33773;
+const PORT_RANGE_START = 33773;
+const PORT_RANGE_END = 33799;
 
+let prodPort = PORT_RANGE_START;
 let mainWindow = null;
 let miniWindow = null;
 let nextProcess = null;
 let inMeeting = false;
 let userClosedMini = false;
 
+// Walk a range of localhost ports until we find one nothing else is listening
+// on. Prevents EADDRINUSE crashes when a stranded server from a previous
+// install/update still holds the default port.
+function findFreePort(start, end) {
+  return new Promise((resolve, reject) => {
+    let port = start;
+    const tryNext = () => {
+      if (port > end) {
+        reject(new Error(`no free port in range ${start}-${end}`));
+        return;
+      }
+      const tester = net.createServer();
+      tester.once("error", () => {
+        port += 1;
+        tryNext();
+      });
+      tester.once("listening", () => {
+        const found = port;
+        tester.close(() => resolve(found));
+      });
+      tester.listen(port, "127.0.0.1");
+    };
+    tryNext();
+  });
+}
+
 function targetUrl() {
-  return isDev ? DEV_URL : `http://127.0.0.1:${PROD_PORT}`;
+  return isDev ? DEV_URL : `http://127.0.0.1:${prodPort}`;
 }
 
 async function waitForServer(url, timeoutMs = 30000) {
@@ -54,7 +84,7 @@ function startBundledServer() {
   const serverScript = path.join(standaloneDir, "server.js");
   const env = {
     ...process.env,
-    PORT: String(PROD_PORT),
+    PORT: String(prodPort),
     HOSTNAME: "127.0.0.1",
     NODE_ENV: "production",
   };
@@ -72,7 +102,15 @@ function startBundledServer() {
 }
 
 async function createMainWindow() {
-  if (!isDev) startBundledServer();
+  if (!isDev) {
+    try {
+      prodPort = await findFreePort(PORT_RANGE_START, PORT_RANGE_END);
+    } catch (e) {
+      console.error("Could not find a free port:", e.message);
+      prodPort = PORT_RANGE_START;
+    }
+    startBundledServer();
+  }
 
   mainWindow = new BrowserWindow({
     width: 1480,

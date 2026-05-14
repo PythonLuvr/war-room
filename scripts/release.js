@@ -95,7 +95,7 @@ function main() {
   const version = pkg.version;
   const installer = `war-room-setup-${version}.exe`;
   const blockmap = `${installer}.blockmap`;
-  const distDir = path.join(__dirname, "..", "dist-electron");
+  const distDir = path.join(__dirname, "..", "build", "electron");
 
   console.log(`\nWar Room release\n  version : ${version}\n  url     : ${UPDATE_URL}\n  host    : ${UPDATE_HOST}\n  ssh key : ${SSH_KEY}\n`);
 
