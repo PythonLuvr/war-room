@@ -1,6 +1,10 @@
-# War Room
+<p align="center">
+  <img src="branding/icon-256.png" alt="War Room" width="160" height="160" />
+</p>
 
-**The cockpit for operators running AI at scale.**
+<h1 align="center">War Room</h1>
+
+<p align="center"><strong>The cockpit for operators running AI at scale.</strong></p>
 
 War Room is a local-first desktop dashboard for people who run multiple Claude Code sessions across many projects at once. It pulls every active session, every service, every approval request, every client folder, and every generation tool into one Discord-style interface running on your own machine. No cloud. No login. No data leaves your laptop.
 
