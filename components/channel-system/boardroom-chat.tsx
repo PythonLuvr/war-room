@@ -376,10 +376,10 @@ function ChatRow({ item }: { item: ChatItem }) {
     return (
       <div className="flex gap-2">
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-700 to-neutral-900 border border-neutral-700 flex items-center justify-center text-[11px] font-semibold text-neutral-200 shrink-0">
-          E
+          {LOCAL.name[0].toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-semibold text-neutral-200">EJ</div>
+          <div className="text-[11px] font-semibold text-neutral-200">{LOCAL.name}</div>
           <div className="text-sm text-neutral-200 whitespace-pre-wrap">
             {renderWithMentions(item.text)}
           </div>

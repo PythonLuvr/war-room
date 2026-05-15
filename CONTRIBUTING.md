@@ -22,14 +22,14 @@ The app boots at `http://localhost:3000` with the onboarding wizard.
 
 ## Architecture pointers
 
-- `app/` — Next.js App Router pages and API routes
-- `components/` — React components (most of the UI lives here)
-- `components/channel-system/` — Discord-style channel/server UI
-- `lib/` — server-side helpers, DB access, config, activity, services check
-- `lib/config.ts` — **the only place that reads `process.env.*` for app config**
-- `lib/team.ts` — team roster (single source of truth for member identities)
-- `lib/db.ts` — SQLite schema and migrations
-- `electron/` — desktop wrapper (optional, not needed for development)
+- `app/`: Next.js App Router pages and API routes
+- `components/`: React components (most of the UI lives here)
+- `components/channel-system/`: Discord-style channel/server UI
+- `lib/`: server-side helpers, DB access, config, activity, services check
+- `lib/config.ts`: **the only place that reads `process.env.*` for app config**
+- `lib/team.ts`: team roster (single source of truth for member identities)
+- `lib/db.ts`: SQLite schema and migrations
+- `electron/`: desktop wrapper (optional, not needed for development)
 
 ## What's in scope
 

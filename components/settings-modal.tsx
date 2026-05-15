@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Bot,
   Cloud,
   Info,
   Settings as SettingsIcon,
@@ -14,7 +15,7 @@ import {
   X,
 } from "lucide-react";
 
-export type SettingsTab = "general" | "boardroom" | "sync" | "about";
+export type SettingsTab = "general" | "agent" | "boardroom" | "sync" | "about";
 
 type AboutInfo = { version: string; name: string; repo: string | null };
 
@@ -47,7 +48,7 @@ export function SettingsModal({
     <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh] overflow-hidden"
+        className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
           <div className="flex items-center gap-2">
@@ -65,6 +66,9 @@ export function SettingsModal({
             <TabButton current={tab} value="general" icon={<SettingsIcon className="w-3.5 h-3.5" />} onSelect={setTab}>
               General
             </TabButton>
+            <TabButton current={tab} value="agent" icon={<Bot className="w-3.5 h-3.5" />} onSelect={setTab}>
+              Agent
+            </TabButton>
             <TabButton current={tab} value="boardroom" icon={<Users className="w-3.5 h-3.5" />} onSelect={setTab}>
               Boardroom
             </TabButton>
@@ -79,6 +83,7 @@ export function SettingsModal({
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto p-6">
             {tab === "general" && <GeneralTab onClose={onClose} />}
+            {tab === "agent" && <AgentTab />}
             {tab === "boardroom" && <BoardroomTab />}
             {tab === "sync" && <SyncTab />}
             {tab === "about" && <AboutTab about={about} />}
@@ -168,6 +173,246 @@ function KV({ k, v }: { k: string; v: string | null | undefined }) {
   );
 }
 
+type AdapterMeta = {
+  id: string;
+  name: string;
+  kind: "cli" | "api";
+  capabilities: { toolUse: boolean; memory: boolean; fileAccess: boolean; notes?: string };
+  isConfigured: boolean;
+};
+
+type AgentSettings = {
+  activeId: string;
+  settings: Record<string, string | null>;
+  adapters: AdapterMeta[];
+};
+
+function AgentTab() {
+  const [data, setData] = useState<AgentSettings | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: AgentSettings) => {
+        setData(d);
+        // Seed draft with the masked / current values so inputs are
+        // controlled from the get-go.
+        const seed: Record<string, string> = {};
+        for (const [k, v] of Object.entries(d.settings)) seed[k] = v ?? "";
+        setDraft(seed);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!data) return <div className="text-xs text-neutral-600">Loading…</div>;
+
+  const set = (k: string, v: string) => setDraft((cur) => ({ ...cur, [k]: v }));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+      // Refresh to pick up isConfigured flips and re-mask secrets.
+      const r = await fetch("/api/agents");
+      const fresh = (await r.json()) as AgentSettings;
+      setData(fresh);
+      const seed: Record<string, string> = {};
+      for (const [k, v] of Object.entries(fresh.settings)) seed[k] = v ?? "";
+      setDraft(seed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cliAdapters = data.adapters.filter((a) => a.kind === "cli");
+  const apiAdapters = data.adapters.filter((a) => a.kind === "api");
+
+  // Backend pick auto-saves on click — no need for the user to scroll down
+  // to "Save changes" just to switch which AI is in charge.
+  const pickBackend = async (id: string) => {
+    set("agent.backend", id);
+    setData((cur) => (cur ? { ...cur, activeId: id } : cur));
+    try {
+      await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "agent.backend": id }),
+      });
+    } catch {
+      // best-effort; user can still hit Save below if persistence fails
+    }
+  };
+
+  const Card = ({ a }: { a: AdapterMeta }) => {
+    const isActive = data.activeId === a.id;
+    return (
+      <button
+        onClick={() => pickBackend(a.id)}
+        className={`text-left p-3 rounded-lg border transition-colors ${
+          isActive
+            ? "border-amber-500/50 bg-amber-500/10"
+            : "border-neutral-800 bg-neutral-900 hover:border-neutral-700"
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className={`w-2 h-2 rounded-full ${a.isConfigured ? "bg-emerald-500" : "bg-neutral-700"}`}
+            title={a.isConfigured ? "Configured" : "Needs setup"}
+          />
+          <span className="text-sm font-medium text-neutral-100">{a.name}</span>
+          {isActive && (
+            <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-200 ml-auto">
+              active
+            </span>
+          )}
+        </div>
+        {a.capabilities.notes && (
+          <div className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{a.capabilities.notes}</div>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <Section title="Backend" description="Choose how War Room talks to an AI. CLI bridge runs the official binary in your project folder (full feature set). API mode hits the provider directly (chat only — no tools, no project files, no memory).">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">CLI bridge — full feature set</div>
+          <div className="grid grid-cols-2 gap-2">
+            {cliAdapters.map((a) => (
+              <Card key={a.id} a={a} />
+            ))}
+          </div>
+        </div>
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">BYOK direct API — chat only</div>
+          <div className="grid grid-cols-2 gap-2">
+            {apiAdapters.map((a) => (
+              <Card key={a.id} a={a} />
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="CLI bridge — binary paths" description="Override the executable lookup if the binary isn't on your PATH. Leave blank to use the default.">
+        <KVInput label="claude" value={draft["agent.cli.claude.bin"] ?? ""} onChange={(v) => set("agent.cli.claude.bin", v)} />
+        <KVInput label="codex" value={draft["agent.cli.codex.bin"] ?? ""} onChange={(v) => set("agent.cli.codex.bin", v)} />
+        <KVInput label="gemini" value={draft["agent.cli.gemini.bin"] ?? ""} onChange={(v) => set("agent.cli.gemini.bin", v)} />
+        <KVInput label="custom binary" value={draft["agent.cli.custom.bin"] ?? ""} onChange={(v) => set("agent.cli.custom.bin", v)} placeholder="C:\path\to\your-cli.exe" />
+        <KVInput label="custom args template" value={draft["agent.cli.custom.template"] ?? ""} onChange={(v) => set("agent.cli.custom.template", v)} placeholder='--prompt "{{prompt}}" --cwd "{{cwd}}"' />
+      </Section>
+
+      <Section title="API keys (BYOK)" description="Pasted keys are stored in your local SQLite (~/.war-room/app.db). They never leave your machine.">
+        <ApiPair
+          name="Anthropic"
+          keyValue={draft["agent.api.anthropic.key"] ?? ""}
+          modelValue={draft["agent.api.anthropic.model"] ?? ""}
+          modelPlaceholder="claude-sonnet-4-6"
+          onKey={(v) => set("agent.api.anthropic.key", v)}
+          onModel={(v) => set("agent.api.anthropic.model", v)}
+        />
+        <ApiPair
+          name="OpenAI"
+          keyValue={draft["agent.api.openai.key"] ?? ""}
+          modelValue={draft["agent.api.openai.model"] ?? ""}
+          modelPlaceholder="gpt-5"
+          onKey={(v) => set("agent.api.openai.key", v)}
+          onModel={(v) => set("agent.api.openai.model", v)}
+        />
+        <ApiPair
+          name="Google Gemini"
+          keyValue={draft["agent.api.gemini.key"] ?? ""}
+          modelValue={draft["agent.api.gemini.model"] ?? ""}
+          modelPlaceholder="gemini-2.5-pro"
+          onKey={(v) => set("agent.api.gemini.key", v)}
+          onModel={(v) => set("agent.api.gemini.model", v)}
+        />
+        <ApiPair
+          name="xAI Grok"
+          keyValue={draft["agent.api.grok.key"] ?? ""}
+          modelValue={draft["agent.api.grok.model"] ?? ""}
+          modelPlaceholder="grok-3"
+          onKey={(v) => set("agent.api.grok.key", v)}
+          onModel={(v) => set("agent.api.grok.model", v)}
+        />
+      </Section>
+
+      <Section title="Custom OpenAI-compatible endpoint" description="Anything that speaks the OpenAI Chat Completions protocol. Works with OpenRouter, Groq, Together, Mistral, DeepSeek, Ollama (http://localhost:11434/v1), and most others.">
+        <KVInput label="base URL" value={draft["agent.api.openai-compat.baseUrl"] ?? ""} onChange={(v) => set("agent.api.openai-compat.baseUrl", v)} placeholder="https://openrouter.ai/api/v1" />
+        <KVInput label="api key" value={draft["agent.api.openai-compat.key"] ?? ""} onChange={(v) => set("agent.api.openai-compat.key", v)} secret />
+        <KVInput label="model name" value={draft["agent.api.openai-compat.model"] ?? ""} onChange={(v) => set("agent.api.openai-compat.model", v)} placeholder="anthropic/claude-3.5-sonnet" />
+      </Section>
+
+      <div className="flex justify-end">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40"
+        >
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KVInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  secret,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  secret?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-[120px_1fr] gap-2 items-center mb-2">
+      <span className="text-[11px] text-neutral-500 uppercase tracking-wider">{label}</span>
+      <input
+        type={secret ? "password" : "text"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="bg-neutral-900 border border-neutral-800 rounded-md px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-700"
+      />
+    </div>
+  );
+}
+
+function ApiPair({
+  name,
+  keyValue,
+  modelValue,
+  modelPlaceholder,
+  onKey,
+  onModel,
+}: {
+  name: string;
+  keyValue: string;
+  modelValue: string;
+  modelPlaceholder: string;
+  onKey: (v: string) => void;
+  onModel: (v: string) => void;
+}) {
+  return (
+    <div className="mb-3 p-3 rounded-md border border-neutral-800 bg-neutral-900/30">
+      <div className="text-xs font-semibold text-neutral-200 mb-2">{name}</div>
+      <KVInput label="api key" value={keyValue} onChange={onKey} secret />
+      <KVInput label="model" value={modelValue} onChange={onModel} placeholder={modelPlaceholder} />
+    </div>
+  );
+}
+
 function BoardroomTab() {
   return (
     <div className="space-y-6">
@@ -227,7 +472,7 @@ function AboutTab({ about }: { about: AboutInfo | null }) {
           <div className="text-xs text-neutral-600">Loading…</div>
         )}
       </Section>
-      <Section title="Credits" description="Built by EJ as a shared cockpit for himself, Kerem, and Wes. Open source dependencies listed in package.json.">
+      <Section title="Credits" description="Open-source AGPL-3.0 release. Open source dependencies listed in package.json.">
         <div />
       </Section>
     </div>

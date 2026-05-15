@@ -51,6 +51,13 @@ export type ActivityRow = {
 
 export function recentActivity(limit = 30): ActivityRow[] {
   ensure();
+  // Belt-and-suspenders: if the table truly doesn't exist (cold clone, fresh
+  // db, ensure() has never run), return empty instead of throwing.
+  try {
+    db().prepare("SELECT 1 FROM activity LIMIT 1").get();
+  } catch {
+    return [];
+  }
   return db()
     .prepare(
       `SELECT id, kind, title, detail, project_path, created_at

@@ -224,7 +224,11 @@ function PreJoin() {
         </div>
         {meeting.livekitConfigured === false && (
           <div className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-900/50 rounded p-2 mb-3">
-            LiveKit isn't configured on the server. You can still enter the room visually, but no audio/video will be transmitted.
+            <strong className="text-amber-200">Voice + video not enabled.</strong> You can still join visually.
+            To turn on real audio, set <code className="text-amber-200">LIVEKIT_URL</code>,
+            <code className="ml-1 text-amber-200">LIVEKIT_API_KEY</code>, and
+            <code className="ml-1 text-amber-200">LIVEKIT_API_SECRET</code> in your{" "}
+            <code className="text-amber-200">.env.local</code> (point them at any LiveKit server — self-hosted or LiveKit Cloud).
           </div>
         )}
         {meeting.error && (

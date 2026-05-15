@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { sendMessage, type StreamEvent } from "@/lib/claude-session";
+import { sendMessage, type StreamEvent } from "@/lib/agents";
 import { logActivity } from "@/lib/activity";
 import path from "path";
 

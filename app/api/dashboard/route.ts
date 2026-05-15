@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { CLIENTS_ROOT, STATIC_WORKSPACES } from "@/lib/config";
+import { TEAM } from "@/lib/team";
 import { db, listSessions, listUserServers } from "@/lib/db";
 import { recentActivity } from "@/lib/activity";
 import { getHealthReport } from "@/lib/services-check";
@@ -240,7 +241,7 @@ export async function GET() {
       vps: { online: vpsOnline, total: vpsTotal, error: health.vps.error ?? null },
       activeSessions: sessions.length,
       teamOnline: 1,
-      teamTotal: 3,
+      teamTotal: TEAM.length,
     },
     timeseries: activityByDay(7),
     topChannels: topChannels(5),

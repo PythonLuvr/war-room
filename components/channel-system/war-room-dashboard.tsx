@@ -41,6 +41,8 @@ import { ActiveJobsPanel } from "./active-jobs-panel";
 import { colorForPath } from "@/lib/workspace-color";
 import { useMeeting } from "@/lib/meeting-context";
 import { TEAM, type TeamMember } from "@/lib/team";
+import { WelcomeBanner } from "@/components/welcome-banner";
+import { useServers } from "@/lib/server-context";
 
 type Dashboard = {
   kpi: {
@@ -139,18 +141,8 @@ export function WarRoomDashboard() {
   return (
     <div className="flex-1 overflow-y-auto px-6 py-5">
       <div id="overview" className="scroll-mt-6" />
-      <header className="mb-7">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">⚔</span>
-          <h1 className="text-2xl font-semibold tracking-tight">The War Room</h1>
-          <span className="ml-auto text-[10px] text-neutral-600 uppercase tracking-wider">
-            {data?.checkedAt ? `refreshed ${new Date(data.checkedAt).toLocaleTimeString()}` : "loading…"}
-          </span>
-        </div>
-        <p className="text-sm text-neutral-500">
-          Team command center · EJ · Kerem · Wes
-        </p>
-      </header>
+      <WelcomeBanner />
+      <DashboardHeader checkedAt={data?.checkedAt} />
 
       {/* KPI strip — Tier 1: Pulse */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-7">
@@ -345,7 +337,7 @@ export function WarRoomDashboard() {
           {!data ? (
             <FeedSkeleton />
           ) : data.recentActivity.length === 0 ? (
-            <Empty text="No activity yet. Send a chat message anywhere to seed the feed." />
+            <Empty text="Quiet for now. Send a message in any chat channel and it'll show up here." />
           ) : (
             <div className="flex flex-col">
               {data.recentActivity.map((a) => {
@@ -937,6 +929,36 @@ function timeAgo(ts: number): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
+}
+
+function DashboardHeader({ checkedAt }: { checkedAt?: string }) {
+  const { servers, currentId } = useServers();
+  const current = servers.find((s) => s.id === currentId);
+  // Special-case the canonical shared "War Room" server with the original
+  // emblem + name. Personal / custom servers get a generic header derived
+  // from their own name so cold-clone forks don't see "The War Room"
+  // on a server they never created.
+  const isShared = !!current && /war.?room/i.test(current.name);
+  const title = isShared ? "The War Room" : current?.name ?? "Dashboard";
+  const subtitle = isShared
+    ? `Team command center · ${TEAM.map((m) => m.name).join(" · ")}`
+    : "Your cockpit · agent activity, files, jobs at a glance";
+  return (
+    <header className="mb-7">
+      <div className="flex items-center gap-2 mb-1">
+        {isShared ? (
+          <span className="text-2xl">⚔</span>
+        ) : (
+          <span className="text-2xl">{current?.icon ?? "✦"}</span>
+        )}
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <span className="ml-auto text-[10px] text-neutral-600 uppercase tracking-wider">
+          {checkedAt ? `refreshed ${new Date(checkedAt).toLocaleTimeString()}` : "loading…"}
+        </span>
+      </div>
+      <p className="text-sm text-neutral-500">{subtitle}</p>
+    </header>
+  );
 }
 
 function BoardroomPanel({

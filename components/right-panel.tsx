@@ -2,12 +2,27 @@
 
 import type { Channel } from "@/lib/channels";
 import { PulseDot } from "./pulse-dot";
+import { useEffect, useState } from "react";
 import { Pin, Calendar, FileText, FolderOpen, Bot, User } from "lucide-react";
 import { localMember } from "@/lib/team";
 
 const LOCAL = localMember();
 
+type AgentInfo = { activeId: string; name: string; isConfigured: boolean } | null;
+
 export function RightPanel({ channel }: { channel: Channel | null }) {
+  const [agent, setAgent] = useState<AgentInfo>(null);
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: { activeId: string; adapters: Array<{ id: string; name: string; isConfigured: boolean }> }) => {
+        const active = d.adapters.find((a) => a.id === d.activeId);
+        setAgent(active ? { activeId: d.activeId, name: active.name, isConfigured: active.isConfigured } : null);
+      })
+      .catch(() => {});
+  }, []);
+
   if (!channel) return null;
   return (
     <aside className="w-60 shrink-0 border-l border-neutral-900 bg-neutral-950 px-4 py-5 overflow-y-auto hidden xl:block">
@@ -36,8 +51,23 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
         )}
       </Section>
 
-      <Section title="Agents — 1" icon={<Bot className="w-3 h-3" />}>
-        <MemberRow name={`${LOCAL.name}-Agent`} role="claude code" tone="ok" kind="agent" />
+      <Section title={agent?.isConfigured ? "Agents — 1" : "Agents"} icon={<Bot className="w-3 h-3" />}>
+        {agent?.isConfigured ? (
+          <MemberRow
+            name={`${LOCAL.name}-Agent`}
+            role={agent.name.toLowerCase()}
+            tone="ok"
+            kind="agent"
+          />
+        ) : (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("war-room:open-settings", { detail: { tab: "agent" } }))}
+            className="text-xs text-neutral-500 italic hover:text-neutral-300 text-left flex items-center gap-1.5 w-full"
+          >
+            <Bot className="w-3 h-3" />
+            <span>No agent configured. Click to set up.</span>
+          </button>
+        )}
       </Section>
 
       <Section title="Humans — 1" icon={<User className="w-3 h-3" />}>

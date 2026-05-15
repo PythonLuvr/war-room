@@ -208,6 +208,19 @@ function migrate(d: Database.Database) {
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_jobposts_job ON job_posts(job_id, created_at DESC);
+
+    -- Activity table: lib/activity.ts also lazily creates this, but having
+    -- it here means a fresh-clone /api/dashboard call doesn't 500 before
+    -- anything has logged.
+    CREATE TABLE IF NOT EXISTS activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT,
+      project_path TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at DESC);
   `);
 
   migrateAddServerId(d, "user_channels");

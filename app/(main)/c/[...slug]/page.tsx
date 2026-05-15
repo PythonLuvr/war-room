@@ -78,16 +78,16 @@ function ChannelBody({
       return (
         <PlaceholderChannel
           kind="approvals"
-          title="Approvals"
-          hint="Pulls from the PC daemon /approvals endpoint and Discord 📌 reactions. Wiring next pass."
+          title="No approvals yet"
+          hint="When an agent asks for permission to do something — call an API, write a file, run a command — it shows up here for you to accept or reject. Quiet for now."
         />
       );
     case "sessions":
       return (
         <PlaceholderChannel
           kind="sessions"
-          title="Sessions"
-          hint="Live tail of Claude .jsonl files across all projects. Wiring next pass."
+          title="No active sessions"
+          hint="Open chats across your channels show up here as a live tail. Start a conversation in any chat channel to populate this view."
         />
       );
     case "decisions":
@@ -103,7 +103,20 @@ function ChannelBody({
         />
       );
     case "chat":
-      if (!projectPath) return <div className="p-6 text-sm text-red-300">Missing projectPath for chat channel.</div>;
+      if (!projectPath) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-4">
+              <span className="text-2xl">📁</span>
+            </div>
+            <h2 className="text-xl font-semibold mb-1">Set a working directory</h2>
+            <p className="text-sm text-neutral-500 max-w-md">
+              This channel doesn&apos;t have a working directory yet. Click the gear in the channel header
+              (top-right) and pick the folder your agent should run from.
+            </p>
+          </div>
+        );
+      }
       return (
         <ChannelChat
           channelName={name}

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "The War Room",
-  description: "Shared cockpit for EJ, Kerem, and Wes",
+  description: "Shared cockpit dashboard for AI-augmented teams",
 };
 
 export default function RootLayout({

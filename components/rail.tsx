@@ -2,7 +2,7 @@
 
 import { Plus, Sparkles, Settings, Cloud, X } from "lucide-react";
 import { SettingsModal, type SettingsTab } from "@/components/settings-modal";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useServers, serverLandingPath, type ServerRow } from "@/lib/server-context";
 
@@ -33,6 +33,18 @@ export function Rail() {
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState<SettingsTab | null>(null);
   const router = useRouter();
+
+  // Cross-component listener: anywhere in the app can dispatch
+  // `war-room:open-settings` (with optional detail.tab) to surface the
+  // settings modal on the right tab. Used by the welcome banner.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ tab?: SettingsTab }>).detail;
+      setSettingsOpen(detail?.tab ?? "general");
+    };
+    window.addEventListener("war-room:open-settings", handler);
+    return () => window.removeEventListener("war-room:open-settings", handler);
+  }, []);
 
   const switchTo = (s: ServerRow) => {
     setCurrentId(s.id);

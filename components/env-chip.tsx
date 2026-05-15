@@ -1,6 +1,8 @@
+// Color env-var chips by their prefix. WAR_ROOM_* is app-owned config,
+// SHARED_* is the team-wide convention, CLIENT_* is client-scoped.
 const PALETTE: Record<string, string> = {
-  EJ: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  SHARED: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  WAR: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+  SHARED: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   CLIENT: "bg-sky-500/15 text-sky-300 border-sky-500/30",
   DEFAULT: "bg-neutral-800 text-neutral-300 border-neutral-700",
 };

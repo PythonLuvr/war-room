@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { FolderPicker } from "@/components/folder-picker";
 
-type Identity = "ej" | "kerem" | "wes" | "custom";
+type Identity = "primary" | "teammate" | "custom";
 
 type WizardData = {
   identity: Identity;
@@ -30,19 +30,33 @@ type CheckResult = {
   workspace?: { ok: boolean; error?: string };
 };
 
-const PRESETS: Array<{ id: Identity; name: string; color: string }> = [
-  { id: "ej", name: "EJ", color: "from-amber-500/30 to-amber-700/20 border-amber-500/40 text-amber-200" },
-  { id: "kerem", name: "Kerem", color: "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200" },
-  { id: "wes", name: "Wes", color: "from-emerald-500/30 to-emerald-700/20 border-emerald-500/40 text-emerald-200" },
-  { id: "custom", name: "Someone else", color: "from-neutral-700 to-neutral-900 border-neutral-700 text-neutral-300" },
+const PRESETS: Array<{ id: Identity; name: string; hint: string; color: string }> = [
+  {
+    id: "primary",
+    name: "Workspace owner",
+    hint: "I'm the main user of this install",
+    color: "from-amber-500/30 to-amber-700/20 border-amber-500/40 text-amber-200",
+  },
+  {
+    id: "teammate",
+    name: "Teammate",
+    hint: "I'm joining someone else's setup",
+    color: "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200",
+  },
+  {
+    id: "custom",
+    name: "Custom",
+    hint: "Set my display name below",
+    color: "from-neutral-700 to-neutral-900 border-neutral-700 text-neutral-300",
+  },
 ];
 
 export function OnboardingWizard() {
   const [show, setShow] = useState(false);
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>({
-    identity: "ej",
-    displayName: "EJ",
+    identity: "primary",
+    displayName: "",
     claudeBin: "claude",
     workspaceRoot: "",
     syncOptIn: false,
@@ -80,11 +94,11 @@ export function OnboardingWizard() {
   }, []);
 
   const pickIdentity = (id: Identity) => {
-    const preset = PRESETS.find((p) => p.id === id);
     setData((cur) => ({
       ...cur,
       identity: id,
-      displayName: id === "custom" ? cur.displayName : (preset?.name ?? ""),
+      // Always allow the user to type their own name. Don't autofill from
+      // preset labels — those are role descriptions, not display names.
     }));
   };
 
@@ -129,7 +143,7 @@ export function OnboardingWizard() {
 
   if (!show) return null;
 
-  const steps = ["Welcome", "Identity", "Claude CLI", "Clients folder", "Bridge"];
+  const steps = ["Welcome", "Identity", "Agent", "Clients folder", "Bridge"];
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
@@ -162,18 +176,18 @@ export function OnboardingWizard() {
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === 0 && (
             <div className="space-y-4">
-              <h3 className="text-2xl font-semibold">Welcome to The War Room.</h3>
+              <h3 className="text-2xl font-semibold">Welcome to War Room.</h3>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                This dashboard wires your local Claude Code agent into a shared cockpit alongside
-                EJ, Kerem, and Wes. Each of you runs your own copy. Your agent works on your
-                machine, with your files, your memory, your skills.
+                This dashboard wires your local AI agent into a shared cockpit. Each
+                teammate runs their own copy. Your agent works on your machine, with
+                your files, your memory, your tools.
               </p>
               <div className="grid grid-cols-3 gap-3 mt-4">
                 <Hint icon={<Users className="w-4 h-4 text-amber-300" />} title="Identity">
                   Tell us who you are.
                 </Hint>
-                <Hint icon={<Terminal className="w-4 h-4 text-sky-300" />} title="Claude CLI">
-                  We spawn the local <code className="text-neutral-300">claude</code> binary.
+                <Hint icon={<Terminal className="w-4 h-4 text-sky-300" />} title="Agent">
+                  Pick from Claude, GPT, Gemini, Grok, or any OpenAI-compatible endpoint.
                 </Hint>
                 <Hint icon={<FolderOpen className="w-4 h-4 text-emerald-300" />} title="Clients">
                   Where your client folders live.
@@ -206,59 +220,25 @@ export function OnboardingWizard() {
                     >
                       <div className="font-semibold">{p.name}</div>
                       <div className="text-[10px] uppercase tracking-wider opacity-70 mt-0.5">
-                        {p.id === "custom" ? "set name below" : `agent: ${p.id}-brain`}
+                        {p.hint}
                       </div>
                     </button>
                   );
                 })}
               </div>
-              {data.identity === "custom" && (
-                <div>
-                  <Label>Display name</Label>
-                  <input
-                    value={data.displayName}
-                    onChange={(e) => setData((c) => ({ ...c, displayName: e.target.value }))}
-                    placeholder="What should we call you?"
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
-                  />
-                </div>
-              )}
+              <div>
+                <Label>Display name</Label>
+                <input
+                  value={data.displayName}
+                  onChange={(e) => setData((c) => ({ ...c, displayName: e.target.value }))}
+                  placeholder="What should we call you?"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
+                />
+              </div>
             </div>
           )}
 
-          {step === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Where's your Claude CLI?</h3>
-              <p className="text-sm text-neutral-400">
-                Path to the <code className="text-neutral-300">claude</code> binary on your machine.
-                Most people just have <code className="text-neutral-300">claude</code> on their PATH —
-                leave the default if you can run it from any terminal.
-              </p>
-              <div>
-                <Label>Binary path or command</Label>
-                <input
-                  value={data.claudeBin}
-                  onChange={(e) => {
-                    setData((c) => ({ ...c, claudeBin: e.target.value }));
-                    setCheck((c) => ({ ...c, claude: undefined }));
-                  }}
-                  placeholder="claude"
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-700"
-                />
-              </div>
-              <button
-                onClick={runCheck}
-                disabled={checking || !data.claudeBin.trim()}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40"
-              >
-                {checking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Terminal className="w-3.5 h-3.5" />}
-                Test
-              </button>
-              {check.claude && (
-                <CheckLine ok={check.claude.ok} okText={`Found: ${check.claude.version}`} errText={check.claude.error ?? "not found"} />
-              )}
-            </div>
-          )}
+          {step === 2 && <AgentPickStep />}
 
           {step === 3 && (
             <div className="space-y-4">
@@ -390,6 +370,99 @@ export function OnboardingWizard() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Agent picker step ──────────────────────────────────────────────────────
+
+type AgentMeta = {
+  id: string;
+  name: string;
+  kind: "cli" | "api";
+  capabilities: { toolUse: boolean; memory: boolean; fileAccess: boolean; notes?: string };
+  isConfigured: boolean;
+};
+
+function AgentPickStep() {
+  const [adapters, setAdapters] = useState<AgentMeta[]>([]);
+  const [activeId, setActiveId] = useState<string>("claude-cli");
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: { activeId: string; adapters: AgentMeta[] }) => {
+        setAdapters(d.adapters);
+        setActiveId(d.activeId);
+      })
+      .catch(() => {});
+  }, []);
+
+  const pick = async (id: string) => {
+    setActiveId(id);
+    try {
+      await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ "agent.backend": id }),
+      });
+    } catch {}
+  };
+
+  const cli = adapters.filter((a) => a.kind === "cli");
+  const api = adapters.filter((a) => a.kind === "api");
+
+  const Card = ({ a }: { a: AgentMeta }) => (
+    <button
+      onClick={() => pick(a.id)}
+      className={`text-left p-3 rounded-lg border transition-colors ${
+        activeId === a.id
+          ? "border-amber-500/50 bg-amber-500/10"
+          : "border-neutral-800 bg-neutral-900 hover:border-neutral-700"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`w-2 h-2 rounded-full ${a.isConfigured ? "bg-emerald-500" : "bg-neutral-700"}`}
+          title={a.isConfigured ? "Ready" : "Needs config"}
+        />
+        <span className="text-sm font-medium">{a.name}</span>
+        {activeId === a.id && (
+          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-200 ml-auto">
+            picked
+          </span>
+        )}
+      </div>
+      {a.capabilities.notes && (
+        <div className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{a.capabilities.notes}</div>
+      )}
+    </button>
+  );
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold">Pick your AI backend</h3>
+      <p className="text-sm text-neutral-400">
+        Which AI should War Room talk to? You can change this later in <strong>Settings → Agent</strong>.
+        Green dot means it&apos;s ready to use right now; grey means you still need to set a binary path
+        or paste an API key (also under Settings → Agent).
+      </p>
+      <div>
+        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">CLI bridge — full feature set</div>
+        <div className="grid grid-cols-2 gap-2">
+          {cli.map((a) => (
+            <Card key={a.id} a={a} />
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">BYOK direct API — chat only</div>
+        <div className="grid grid-cols-2 gap-2">
+          {api.map((a) => (
+            <Card key={a.id} a={a} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -132,11 +132,13 @@ export async function getChannelTree(
   const isShared = currentServer?.name === SHARED_SERVER_NAME;
   const isPersonalDefault = currentServer?.is_default === 1;
 
-  if (isShared) {
-    channels.push(HOME_CHANNEL);
-  }
+  // Home channel exists on every server so /c/home always routes to a
+  // renderable page. The dashboard widget itself decides what to render
+  // based on what data is actually available (cold-clone shows a welcome).
+  channels.push(HOME_CHANNEL);
 
-  // War Room renders system surfaces via Dashboard widgets — no System group needed.
+  // War Room (shared server, when present) renders system surfaces via
+  // dashboard widgets — no System group needed there.
   if (!isShared) {
     for (const c of BASE_SYSTEM_CHANNELS) channels.push(c);
     for (const c of DEFAULT_SERVER_EXTRA_SYSTEM) channels.push(c);
