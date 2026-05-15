@@ -18,16 +18,27 @@ The market for AI tooling assumes one user, one model, one task. Real operators 
 
 Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, anything OpenAI-Chat-Completions-compatible), drive them all from one Discord-style interface, and keep every session, service, approval, project folder, and generation tool on one screen. No cloud. No login. No data leaves your laptop.
 
+![The War Room dashboard](docs/screenshots/01-hero-dashboard.png)
+
 ---
 
 ## What's inside
 
 - **Pluggable AI backend.** Pick how War Room talks to AI: a local CLI (Claude Code, Codex, Gemini, or any custom command for full tool/memory/MCP support) or a direct API (Anthropic, OpenAI, Gemini, Grok, OpenRouter, Groq, Together, Mistral, DeepSeek, local Ollama. Anything OpenAI-Chat-Completions-shaped). Switch any time from the settings modal.
+
+![Agent backend picker](docs/screenshots/03-agent-picker.png)
+
 - **Channel-based workspace.** Discord-style layout. Each channel is wired to a real thing: a client folder, an AI session, a service, an approval queue.
 - **Persistent chat per project.** Open a channel, you're talking to an agent scoped to that folder. CLI backends get the full harness (memory, skills, MCP servers, hooks); API backends are stateless chat. Streaming output. Resumes across reloads.
 - **Multi-agent threads with `@mention` routing.** Pin a primary agent per channel from the header chip. Pull any other configured agent into a thread mid-conversation by `@claude`, `@openai`, `@gemini`, `@grok`. Each agent keeps its own private session and history; the UI merges them into one timeline. The boardroom seats every configured adapter as a first-class participant.
+
+![Multi-agent chat thread](docs/screenshots/02-multi-agent-chat.png)
+
 - **System channels per server.** Live activity feed, approvals inbox, services health, active sessions across every project. Non-deletable, always there.
 - **Project switcher.** Anything under `~/clients/` (or any folder you configure) shows up automatically as a channel. Briefs, notes, and recent sessions appear in context.
+
+![Multi-server activity view](docs/screenshots/04-multi-server-activity.png)
+
 - **Boardroom voice channel.** Multi-agent voice room backed by self-hosted LiveKit. Optional, gracefully hidden when not configured.
 - **Cross-machine config.** Shared env at `~/.war-room/.env`, machine-specific overrides at `.env.local`. API keys live in your local config, never in the repo.
 
