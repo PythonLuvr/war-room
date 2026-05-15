@@ -11,6 +11,7 @@
   <a href="https://github.com/pythonluvr/war-room/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pythonluvr/war-room/ci.yml?branch=main" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg" alt="License: AGPL-3.0-or-later"></a>
   <a href="https://github.com/pythonluvr/war-room/discussions"><img src="https://img.shields.io/badge/discuss-Discussions-green" alt="Discussions"></a>
+  <a href="https://discord.gg/ku6GJS92V2"><img src="https://img.shields.io/badge/chat-Discord-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 The market for AI tooling assumes one user, one model, one task. Real operators don't work that way. A working freelancer or small agency runs multiple AI agents in parallel across multiple client engagements, switches contexts every few minutes, and loses time to interface fragmentation. War Room is the dense, local-first cockpit that resolves it. Think Bloomberg Terminal, but for the people running AI as a primary part of their work.
@@ -141,9 +142,11 @@ If you've ever had Claude open in five terminals, GPT in three browser tabs, and
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and scope. Looking for a place to start? Browse issues labeled [good-first-issue](https://github.com/pythonluvr/war-room/labels/good-first-issue).
 
-## Discussions and support
+## Community
 
-For setup help, "how do I..." questions, ideas, or showing off your build, use [GitHub Discussions](https://github.com/pythonluvr/war-room/discussions). Bugs and concrete feature requests still go in Issues.
+- **[Discord](https://discord.gg/ku6GJS92V2)** for real-time chat, setup help, showing off your build, and hanging out with other operators running AI agents.
+- **[GitHub Discussions](https://github.com/pythonluvr/war-room/discussions)** for longer-form questions and ideas you want indexed and searchable.
+- **[GitHub Issues](https://github.com/pythonluvr/war-room/issues)** for bugs and concrete feature requests.
 
 ## Security
 

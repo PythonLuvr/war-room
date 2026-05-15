@@ -2,6 +2,8 @@
 
 Thanks for the interest. War Room is built and maintained by a single operator, so contribution flow is light.
 
+Talk to me or other contributors in the [Discord](https://discord.gg/ku6GJS92V2) before sinking serious time into anything.
+
 ## Before opening a PR
 
 - **Open an issue first** for anything bigger than a typo, a one-line fix, or a clear bug. Saves both sides time if the change isn't a fit.
