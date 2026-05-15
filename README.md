@@ -4,11 +4,18 @@
 
 <h1 align="center">War Room</h1>
 
-<p align="center"><strong>The cockpit for operators running AI at scale.</strong></p>
+<p align="center"><strong>The operating system for working with AI agents.</strong></p>
 
-War Room is a local-first desktop dashboard for people who run AI agents as a primary part of their work. Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, anything OpenAI-Chat-Completions-compatible), drive them all from one Discord-style interface, and keep every session, service, approval, client folder, and generation tool on one screen. No cloud. No login. No data leaves your laptop.
+<p align="center">
+  <a href="https://github.com/pythonluvr/war-room/releases"><img src="https://img.shields.io/github/v/release/pythonluvr/war-room?display_name=tag&sort=semver" alt="Latest release"></a>
+  <a href="https://github.com/pythonluvr/war-room/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pythonluvr/war-room/ci.yml?branch=main" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg" alt="License: AGPL-3.0-or-later"></a>
+  <a href="https://github.com/pythonluvr/war-room/discussions"><img src="https://img.shields.io/badge/discuss-Discussions-green" alt="Discussions"></a>
+</p>
 
-Built for the freelancer or small agency operator who has five clients, three agents, and ten browser tabs open at any given moment.
+The market for AI tooling assumes one user, one model, one task. Real operators don't work that way. A working freelancer or small agency runs multiple AI agents in parallel across multiple client engagements, switches contexts every few minutes, and loses time to interface fragmentation. War Room is the dense, local-first cockpit that resolves it. Think Bloomberg Terminal, but for the people running AI as a primary part of their work.
+
+Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, anything OpenAI-Chat-Completions-compatible), drive them all from one Discord-style interface, and keep every session, service, approval, project folder, and generation tool on one screen. No cloud. No login. No data leaves your laptop.
 
 ---
 
@@ -55,10 +62,10 @@ Spins up dev on port 3030 with a fresh temp database and your real `.env.local` 
 
 ```bash
 npm run build
-npm start
+node .next/standalone/server.js
 ```
 
-This serves on `http://localhost:3000`. Run behind a process manager like PM2 if you want it always-on.
+This serves on `http://localhost:3000`. The standalone bundle is what the Electron desktop wrapper launches under the hood; running it directly is the right path for headless / VPS / PM2 deployments. Run behind a process manager like PM2 if you want it always-on.
 
 ---
 
@@ -111,7 +118,11 @@ If you've ever had Claude open in five terminals, GPT in three browser tabs, and
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and scope. Looking for a place to start? Browse issues labeled [good-first-issue](https://github.com/pythonluvr/war-room/labels/good-first-issue).
+
+## Discussions and support
+
+For setup help, "how do I..." questions, ideas, or showing off your build, use [GitHub Discussions](https://github.com/pythonluvr/war-room/discussions). Bugs and concrete feature requests still go in Issues.
 
 ## Security
 
@@ -119,4 +130,8 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) for responsible disclosure
 
 ## License
 
-[AGPL-3.0-or-later](LICENSE). If you host War Room as a service for others, you must make your modified source available under the same license. Commercial licenses are negotiable. Open an issue.
+[AGPL-3.0-or-later](LICENSE). Use, fork, and modify freely. If you run War Room as a hosted service for other people, you must publish your modified source under the same license. Solo and team self-hosting on your own machines has no such obligation. Commercial licenses for closed-source hosted use are negotiable. Open an issue.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md), or browse the full release history on [GitHub Releases](https://github.com/pythonluvr/war-room/releases).

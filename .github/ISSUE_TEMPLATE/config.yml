@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions (questions, ideas, show and tell)
+    url: https://github.com/pythonluvr/war-room/discussions
+    about: For setup help, "how do I...", or general conversation. Bugs and features still go in Issues.
+  - name: Security vulnerability
+    url: https://github.com/pythonluvr/war-room/security/advisories/new
+    about: Report security issues privately. Do NOT open a public issue.

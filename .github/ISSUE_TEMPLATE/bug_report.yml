@@ -1,0 +1,98 @@
+name: Bug report
+description: Something is broken or misbehaving
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. The more specific you are, the faster it gets fixed.
+
+        Before filing, please check existing issues: https://github.com/pythonluvr/war-room/issues
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do and what went wrong? Include exact steps to reproduce.
+      placeholder: |
+        1. Ran `npm run dev`
+        2. Opened http://localhost:3000
+        3. Clicked Settings → Agent tab
+        4. Saw...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: install-type
+    attributes:
+      label: How are you running War Room?
+      options:
+        - Dev mode (`npm run dev`)
+        - Production build (`npm run build && npm start`)
+        - Electron desktop installer
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: war-room-version
+    attributes:
+      label: War Room version
+      description: Run `cat package.json | grep version` from the repo root, or check Settings → About.
+      placeholder: "0.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node.js version
+      description: Run `node --version`
+      placeholder: "v20.x.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: agent-backend
+    attributes:
+      label: Which agent backend are you using?
+      options:
+        - claude-cli
+        - codex-cli
+        - gemini-cli
+        - custom-cli
+        - anthropic-api
+        - openai-api
+        - gemini-api
+        - grok-api
+        - openai-compat-api
+        - Not configured yet / does not apply
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: |
+        Paste any error output from the dev server terminal, the browser console (F12), or the Electron main-process log. Screenshots are welcome.
+      render: shell
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checks before filing
+      options:
+        - label: I searched existing issues and didn't find a duplicate
+          required: true
+        - label: I'm running the latest version (or have noted the version above)
+          required: true
