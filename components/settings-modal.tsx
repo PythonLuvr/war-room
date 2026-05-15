@@ -158,7 +158,7 @@ function OnboardingSummary() {
       <KV k="Identity" v={data["onboarding.identity"]} />
       <KV k="Display name" v={data["onboarding.displayName"]} />
       <KV k="Claude CLI" v={data["onboarding.claudeBin"]} />
-      <KV k="Clients folder" v={data["onboarding.workspaceRoot"]} />
+      <KV k="Projects folder" v={data["onboarding.workspaceRoot"]} />
       <KV k="Sync opt-in" v={data["onboarding.syncOptIn"] === "1" ? "yes" : "no"} />
     </dl>
   );
@@ -432,20 +432,74 @@ function BoardroomTab() {
 }
 
 function SyncTab() {
+  const [syncUrl, setSyncUrl] = useState<string>("");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/onboarding")
+      .then((r) => r.json())
+      .then((d: { settings: Record<string, string | null> }) => {
+        setSyncUrl(d.settings["onboarding.syncUrl"] ?? "");
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ syncUrl, syncOptIn: !!syncUrl.trim() }),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const connected = !!syncUrl.trim();
+
   return (
     <div className="space-y-6">
-      <Section title="Cross-machine sync" description="Bridges your dashboard with your teammates' dashboards so @-mentions, channels, jobs, and activity stay in sync.">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="w-2 h-2 rounded-full bg-neutral-600" />
-          <span className="text-neutral-300">Not connected — sync server not deployed yet</span>
+      <Section title="Cross-machine sync" description="War Room is local-first by default. Each install only talks to the agent on its own machine. To bridge teammates' installs in real time, point this at a sync relay you host.">
+        <div className="flex items-center gap-2 text-sm mb-3">
+          <span className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-neutral-600"}`} />
+          <span className="text-neutral-300">
+            {connected ? `Configured — ${syncUrl}` : "Not configured — staying local"}
+          </span>
         </div>
-        <p className="text-xs text-neutral-500 mt-3 leading-relaxed">
-          Until the shared sync service is live, every War Room instance runs purely local. Your channels, jobs, and knowledge entries live in
-          <code className="mx-1 text-neutral-400">~/.war-room/app.db</code>
-          on your machine only. When the sync service ships, you'll see it appear here with a connection toggle.
+        <div className="space-y-2">
+          <input
+            value={syncUrl}
+            onChange={(e) => setSyncUrl(e.target.value)}
+            placeholder="wss://war-room.your-domain.com  or  http://192.168.1.50:7880"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-700"
+            disabled={!loaded}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-neutral-500 flex-1 leading-relaxed">
+              <strong className="text-neutral-400">Self-hosted only.</strong> War Room never connects
+              to a server we run. Bring your own — a small relay on your VPS, your home network,
+              or whatever you control. Reference implementation will live in <code className="text-neutral-400">tools/</code> in the repo.
+            </p>
+            <button
+              onClick={save}
+              disabled={!loaded || saving}
+              className="px-3 py-1.5 text-xs rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40 shrink-0"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-neutral-500 mt-4 leading-relaxed">
+          Without sync, your channels, jobs, and knowledge live in{" "}
+          <code className="mx-0.5 text-neutral-400">~/.war-room/app.db</code> on this machine only.
+          That&apos;s a feature, not a limitation.
         </p>
       </Section>
-      <Section title="Auto-update" description="The app pulls new versions from a self-hosted update server on launch.">
+      <Section title="Auto-update" description="The app pulls new versions from whatever update server was baked into this build. Check the WAR_ROOM_UPDATE_URL config or your release.js to change the source.">
         <div className="flex items-center gap-2 text-sm">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-neutral-300">Connected — checks for updates on every launch</span>

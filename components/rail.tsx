@@ -124,7 +124,14 @@ function ServerIcon({
   active: boolean;
   onClick: () => void;
 }) {
-  const palette = COLOR_MAP[server.color] ?? COLOR_MAP.amber;
+  // The canonical War Room server is always rendered with its purple
+  // brand wrapper + SVG mark, regardless of whatever color the row carries
+  // in the database. Forkers can rename or recolor everything else, but the
+  // shared War Room emblem stays consistent across every install.
+  const isWarRoom = isWarRoomServer(server);
+  const palette = isWarRoom
+    ? COLOR_MAP.violet
+    : COLOR_MAP[server.color] ?? COLOR_MAP.amber;
   return (
     <button
       onClick={onClick}
@@ -142,7 +149,7 @@ function ServerIcon({
           active ? "rounded-2xl" : "group-hover:rounded-2xl"
         } ${isEmoji(server.icon) ? "text-2xl" : "text-sm"}`}
       >
-        {isWarRoomServer(server) ? (
+        {isWarRoom ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src="/war-room-logo.svg" alt="" className="w-7 h-7" />
         ) : (

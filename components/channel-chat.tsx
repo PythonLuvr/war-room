@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
-import { Send, Square, Slash } from "lucide-react";
+import { Send, Square, Slash, Sparkles } from "lucide-react";
 import { localMember } from "@/lib/team";
 
 const LOCAL = localMember();
@@ -12,20 +12,84 @@ type HistoryMessage = {
   id: number;
   role: string;
   content: string;
+  agent_id: string | null;
+  adapter_id: string;
   created_at: number;
 };
 
+type AdapterMeta = { id: string; name: string };
+
 type ChatItem =
   | { kind: "user"; text: string; id: string; ts: number }
-  | { kind: "assistant"; text: string; id: string; streaming: boolean; ts: number }
+  | {
+      kind: "assistant";
+      text: string;
+      id: string;
+      streaming: boolean;
+      ts: number;
+      /** Which adapter generated this turn. Filled from the `adapter`
+       *  stream event before any text arrives, or from history rows. */
+      agentId: string | null;
+    }
   | { kind: "tool"; name: string; input: unknown; id: string; ts: number }
   | { kind: "system"; text: string; id: string; ts: number };
 
+// Stable color per adapter so the same agent always reads the same way
+// across the chat. Mirrors the rotation used in the boardroom.
+const AGENT_COLOR_ROTATION = ["amber", "sky", "emerald", "violet", "fuchsia", "rose"] as const;
+type AgentColor = (typeof AGENT_COLOR_ROTATION)[number];
+function colorForAgent(agentId: string | null): AgentColor {
+  if (!agentId) return "amber";
+  let h = 0;
+  for (let i = 0; i < agentId.length; i++) h = (h * 31 + agentId.charCodeAt(i)) >>> 0;
+  return AGENT_COLOR_ROTATION[h % AGENT_COLOR_ROTATION.length];
+}
+const AGENT_PALETTE: Record<AgentColor, { ring: string; chip: string; name: string; avatar: string }> = {
+  amber: {
+    ring: "from-amber-500/30 to-amber-700/20 border-amber-500/40",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-500/40",
+    name: "text-amber-300",
+    avatar: "text-amber-200",
+  },
+  sky: {
+    ring: "from-sky-500/30 to-sky-700/20 border-sky-500/40",
+    chip: "bg-sky-500/15 text-sky-300 border-sky-500/40",
+    name: "text-sky-300",
+    avatar: "text-sky-200",
+  },
+  emerald: {
+    ring: "from-emerald-500/30 to-emerald-700/20 border-emerald-500/40",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+    name: "text-emerald-300",
+    avatar: "text-emerald-200",
+  },
+  violet: {
+    ring: "from-violet-500/30 to-violet-700/20 border-violet-500/40",
+    chip: "bg-violet-500/15 text-violet-300 border-violet-500/40",
+    name: "text-violet-300",
+    avatar: "text-violet-200",
+  },
+  fuchsia: {
+    ring: "from-fuchsia-500/30 to-fuchsia-700/20 border-fuchsia-500/40",
+    chip: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/40",
+    name: "text-fuchsia-300",
+    avatar: "text-fuchsia-200",
+  },
+  rose: {
+    ring: "from-rose-500/30 to-rose-700/20 border-rose-500/40",
+    chip: "bg-rose-500/15 text-rose-300 border-rose-500/40",
+    name: "text-rose-300",
+    avatar: "text-rose-200",
+  },
+};
+
 export function ChannelChat({
+  channelId,
   channelName,
   projectPath,
   description,
 }: {
+  channelId?: string;
   channelName: string;
   projectPath: string;
   description?: string;
@@ -34,21 +98,44 @@ export function ChannelChat({
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [streaming, setStreaming] = useState(false);
-  const [claudeSessionId, setClaudeSessionId] = useState<string | null>(null);
+  const [adapters, setAdapters] = useState<AdapterMeta[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Adapter id → display name lookup, used to label assistant bubbles.
+  const adapterMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of adapters) m.set(a.id, a.name);
+    return m;
+  }, [adapters]);
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: { adapters: AdapterMeta[] }) => setAdapters(d.adapters ?? []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoadingHistory(true);
     fetch(`/api/chat/history?projectPath=${encodeURIComponent(projectPath)}`)
       .then((r) => r.json())
-      .then((d: { session: { claude_session_id: string | null } | null; messages: HistoryMessage[] }) => {
-        setClaudeSessionId(d.session?.claude_session_id ?? null);
+      .then((d: { messages: HistoryMessage[] }) => {
         setItems(
           (d.messages ?? []).map((m, i) =>
             m.role === "user"
               ? { kind: "user", text: m.content, id: `h-${i}`, ts: m.created_at }
-              : { kind: "assistant", text: m.content, id: `h-${i}`, streaming: false, ts: m.created_at },
+              : {
+                  kind: "assistant",
+                  text: m.content,
+                  id: `h-${i}`,
+                  streaming: false,
+                  ts: m.created_at,
+                  // Prefer the explicit agent_id stamped on the row; fall
+                  // back to the session's adapter (covers messages written
+                  // before agent_id existed).
+                  agentId: m.agent_id ?? m.adapter_id ?? null,
+                },
           ),
         );
       })
@@ -71,7 +158,7 @@ export function ChannelChat({
     setItems((cur) => [
       ...cur,
       { kind: "user", text: prompt, id: userId, ts: now },
-      { kind: "assistant", text: "", id: asstId, streaming: true, ts: now },
+      { kind: "assistant", text: "", id: asstId, streaming: true, ts: now, agentId: null },
     ]);
     setStreaming(true);
 
@@ -83,7 +170,7 @@ export function ChannelChat({
         method: "POST",
         signal: ac.signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectPath, prompt }),
+        body: JSON.stringify({ projectPath, prompt, channelId }),
       });
       if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
 
@@ -151,7 +238,17 @@ export function ChannelChat({
         ]);
         break;
       case "session_id":
-        setClaudeSessionId(String(evt.sessionId));
+        // Per-(project, adapter) session id is server-side state now; the
+        // client doesn't need to track it.
+        break;
+      case "adapter":
+        setItems((cur) =>
+          cur.map((it) =>
+            it.kind === "assistant" && it.id === asstId
+              ? { ...it, agentId: String(evt.adapterId) }
+              : it,
+          ),
+        );
         break;
       case "error":
         setItems((cur) => [
@@ -182,6 +279,7 @@ export function ChannelChat({
                 key={it.id}
                 item={it}
                 prev={items[i - 1]}
+                adapterMap={adapterMap}
               />
             ))}
           </div>
@@ -194,7 +292,7 @@ export function ChannelChat({
         onStop={stop}
         streaming={streaming}
         channelName={channelName}
-        sessionLive={!!claudeSessionId}
+        sessionLive={false}
       />
     </div>
   );
@@ -250,7 +348,15 @@ function Welcome({
   );
 }
 
-function ChatMessage({ item, prev }: { item: ChatItem; prev?: ChatItem }) {
+function ChatMessage({
+  item,
+  prev,
+  adapterMap,
+}: {
+  item: ChatItem;
+  prev?: ChatItem;
+  adapterMap: Map<string, string>;
+}) {
   if (item.kind === "system") {
     return (
       <div className="text-xs text-amber-400/80 border-l-2 border-amber-900/50 pl-3 py-1 ml-12 my-2">
@@ -266,21 +372,34 @@ function ChatMessage({ item, prev }: { item: ChatItem; prev?: ChatItem }) {
     );
   }
   const isUser = item.kind === "user";
+  // "Same author" now means same kind AND, for assistant turns, the same
+  // agent — so a Claude bubble followed by a Gemini bubble re-renders the
+  // header instead of pretending it's one continuous reply.
   const sameAuthor =
-    prev && (prev.kind === "user") === isUser && item.ts - (prev.ts ?? 0) < 5 * 60 * 1000;
+    prev &&
+    (prev.kind === "user") === isUser &&
+    item.ts - (prev.ts ?? 0) < 5 * 60 * 1000 &&
+    (isUser ||
+      (prev.kind === "assistant" &&
+        item.kind === "assistant" &&
+        prev.agentId === item.agentId));
+
+  const agentId = item.kind === "assistant" ? item.agentId : null;
+  const palette = AGENT_PALETTE[colorForAgent(agentId)];
+  const agentName = agentId ? adapterMap.get(agentId) ?? agentId : "Agent";
 
   return (
     <div className={`flex gap-3 ${sameAuthor ? "mt-0.5" : "mt-4"} group hover:bg-neutral-900/30 rounded -mx-2 px-2 py-0.5`}>
       <div className="w-9 shrink-0">
         {!sameAuthor && (
           <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold border bg-gradient-to-br ${
               isUser
-                ? "bg-gradient-to-br from-sky-500/30 to-sky-700/20 border border-sky-500/40 text-sky-200"
-                : "bg-gradient-to-br from-amber-500/30 to-amber-700/20 border border-amber-500/40 text-amber-200"
+                ? "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200"
+                : `${palette.ring} ${palette.avatar}`
             }`}
           >
-            {isUser ? LOCAL.name[0] : "✦"}
+            {isUser ? LOCAL.name[0] : <Sparkles className="w-4 h-4" />}
           </div>
         )}
       </div>
@@ -289,14 +408,17 @@ function ChatMessage({ item, prev }: { item: ChatItem; prev?: ChatItem }) {
           <div className="flex items-baseline gap-2 mb-0.5">
             <span
               className={`text-sm font-semibold ${
-                isUser ? "text-sky-300" : "text-amber-300"
+                isUser ? "text-sky-300" : palette.name
               }`}
             >
-              {isUser ? LOCAL.name : `${LOCAL.name}-Agent`}
+              {isUser ? LOCAL.name : agentName}
             </span>
             {!isUser && (
-              <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                app
+              <span
+                className={`text-[9px] uppercase tracking-wider px-1 py-0.5 rounded border ${palette.chip}`}
+                title={agentId ?? "agent"}
+              >
+                AI
               </span>
             )}
             <span className="text-[10px] text-neutral-600">{formatTime(item.ts)}</span>

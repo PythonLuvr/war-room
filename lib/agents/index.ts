@@ -6,6 +6,7 @@
 
 import {
   addMessage,
+  getChannelOverrideAgent,
   getSession,
   getSetting,
   setClaudeSessionId,
@@ -52,7 +53,25 @@ export function activeAdapter(): AgentAdapter {
 export type SendMessageOptions = Omit<SendOptions, "sessionId"> & {
   /** If false, skip persisting the user/assistant turn to SQLite. */
   recordToDb?: boolean;
+  /** Explicit adapter id. Wins over the per-channel override and the global
+   *  default. Used by the boardroom when the user @-mentions a specific
+   *  agent. */
+  backendId?: string;
+  /** Channel id to consult for a per-channel agent override. Falls back to
+   *  the global default when no override is set. */
+  channelId?: string;
 };
+
+/** Resolve the adapter id for a given send. Precedence:
+ *  explicit backendId > channel override > global default. */
+export function resolveAdapterId(opts: { backendId?: string; channelId?: string }): string {
+  if (opts.backendId && getAdapter(opts.backendId)) return opts.backendId;
+  if (opts.channelId) {
+    const pinned = getChannelOverrideAgent(opts.channelId);
+    if (pinned && getAdapter(pinned)) return pinned;
+  }
+  return activeAdapterId();
+}
 
 /**
  * High-level entry point used by /api/chat. Wraps the active adapter with
@@ -60,14 +79,22 @@ export type SendMessageOptions = Omit<SendOptions, "sessionId"> & {
  */
 export async function sendMessage(opts: SendMessageOptions): Promise<void> {
   const { projectPath, prompt, onEvent, signal, recordToDb = true } = opts;
-  const adapter = activeAdapter();
+  const adapterId = resolveAdapterId({ backendId: opts.backendId, channelId: opts.channelId });
+  const adapter = getAdapter(adapterId) ?? activeAdapter();
+
+  // Sessions and history are scoped per (project, adapter), so each agent
+  // keeps its own --resume token and its own private conversation thread
+  // with the underlying provider. The UI later joins them back into one
+  // canonical timeline for display.
+  // Tell the client which agent owns this turn before any text starts.
+  onEvent({ type: "adapter", adapterId: adapter.id });
 
   let row: SessionRow | null = null;
   if (recordToDb) {
-    row = upsertSession(projectPath);
-    addMessage(row.id, "user", prompt);
+    row = upsertSession(projectPath, adapter.id);
+    addMessage(row.id, "user", prompt, { agentId: null });
   }
-  const existing = recordToDb ? getSession(projectPath) : null;
+  const existing = recordToDb ? getSession(projectPath, adapter.id) : null;
   const sessionId = existing?.claude_session_id ?? null;
 
   let assistantText = "";
@@ -90,7 +117,7 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
   });
 
   if (row && assistantText.trim().length > 0) {
-    addMessage(row.id, "assistant", assistantText);
+    addMessage(row.id, "assistant", assistantText, { agentId: adapter.id });
   }
 }
 

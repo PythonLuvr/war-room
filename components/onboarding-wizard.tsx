@@ -9,13 +9,14 @@ import {
   Sparkles,
   Terminal,
   FolderOpen,
-  Cloud,
   Users,
   X,
+  ExternalLink,
+  KeyRound,
 } from "lucide-react";
 import { FolderPicker } from "@/components/folder-picker";
 
-type Identity = "primary" | "teammate" | "custom";
+type Identity = "primary" | "teammate";
 
 type WizardData = {
   identity: Identity;
@@ -23,6 +24,7 @@ type WizardData = {
   claudeBin: string;
   workspaceRoot: string;
   syncOptIn: boolean;
+  syncUrl: string;
 };
 
 type CheckResult = {
@@ -43,12 +45,6 @@ const PRESETS: Array<{ id: Identity; name: string; hint: string; color: string }
     hint: "I'm joining someone else's setup",
     color: "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200",
   },
-  {
-    id: "custom",
-    name: "Custom",
-    hint: "Set my display name below",
-    color: "from-neutral-700 to-neutral-900 border-neutral-700 text-neutral-300",
-  },
 ];
 
 export function OnboardingWizard() {
@@ -60,6 +56,7 @@ export function OnboardingWizard() {
     claudeBin: "claude",
     workspaceRoot: "",
     syncOptIn: false,
+    syncUrl: "",
   });
   const [check, setCheck] = useState<CheckResult>({});
   const [checking, setChecking] = useState(false);
@@ -75,11 +72,13 @@ export function OnboardingWizard() {
         setShow(true);
         setData((cur) => ({
           ...cur,
-          identity: (d.settings["onboarding.identity"] as Identity) || cur.identity,
+          identity:
+            d.settings["onboarding.identity"] === "teammate" ? "teammate" : "primary",
           displayName: d.settings["onboarding.displayName"] || cur.displayName,
           claudeBin: d.settings["onboarding.claudeBin"] || d.defaults.claudeBin,
           workspaceRoot: d.settings["onboarding.workspaceRoot"] || d.defaults.workspaceRoot,
           syncOptIn: d.settings["onboarding.syncOptIn"] === "1",
+          syncUrl: d.settings["onboarding.syncUrl"] ?? "",
         }));
       })
       .catch(() => {});
@@ -94,12 +93,7 @@ export function OnboardingWizard() {
   }, []);
 
   const pickIdentity = (id: Identity) => {
-    setData((cur) => ({
-      ...cur,
-      identity: id,
-      // Always allow the user to type their own name. Don't autofill from
-      // preset labels — those are role descriptions, not display names.
-    }));
+    setData((cur) => ({ ...cur, identity: id }));
   };
 
   const runCheck = async () => {
@@ -143,7 +137,7 @@ export function OnboardingWizard() {
 
   if (!show) return null;
 
-  const steps = ["Welcome", "Identity", "Agent", "Clients folder", "Bridge"];
+  const steps = ["Welcome", "Identity", "Agent", "Projects folder", "Sync"];
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
@@ -189,8 +183,8 @@ export function OnboardingWizard() {
                 <Hint icon={<Terminal className="w-4 h-4 text-sky-300" />} title="Agent">
                   Pick from Claude, GPT, Gemini, Grok, or any OpenAI-compatible endpoint.
                 </Hint>
-                <Hint icon={<FolderOpen className="w-4 h-4 text-emerald-300" />} title="Clients">
-                  Where your client folders live.
+                <Hint icon={<FolderOpen className="w-4 h-4 text-emerald-300" />} title="Projects">
+                  Where your project folders live.
                 </Hint>
               </div>
               <p className="text-xs text-neutral-500 mt-2">
@@ -201,7 +195,7 @@ export function OnboardingWizard() {
 
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Who's running this dashboard?</h3>
+              <h3 className="text-xl font-semibold">Who&apos;s running this dashboard?</h3>
               <p className="text-sm text-neutral-400">
                 Pick yourself. This is how your messages get attributed in the boardroom.
               </p>
@@ -242,13 +236,19 @@ export function OnboardingWizard() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Where do your client folders live?</h3>
+              <h3 className="text-xl font-semibold">Where do your project folders live?</h3>
               <p className="text-sm text-neutral-400">
-                The dashboard scans this folder and lists each subdirectory as a client channel in your sidebar. Default is{" "}
-                <code className="text-neutral-300">~/clients</code>. Your agent root (where Claude itself lives) is a separate thing — set per-channel later when you create channels.
+                War Room scans this folder and lists each subdirectory as a channel in your
+                sidebar. Doesn&apos;t matter if those are clients, personal builds, side projects,
+                or something else. Anything in here becomes a channel your agent can work in.
+              </p>
+              <p className="text-xs text-neutral-500">
+                Default is <code className="text-neutral-300">~/clients</code> — change it to
+                whatever fits your setup. You can always add more roots later under{" "}
+                <strong className="text-neutral-400">Settings</strong>.
               </p>
               <div>
-                <Label>Clients folder (absolute path)</Label>
+                <Label>Projects folder (absolute path)</Label>
                 <div className="flex items-stretch gap-2">
                   <input
                     value={data.workspaceRoot}
@@ -256,7 +256,7 @@ export function OnboardingWizard() {
                       setData((c) => ({ ...c, workspaceRoot: e.target.value }));
                       setCheck((c) => ({ ...c, workspace: undefined }));
                     }}
-                    placeholder="C:\Users\you\clients"
+                    placeholder="C:\Users\you\projects"
                     className="flex-1 bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-700"
                   />
                   <button
@@ -285,43 +285,39 @@ export function OnboardingWizard() {
 
           {step === 4 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Bridge to the team</h3>
+              <h3 className="text-xl font-semibold">Sync (optional)</h3>
               <p className="text-sm text-neutral-400">
-                Today, each teammate's dashboard runs locally and only talks to their own agent.
-                A shared sync server is on
-                the roadmap. When it ships, flipping this on will let@-mentions in the boardroom
-                actually reach your teammates' agents.
+                War Room runs <strong>fully local by default</strong>. Your channels, jobs, knowledge,
+                and chats live in <code className="text-neutral-300">~/.war-room/app.db</code> on
+                your machine. Nothing leaves it.
               </p>
-              <button
-                onClick={() => setData((c) => ({ ...c, syncOptIn: !c.syncOptIn }))}
-                className={`w-full px-4 py-3 rounded-lg border text-left flex items-start gap-3 ${
-                  data.syncOptIn
-                    ? "bg-violet-500/10 border-violet-500/40"
-                    : "border-neutral-800 bg-neutral-900 hover:border-neutral-700"
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
-                    data.syncOptIn ? "bg-violet-500/30 border-violet-400" : "border-neutral-700"
-                  }`}
-                >
-                  {data.syncOptIn && <Check className="w-3.5 h-3.5 text-violet-200" />}
+              <p className="text-sm text-neutral-400">
+                If you want your install to talk to teammates&apos; installs in real time
+                (cross-machine @-mentions, shared activity feed, presence), <strong>you</strong> run
+                a small relay server on a host you control. Drop the URL in below if you have one,
+                or leave blank and stay local.
+              </p>
+              <div>
+                <Label>Your sync server URL (optional)</Label>
+                <input
+                  value={data.syncUrl ?? ""}
+                  onChange={(e) =>
+                    setData((c) => ({ ...c, syncUrl: e.target.value, syncOptIn: !!e.target.value.trim() }))
+                  }
+                  placeholder="wss://war-room.your-domain.com  or  http://192.168.1.50:7880"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-700"
+                />
+                <div className="text-[10px] text-neutral-600 mt-1.5">
+                  Self-host whatever sync service this version of War Room expects. Reference
+                  implementation will live in the <code className="text-neutral-500">tools/</code>{" "}
+                  directory of the repo. We don&apos;t host one for you — your data, your server.
                 </div>
-                <div>
-                  <div className="text-sm font-medium flex items-center gap-1.5">
-                    <Cloud className="w-3.5 h-3.5 text-violet-300" />
-                    Opt in to the sync bridge when it lands
-                  </div>
-                  <div className="text-xs text-neutral-500 mt-0.5">
-                    We'll prompt you with the connection details when the service goes live.
-                    Until then, nothing leaves your machine.
-                  </div>
-                </div>
-              </button>
+              </div>
               <div className="text-[11px] text-neutral-500 leading-relaxed border-t border-neutral-900 pt-3 mt-2">
-                <strong className="text-neutral-400">What works locally today:</strong> your own
-                agent in the boardroom and dedicated channels, your own jobs/decisions/knowledge,
-                LiveKit voice (if configured) for live meetings.
+                <strong className="text-neutral-400">What works locally with no sync:</strong> your
+                own agent in the boardroom and dedicated channels, your own jobs / decisions /
+                knowledge, your own files, LiveKit voice (if you point at any LiveKit server you
+                trust). Everything except cross-machine teammate visibility.
               </div>
             </div>
           )}
@@ -375,6 +371,11 @@ export function OnboardingWizard() {
 }
 
 // ─── Agent picker step ──────────────────────────────────────────────────────
+//
+// Layout B: one row per provider. Each row shows the provider name + two
+// buttons inline: [CLI] and [API key]. Clicking either picks that adapter
+// as the active backend. Configured adapters get a green dot; unconfigured
+// CLI buttons surface a small "install →" link to the official docs.
 
 type AgentMeta = {
   id: string;
@@ -382,6 +383,49 @@ type AgentMeta = {
   kind: "cli" | "api";
   capabilities: { toolUse: boolean; memory: boolean; fileAccess: boolean; notes?: string };
   isConfigured: boolean;
+};
+
+type ProviderRow = {
+  label: string;
+  cliId: string | null;
+  apiId: string | null;
+  installUrl?: string;
+  installNote?: string;
+};
+
+const PROVIDER_ROWS: ProviderRow[] = [
+  {
+    label: "Claude",
+    cliId: "claude-cli",
+    apiId: "anthropic-api",
+    installUrl: "https://docs.claude.com/en/docs/claude-code/setup",
+    installNote: "npm i -g @anthropic-ai/claude-code",
+  },
+  {
+    label: "OpenAI",
+    cliId: "codex-cli",
+    apiId: "openai-api",
+    installUrl: "https://github.com/openai/codex",
+    installNote: "Codex CLI",
+  },
+  {
+    label: "Google Gemini",
+    cliId: "gemini-cli",
+    apiId: "gemini-api",
+    installUrl: "https://github.com/google-gemini/gemini-cli",
+    installNote: "npm i -g @google/gemini-cli",
+  },
+  {
+    label: "xAI Grok",
+    cliId: null,
+    apiId: "grok-api",
+  },
+];
+
+const CUSTOM_ROW: ProviderRow = {
+  label: "Custom",
+  cliId: "custom-cli",
+  apiId: "openai-compat-api",
 };
 
 function AgentPickStep() {
@@ -409,58 +453,98 @@ function AgentPickStep() {
     } catch {}
   };
 
-  const cli = adapters.filter((a) => a.kind === "cli");
-  const api = adapters.filter((a) => a.kind === "api");
+  const byId = new Map(adapters.map((a) => [a.id, a] as const));
 
-  const Card = ({ a }: { a: AgentMeta }) => (
-    <button
-      onClick={() => pick(a.id)}
-      className={`text-left p-3 rounded-lg border transition-colors ${
-        activeId === a.id
-          ? "border-amber-500/50 bg-amber-500/10"
-          : "border-neutral-800 bg-neutral-900 hover:border-neutral-700"
-      }`}
-    >
-      <div className="flex items-center gap-2">
+  const Pill = ({
+    adapterId,
+    icon,
+    label,
+  }: {
+    adapterId: string | null;
+    icon: React.ReactNode;
+    label: string;
+  }) => {
+    if (!adapterId) {
+      return (
+        <span className="px-2.5 py-1.5 text-[11px] rounded border border-neutral-900 bg-neutral-950 text-neutral-700 italic">
+          n/a
+        </span>
+      );
+    }
+    const a = byId.get(adapterId);
+    const isActive = activeId === adapterId;
+    const ready = a?.isConfigured ?? false;
+    return (
+      <button
+        onClick={() => pick(adapterId)}
+        className={`group flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded border transition-colors ${
+          isActive
+            ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
+            : "border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-neutral-700"
+        }`}
+        title={ready ? "Configured · click to use" : "Click to use · still needs setup in Settings → Agent"}
+      >
         <span
-          className={`w-2 h-2 rounded-full ${a.isConfigured ? "bg-emerald-500" : "bg-neutral-700"}`}
-          title={a.isConfigured ? "Ready" : "Needs config"}
+          className={`w-1.5 h-1.5 rounded-full shrink-0 ${ready ? "bg-emerald-500" : "bg-neutral-700"}`}
         />
-        <span className="text-sm font-medium">{a.name}</span>
-        {activeId === a.id && (
-          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-200 ml-auto">
-            picked
-          </span>
+        {icon}
+        <span>{label}</span>
+      </button>
+    );
+  };
+
+  const Row = ({ p }: { p: ProviderRow }) => (
+    <div className="flex items-center gap-3 py-2.5 border-b border-neutral-900 last:border-b-0">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-neutral-100">{p.label}</div>
+        {p.cliId && p.installUrl && !byId.get(p.cliId)?.isConfigured && (
+          <a
+            href={p.installUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1 mt-0.5"
+          >
+            don&apos;t have the CLI? install
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
         )}
       </div>
-      {a.capabilities.notes && (
-        <div className="text-[11px] text-neutral-500 mt-1.5 leading-snug">{a.capabilities.notes}</div>
-      )}
-    </button>
+      <Pill adapterId={p.cliId} icon={<Terminal className="w-3 h-3" />} label="CLI" />
+      <Pill adapterId={p.apiId} icon={<KeyRound className="w-3 h-3" />} label="API key" />
+    </div>
   );
 
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold">Pick your AI backend</h3>
       <p className="text-sm text-neutral-400">
-        Which AI should War Room talk to? You can change this later in <strong>Settings → Agent</strong>.
-        Green dot means it&apos;s ready to use right now; grey means you still need to set a binary path
-        or paste an API key (also under Settings → Agent).
+        Which AI should War Room talk to? Each provider has two options:
+        <span className="text-neutral-300"> CLI</span> runs the official command-line tool against
+        your project folder (full feature set — tools, memory, file access).{" "}
+        <span className="text-neutral-300">API key</span> hits the provider directly using a key
+        you paste (chat only, no project files). Click any one to pick it. Green dot means it&apos;s
+        configured and ready; grey means you still need to set the binary path or paste a key
+        under <strong>Settings → Agent</strong>.
       </p>
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">CLI bridge — full feature set</div>
-        <div className="grid grid-cols-2 gap-2">
-          {cli.map((a) => (
-            <Card key={a.id} a={a} />
-          ))}
-        </div>
+
+      <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
+        {PROVIDER_ROWS.map((p) => (
+          <Row key={p.label} p={p} />
+        ))}
       </div>
+
       <div>
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">BYOK direct API — chat only</div>
-        <div className="grid grid-cols-2 gap-2">
-          {api.map((a) => (
-            <Card key={a.id} a={a} />
-          ))}
+        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">
+          Anything else
+        </div>
+        <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
+          <Row p={CUSTOM_ROW} />
+        </div>
+        <div className="text-[10px] text-neutral-600 mt-1.5 leading-snug">
+          <strong className="text-neutral-500">Custom CLI</strong>: run any command-line agent
+          via a template (point at the binary + args under Settings).{" "}
+          <strong className="text-neutral-500">Custom API</strong>: any OpenAI-compatible
+          endpoint — OpenRouter, Groq, Together, Mistral, DeepSeek, Ollama, etc.
         </div>
       </div>
     </div>

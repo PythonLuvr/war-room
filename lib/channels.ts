@@ -36,6 +36,9 @@ export type Channel = {
   userCreated?: boolean;
   isPrivate?: boolean;
   description?: string;
+  /** Adapter id pinned for this channel, e.g. "claude-cli" or "openai-api".
+   *  null/undefined = inherit the global default at send time. */
+  agentBackend?: string | null;
 };
 
 export type ChannelGroup = {
@@ -46,9 +49,13 @@ export type ChannelGroup = {
 
 const GROUP_ORDER = [
   "Home",
-  "Active Clients",
+  "Active projects",
   "Workspaces",
   "System",
+  "Finished projects",
+  // Legacy labels kept so existing user_groups + channel_positions rows
+  // still sort sensibly until a forker renames them by hand.
+  "Active Clients",
   "Finished Clients",
 ];
 
@@ -130,21 +137,24 @@ export async function getChannelTree(
   const servers = listUserServers();
   const currentServer = servers.find((s) => s.id === serverId);
   const isShared = currentServer?.name === SHARED_SERVER_NAME;
-  const isPersonalDefault = currentServer?.is_default === 1;
+  const isPersonal = currentServer?.is_personal === 1;
 
-  // Home channel exists on every server so /c/home always routes to a
-  // renderable page. The dashboard widget itself decides what to render
-  // based on what data is actually available (cold-clone shows a welcome).
-  channels.push(HOME_CHANNEL);
+  // The shared War Room dashboard surface lives on its own server with
+  // exactly one channel — /c/home — that renders the dashboard widgets.
+  // Personal and custom servers have their own landing (system/activity)
+  // and don't need a separate "home" entry in the sidebar.
+  if (isShared) {
+    channels.push(HOME_CHANNEL);
+  }
 
-  // War Room (shared server, when present) renders system surfaces via
-  // dashboard widgets — no System group needed there.
+  // System category lives on every non-shared server. The Personal server
+  // additionally gets the workspace + project-folder auto-discovery groups.
   if (!isShared) {
     for (const c of BASE_SYSTEM_CHANNELS) channels.push(c);
     for (const c of DEFAULT_SERVER_EXTRA_SYSTEM) channels.push(c);
   }
 
-  if (isPersonalDefault) for (const ws of STATIC_WORKSPACES) {
+  if (isPersonal) for (const ws of STATIC_WORKSPACES) {
     try {
       await fs.stat(ws.path);
       channels.push({
@@ -157,7 +167,7 @@ export async function getChannelTree(
     } catch {}
   }
 
-  const clientEntries = isPersonalDefault ? await safeReaddir(CLIENTS_ROOT) : [];
+  const clientEntries = isPersonal ? await safeReaddir(CLIENTS_ROOT) : [];
   for (const d of clientEntries) {
     if (!d.isDirectory()) continue;
     if (d.name.startsWith("_") || d.name.startsWith(".")) continue;
@@ -166,7 +176,7 @@ export async function getChannelTree(
     channels.push({
       id: `client/${slugify(d.name)}`,
       name: d.name,
-      group: finished ? "Finished Clients" : "Active Clients",
+      group: finished ? "Finished projects" : "Active projects",
       kind: "chat",
       projectPath,
       archived: finished,
@@ -203,6 +213,7 @@ export async function getChannelTree(
     ch.isPrivate = o.is_private === 1;
     if (o.project_path) ch.projectPath = o.project_path;
     if (o.description) ch.description = o.description;
+    if (o.agent_backend) ch.agentBackend = o.agent_backend;
   }
 
   const byGroup = new Map<string, Channel[]>();

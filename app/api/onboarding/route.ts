@@ -13,6 +13,7 @@ const KEYS = [
   "onboarding.claudeBin",
   "onboarding.workspaceRoot",
   "onboarding.syncOptIn",
+  "onboarding.syncUrl",
 ];
 
 export async function GET() {
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     claudeBin: string;
     workspaceRoot: string;
     syncOptIn: boolean;
+    syncUrl: string;
     completed: boolean;
   }>;
 
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
   if (body.claudeBin !== undefined) setSetting("onboarding.claudeBin", body.claudeBin);
   if (body.workspaceRoot !== undefined) setSetting("onboarding.workspaceRoot", body.workspaceRoot);
   if (body.syncOptIn !== undefined) setSetting("onboarding.syncOptIn", body.syncOptIn ? "1" : "0");
+  if (body.syncUrl !== undefined) setSetting("onboarding.syncUrl", body.syncUrl);
   if (body.completed !== undefined) setSetting("onboarding.completed", body.completed ? "1" : "0");
 
   return NextResponse.json({ ok: true });

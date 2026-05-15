@@ -40,16 +40,56 @@ function migrateAddColumn(
   }
 }
 
-function migrate(d: Database.Database) {
+// Rebuild claude_sessions when an old DB still has UNIQUE(project_path)
+// instead of UNIQUE(project_path, adapter_id). SQLite can't drop a uniqueness
+// constraint in place, so we copy rows into a fresh table, drop the old one,
+// rename, and rebuild indexes. chat_messages.session_id keeps pointing at
+// the same session ids since we preserve the PK column.
+function migrateClaudeSessionsAdapterId(d: Database.Database) {
+  const cols = d
+    .prepare(`PRAGMA table_info(claude_sessions)`)
+    .all() as Array<{ name: string }>;
+  if (cols.length === 0) return; // first-run, table created with new schema
+  if (cols.some((c) => c.name === "adapter_id")) return; // already migrated
+
   d.exec(`
-    CREATE TABLE IF NOT EXISTS claude_sessions (
+    CREATE TABLE claude_sessions_new (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_path TEXT NOT NULL,
+      adapter_id TEXT NOT NULL DEFAULT 'claude-cli',
       claude_session_id TEXT,
       label TEXT,
       created_at INTEGER NOT NULL,
       last_used_at INTEGER NOT NULL,
-      UNIQUE(project_path)
+      UNIQUE(project_path, adapter_id)
+    );
+
+    INSERT INTO claude_sessions_new
+      (id, project_path, adapter_id, claude_session_id, label, created_at, last_used_at)
+    SELECT
+      id, project_path, 'claude-cli', claude_session_id, label, created_at, last_used_at
+    FROM claude_sessions;
+
+    DROP TABLE claude_sessions;
+    ALTER TABLE claude_sessions_new RENAME TO claude_sessions;
+  `);
+}
+
+function migrate(d: Database.Database) {
+  d.exec(`
+    -- Sessions are scoped per (project, adapter) so each agent maintains
+    -- its own conversation thread and CLI --resume token. Lets you bounce
+    -- between Claude and GPT in the same channel without one clobbering
+    -- the other's session id.
+    CREATE TABLE IF NOT EXISTS claude_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_path TEXT NOT NULL,
+      adapter_id TEXT NOT NULL DEFAULT 'claude-cli',
+      claude_session_id TEXT,
+      label TEXT,
+      created_at INTEGER NOT NULL,
+      last_used_at INTEGER NOT NULL,
+      UNIQUE(project_path, adapter_id)
     );
 
     CREATE TABLE IF NOT EXISTS chat_messages (
@@ -57,6 +97,7 @@ function migrate(d: Database.Database) {
       session_id INTEGER NOT NULL REFERENCES claude_sessions(id) ON DELETE CASCADE,
       role TEXT NOT NULL,
       content TEXT NOT NULL,
+      agent_id TEXT,
       created_at INTEGER NOT NULL,
       raw_json TEXT
     );
@@ -223,6 +264,8 @@ function migrate(d: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at DESC);
   `);
 
+  migrateClaudeSessionsAdapterId(d);
+  migrateAddColumn(d, "chat_messages", "agent_id", "TEXT");
   migrateAddServerId(d, "user_channels");
   migrateAddServerId(d, "user_groups");
   migrateAddColumn(d, "user_channels", "is_private", "INTEGER NOT NULL DEFAULT 0");
@@ -230,16 +273,68 @@ function migrate(d: Database.Database) {
   migrateAddColumn(d, "user_channels", "sidebar_hidden", "INTEGER NOT NULL DEFAULT 0");
   migrateAddColumn(d, "channel_overrides", "project_path", "TEXT");
   migrateAddColumn(d, "channel_overrides", "description", "TEXT");
+  // Per-channel AI backend pin. NULL means "use whatever the global default
+  // is right now" — surfaces in the channel header agent chip.
+  migrateAddColumn(d, "channel_overrides", "agent_backend", "TEXT");
   migrateAddColumn(d, "decisions", "status", "TEXT NOT NULL DEFAULT 'open'");
   migrateAddColumn(d, "announcements", "status", "TEXT NOT NULL DEFAULT 'open'");
+  // is_personal marks the user's local "Personal" workspace — the server
+  // that auto-discovers workspaces + project folders and carries the
+  // System category. Distinct from is_default, which now points at the
+  // shared "The War Room" dashboard server.
+  migrateAddColumn(d, "user_servers", "is_personal", "INTEGER NOT NULL DEFAULT 0");
 
-  const hasDefault = d
-    .prepare(`SELECT COUNT(*) as n FROM user_servers WHERE is_default = 1`)
-    .get() as { n: number };
-  if (hasDefault.n === 0) {
+  seedDefaultServers(d);
+}
+
+const SHARED_SERVER_NAME = "The War Room";
+
+function seedDefaultServers(d: Database.Database) {
+  const now = Date.now();
+
+  // 1. Make sure the canonical shared War Room dashboard server exists.
+  //    It carries no auto-discovered project channels — the dashboard widgets
+  //    aggregate state from across all servers.
+  const warRoom = d
+    .prepare(`SELECT id FROM user_servers WHERE name = ?`)
+    .get(SHARED_SERVER_NAME) as { id: number } | undefined;
+  if (!warRoom) {
     d.prepare(
-      `INSERT INTO user_servers(id, name, icon, color, is_default, position, created_at) VALUES(1, ?, ?, ?, 1, 0, ?)`,
-    ).run("Personal", "✦", "amber", Date.now());
+      `INSERT INTO user_servers(name, icon, color, is_default, is_personal, position, created_at)
+       VALUES(?, ?, ?, 1, 0, ?, ?)`,
+    ).run(SHARED_SERVER_NAME, "⚔", "violet", -100, now);
+    // Whatever else used to be the default loses that flag — landing
+    // routes through War Room from now on.
+    d.prepare(`UPDATE user_servers SET is_default = 0 WHERE name != ?`).run(SHARED_SERVER_NAME);
+  } else {
+    // Idempotent: enforce the canonical icon/color and default flag in case
+    // a prior migration set them differently.
+    d.prepare(
+      `UPDATE user_servers SET icon = ?, color = ?, is_default = 1, is_personal = 0 WHERE id = ?`,
+    ).run("⚔", "violet", warRoom.id);
+    d.prepare(`UPDATE user_servers SET is_default = 0 WHERE id != ?`).run(warRoom.id);
+  }
+
+  // 2. Make sure a personal workspace server exists. For pre-existing
+  //    installs we promote the legacy "Personal" row (id=1) instead of
+  //    creating a duplicate so its channels and history stay attached.
+  const existingPersonal = d
+    .prepare(`SELECT id FROM user_servers WHERE is_personal = 1 LIMIT 1`)
+    .get() as { id: number } | undefined;
+  if (!existingPersonal) {
+    const legacy = d
+      .prepare(
+        `SELECT id FROM user_servers WHERE name != ? ORDER BY position ASC, created_at ASC LIMIT 1`,
+      )
+      .get(SHARED_SERVER_NAME) as { id: number } | undefined;
+    if (legacy) {
+      d.prepare(`UPDATE user_servers SET is_personal = 1 WHERE id = ?`).run(legacy.id);
+    } else {
+      d.prepare(
+        `INSERT INTO user_servers(name, icon, color, is_default, is_personal, position, created_at)
+         VALUES(?, ?, ?, 0, 1, ?, ?)`,
+      ).run("Personal", "✦", "amber", 0, now);
+    }
   }
 }
 
@@ -249,6 +344,7 @@ export type UserServerRow = {
   icon: string;
   color: string;
   is_default: number;
+  is_personal: number;
   position: number;
   created_at: number;
 };
@@ -272,8 +368,15 @@ export function createUserServer(input: { name: string; icon?: string; color?: s
 }
 
 export function deleteUserServer(id: number) {
-  if (id === 1) return;
   const d = db();
+  // The two seeded canonicals (shared War Room + Personal workspace) are
+  // load-bearing — landing routes, system surfaces, and project discovery
+  // all assume they exist. Custom servers users create are fine to remove.
+  const row = d
+    .prepare(`SELECT is_default, is_personal FROM user_servers WHERE id = ?`)
+    .get(id) as { is_default: number; is_personal: number } | undefined;
+  if (!row) return;
+  if (row.is_default === 1 || row.is_personal === 1) return;
   d.prepare(`DELETE FROM user_channels WHERE server_id = ?`).run(id);
   d.prepare(`DELETE FROM user_groups WHERE server_id = ?`).run(id);
   d.prepare(`DELETE FROM user_servers WHERE id = ?`).run(id);
@@ -404,6 +507,24 @@ export function setChannelOverrideDescription(channelId: string, description: st
     .run(channelId, description, now, now);
 }
 
+export function setChannelOverrideAgent(channelId: string, agentBackend: string | null) {
+  const now = Date.now();
+  db()
+    .prepare(
+      `INSERT INTO channel_overrides(channel_id, agent_backend, created_at, updated_at)
+       VALUES(?, ?, ?, ?)
+       ON CONFLICT(channel_id) DO UPDATE SET agent_backend = excluded.agent_backend, updated_at = excluded.updated_at`,
+    )
+    .run(channelId, agentBackend, now, now);
+}
+
+export function getChannelOverrideAgent(channelId: string): string | null {
+  const row = db()
+    .prepare(`SELECT agent_backend FROM channel_overrides WHERE channel_id = ?`)
+    .get(channelId) as { agent_backend: string | null } | undefined;
+  return row?.agent_backend ?? null;
+}
+
 export function updateUserChannel(
   slug: string,
   patch: { name?: string; projectPath?: string | null; description?: string | null },
@@ -434,14 +555,18 @@ export function listChannelOverrides(): Array<{
   is_private: number;
   project_path: string | null;
   description: string | null;
+  agent_backend: string | null;
 }> {
   return db()
-    .prepare(`SELECT channel_id, is_private, project_path, description FROM channel_overrides`)
+    .prepare(
+      `SELECT channel_id, is_private, project_path, description, agent_backend FROM channel_overrides`,
+    )
     .all() as Array<{
     channel_id: string;
     is_private: number;
     project_path: string | null;
     description: string | null;
+    agent_backend: string | null;
   }>;
 }
 
@@ -898,23 +1023,28 @@ export function deleteUserChannel(slug: string) {
 export type SessionRow = {
   id: number;
   project_path: string;
+  adapter_id: string;
   claude_session_id: string | null;
   label: string | null;
   created_at: number;
   last_used_at: number;
 };
 
-export function upsertSession(projectPath: string, label?: string): SessionRow {
+export function upsertSession(
+  projectPath: string,
+  adapterId: string,
+  label?: string,
+): SessionRow {
   const now = Date.now();
   const d = db();
   d.prepare(
-    `INSERT INTO claude_sessions(project_path, label, created_at, last_used_at)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(project_path) DO UPDATE SET last_used_at = excluded.last_used_at`,
-  ).run(projectPath, label ?? null, now, now);
+    `INSERT INTO claude_sessions(project_path, adapter_id, label, created_at, last_used_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(project_path, adapter_id) DO UPDATE SET last_used_at = excluded.last_used_at`,
+  ).run(projectPath, adapterId, label ?? null, now, now);
   return d
-    .prepare(`SELECT * FROM claude_sessions WHERE project_path = ?`)
-    .get(projectPath) as SessionRow;
+    .prepare(`SELECT * FROM claude_sessions WHERE project_path = ? AND adapter_id = ?`)
+    .get(projectPath, adapterId) as SessionRow;
 }
 
 export function setClaudeSessionId(rowId: number, claudeSessionId: string) {
@@ -929,35 +1059,69 @@ export function listSessions(): SessionRow[] {
     .all() as SessionRow[];
 }
 
-export function getSession(projectPath: string): SessionRow | undefined {
+/** Looks up the session row for a specific (project, adapter) pair. */
+export function getSession(projectPath: string, adapterId: string): SessionRow | undefined {
   return db()
-    .prepare(`SELECT * FROM claude_sessions WHERE project_path = ?`)
-    .get(projectPath) as SessionRow | undefined;
+    .prepare(`SELECT * FROM claude_sessions WHERE project_path = ? AND adapter_id = ?`)
+    .get(projectPath, adapterId) as SessionRow | undefined;
+}
+
+/** All sessions in a project, one row per adapter that's ever spoken there. */
+export function getSessionsForProject(projectPath: string): SessionRow[] {
+  return db()
+    .prepare(`SELECT * FROM claude_sessions WHERE project_path = ? ORDER BY last_used_at DESC`)
+    .all(projectPath) as SessionRow[];
 }
 
 export function addMessage(
   sessionId: number,
   role: "user" | "assistant" | "system" | "tool",
   content: string,
-  rawJson?: string,
+  opts: { agentId?: string | null; rawJson?: string } = {},
 ) {
   db()
     .prepare(
-      `INSERT INTO chat_messages(session_id, role, content, created_at, raw_json) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO chat_messages(session_id, role, content, agent_id, created_at, raw_json) VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .run(sessionId, role, content, Date.now(), rawJson ?? null);
+    .run(sessionId, role, content, opts.agentId ?? null, Date.now(), opts.rawJson ?? null);
 }
 
 export function getMessages(sessionId: number, limit = 200) {
   return db()
     .prepare(
-      `SELECT id, role, content, created_at, raw_json FROM chat_messages
+      `SELECT id, role, content, agent_id, created_at, raw_json FROM chat_messages
        WHERE session_id = ? ORDER BY created_at ASC LIMIT ?`,
     )
     .all(sessionId, limit) as Array<{
     id: number;
     role: string;
     content: string;
+    agent_id: string | null;
+    created_at: number;
+    raw_json: string | null;
+  }>;
+}
+
+/** Channel-wide canonical timeline: every message across every adapter
+ *  session for a project, in time order. Used by the chat history endpoint
+ *  so the UI can render a single thread of record with per-bubble agent
+ *  attribution. */
+export function getProjectMessages(projectPath: string, limit = 500) {
+  return db()
+    .prepare(
+      `SELECT m.id, m.role, m.content, m.agent_id, m.created_at, m.raw_json, s.adapter_id
+       FROM chat_messages m
+       JOIN claude_sessions s ON s.id = m.session_id
+       WHERE s.project_path = ?
+       ORDER BY m.created_at ASC
+       LIMIT ?`,
+    )
+    .all(projectPath, limit) as Array<{
+    id: number;
+    role: string;
+    content: string;
+    agent_id: string | null;
+    adapter_id: string;
     created_at: number;
     raw_json: string | null;
   }>;

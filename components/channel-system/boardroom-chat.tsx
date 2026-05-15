@@ -3,29 +3,73 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, Send, Sparkles } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { TEAM, agentIdFor, localMember, type TeamMember } from "@/lib/team";
+import { localMember, type TeamMember } from "@/lib/team";
 
 type AgentId = string;
 
 type AgentMeta = {
   id: AgentId;
+  /** Display name shown in the chat header + bubbles. */
   name: string;
-  human: string;
+  /** Mention token typed in chat (no @, no spaces). */
+  handle: string;
   color: TeamMember["color"];
+  /** Configured + reachable. */
   online: boolean;
+  /** "cli" | "api" — used only for the offline reason text. */
+  kind: "cli" | "api";
+};
+
+type AdapterApi = {
+  id: string;
+  name: string;
+  kind: "cli" | "api";
+  isConfigured: boolean;
 };
 
 const LOCAL = localMember();
 
-const AGENTS: AgentMeta[] = TEAM.map((m) => ({
-  id: agentIdFor(m),
-  name: `${m.name}-Agent`,
-  human: m.name,
-  color: m.color,
-  // Only the local member's agent is "online" for routing today. Remote
-  // teammates' agents stay offline until the sync server lands.
-  online: m.id === LOCAL.id,
-}));
+// Stable per-adapter color rotation. The adapter id never changes, so the
+// same backend always shows up in the same color.
+const COLOR_ROTATION: TeamMember["color"][] = [
+  "amber",
+  "sky",
+  "emerald",
+  "violet",
+  "fuchsia",
+  "rose",
+];
+
+function colorForAdapter(adapterId: string): TeamMember["color"] {
+  let h = 0;
+  for (let i = 0; i < adapterId.length; i++) h = (h * 31 + adapterId.charCodeAt(i)) >>> 0;
+  return COLOR_ROTATION[h % COLOR_ROTATION.length];
+}
+
+// Mention handles drop the trailing `-cli` / `-api` for readability.
+// `claude-cli` -> `claude`, `openai-api` -> `openai`, `openai-compat-api` ->
+// `openai-compat`. Collisions across CLI + API for the same provider are
+// resolved by appending `.cli` / `.api`.
+function buildAgents(adapters: AdapterApi[]): AgentMeta[] {
+  const stems = adapters.map((a) => ({
+    raw: a,
+    stem: a.id.replace(/-(cli|api)$/i, ""),
+  }));
+  const counts = new Map<string, number>();
+  for (const s of stems) counts.set(s.stem, (counts.get(s.stem) ?? 0) + 1);
+  return stems.map(({ raw, stem }) => {
+    const collides = (counts.get(stem) ?? 0) > 1;
+    const handle = collides ? `${stem}.${raw.kind}` : stem;
+    return {
+      id: raw.id,
+      name: raw.name,
+      handle,
+      color: colorForAdapter(raw.id),
+      online: raw.isConfigured,
+      kind: raw.kind,
+    };
+  });
+}
 
 const COLOR: Record<TeamMember["color"], { dot: string; chip: string; text: string; bubble: string }> = {
   amber: {
@@ -66,15 +110,13 @@ const COLOR: Record<TeamMember["color"], { dot: string; chip: string; text: stri
   },
 };
 
-const LOCAL_AGENT_ID = agentIdFor(LOCAL);
-const AGENT_ID_RE = new RegExp(`@(${AGENTS.map((a) => a.id).join("|")})\\b`, "gi");
-
 type ChatItem =
   | { kind: "user"; id: string; text: string; mentions: AgentId[]; ts: number }
   | { kind: "agent"; id: string; agent: AgentId; text: string; streaming: boolean; ts: number }
   | { kind: "system"; id: string; text: string; ts: number };
 
 export function BoardroomChat() {
+  const [agents, setAgents] = useState<AgentMeta[]>([]);
   const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState("");
   const [localPath, setLocalPath] = useState<string | null>(null);
@@ -84,8 +126,9 @@ export function BoardroomChat() {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Resolve the local member's primary workspace path (used to spawn the
-  // local agent). Falls back to the first project the API returns.
+  // Resolve the local member's primary workspace path (used as the cwd for
+  // every agent reply — the boardroom is project-agnostic, so any sensible
+  // root will do). Falls back to the first project the API returns.
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.json())
@@ -96,14 +139,33 @@ export function BoardroomChat() {
       .catch(() => {});
   }, []);
 
+  // Pull the live adapter list. Each configured adapter becomes its own
+  // first-class seat. Online = "isConfigured" — a green-dot CLI/API the user
+  // has actually set up under Settings → Agent.
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: { adapters: AdapterApi[] }) => setAgents(buildAgents(d.adapters ?? [])))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [items]);
 
+  const handleRegex = useMemo(() => {
+    if (agents.length === 0) return null;
+    const handles = agents.map((a) => a.handle.replace(/[.-]/g, "\\$&"));
+    return new RegExp(`@(${handles.join("|")})\\b`, "gi");
+  }, [agents]);
+
   const filteredAgents = useMemo(() => {
     const q = mentionQuery.toLowerCase();
-    return AGENTS.filter((a) => a.id.includes(q) || a.name.toLowerCase().includes(q));
-  }, [mentionQuery]);
+    if (!q) return agents;
+    return agents.filter(
+      (a) => a.handle.includes(q) || a.name.toLowerCase().includes(q),
+    );
+  }, [mentionQuery, agents]);
 
   const onInputChange = (v: string) => {
     setInput(v);
@@ -123,7 +185,7 @@ export function BoardroomChat() {
     setMentionQuery("");
   };
 
-  const insertMention = (agent: AgentId) => {
+  const insertMention = (handle: string) => {
     const ta = taRef.current;
     if (!ta) return;
     const pos = ta.selectionStart ?? input.length;
@@ -131,33 +193,39 @@ export function BoardroomChat() {
     const after = input.slice(pos);
     const at = before.lastIndexOf("@");
     if (at < 0) return;
-    const next = `${before.slice(0, at)}@${agent} ${after}`;
+    const next = `${before.slice(0, at)}@${handle} ${after}`;
     setInput(next);
     setMentionOpen(false);
     setMentionQuery("");
     requestAnimationFrame(() => {
-      const newPos = at + agent.length + 2;
+      const newPos = at + handle.length + 2;
       ta.focus();
       ta.setSelectionRange(newPos, newPos);
     });
   };
 
-  const parseMentions = (text: string): AgentId[] => {
-    const found = new Set<AgentId>();
-    AGENT_ID_RE.lastIndex = 0;
-    for (const m of text.matchAll(AGENT_ID_RE)) {
-      found.add(m[1].toLowerCase());
-    }
-    return [...found];
-  };
+  const parseMentions = useCallback(
+    (text: string): AgentId[] => {
+      if (!handleRegex) return [];
+      const found = new Set<AgentId>();
+      handleRegex.lastIndex = 0;
+      for (const m of text.matchAll(handleRegex)) {
+        const handle = m[1].toLowerCase();
+        const agent = agents.find((a) => a.handle.toLowerCase() === handle);
+        if (agent) found.add(agent.id);
+      }
+      return [...found];
+    },
+    [agents, handleRegex],
+  );
 
   const streamFromAgent = useCallback(
-    async (asstId: string, prompt: string, projectPath: string, agentLabel: string) => {
+    async (asstId: string, agentId: AgentId, prompt: string, projectPath: string, agentLabel: string) => {
       try {
         const r = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectPath, prompt }),
+          body: JSON.stringify({ projectPath, prompt, backendId: agentId }),
         });
         if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
         const reader = r.body.getReader();
@@ -215,7 +283,7 @@ export function BoardroomChat() {
         );
         setBusyAgents((cur) => {
           const n = new Set(cur);
-          n.delete(LOCAL_AGENT_ID);
+          n.delete(agentId);
           return n;
         });
       }
@@ -233,49 +301,64 @@ export function BoardroomChat() {
     setInput("");
     setMentionOpen(false);
 
+    if (mentions.length === 0) {
+      setItems((cur) => [
+        ...cur,
+        {
+          kind: "system",
+          id: `s-${Date.now()}-help`,
+          text: "Mention an agent to talk — e.g. @claude or @openai. Type @ to see who's available.",
+          ts: Date.now(),
+        },
+      ]);
+      return;
+    }
+
     for (const agentId of mentions) {
-      const meta = AGENTS.find((a) => a.id === agentId);
+      const meta = agents.find((a) => a.id === agentId);
       if (!meta) continue;
       if (!meta.online) {
+        const reason =
+          meta.kind === "cli"
+            ? "binary path not set under Settings → Agent"
+            : "API key not set under Settings → Agent";
         setItems((cur) => [
           ...cur,
           {
             kind: "system",
             id: `s-${Date.now()}-${agentId}`,
-            text: `${meta.name} is offline (agent not connected yet).`,
+            text: `${meta.name} isn't ready — ${reason}.`,
             ts: Date.now(),
           },
         ]);
         continue;
       }
-      if (agentId === LOCAL_AGENT_ID) {
-        if (!localPath) {
-          setItems((cur) => [
-            ...cur,
-            {
-              kind: "system",
-              id: `s-${Date.now()}-path`,
-              text: `${meta.name} workspace path not resolved yet — try again in a moment.`,
-              ts: Date.now(),
-            },
-          ]);
-          continue;
-        }
-        const asstId = `a-${Date.now()}-${agentId}`;
+      if (!localPath) {
         setItems((cur) => [
           ...cur,
-          { kind: "agent", id: asstId, agent: agentId, text: "", streaming: true, ts: Date.now() },
+          {
+            kind: "system",
+            id: `s-${Date.now()}-path`,
+            text: `${meta.name} workspace path not resolved yet — try again in a moment.`,
+            ts: Date.now(),
+          },
         ]);
-        setBusyAgents((cur) => new Set(cur).add(agentId));
-        streamFromAgent(asstId, text, localPath, meta.name);
+        continue;
       }
+      const asstId = `a-${Date.now()}-${agentId}`;
+      setItems((cur) => [
+        ...cur,
+        { kind: "agent", id: asstId, agent: agentId, text: "", streaming: true, ts: Date.now() },
+      ]);
+      setBusyAgents((cur) => new Set(cur).add(agentId));
+      streamFromAgent(asstId, agentId, text, localPath, meta.name);
     }
-  }, [input, localPath, streamFromAgent]);
+  }, [input, localPath, streamFromAgent, parseMentions, agents]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (mentionOpen && e.key === "Enter" && filteredAgents.length > 0) {
       e.preventDefault();
-      insertMention(filteredAgents[0].id);
+      insertMention(filteredAgents[0].handle);
       return;
     }
     if (mentionOpen && e.key === "Escape") {
@@ -288,6 +371,8 @@ export function BoardroomChat() {
     }
   };
 
+  const firstHandle = agents.find((a) => a.online)?.handle ?? agents[0]?.handle ?? "claude";
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-4 py-2 flex items-center gap-2 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-900/60">
@@ -297,44 +382,55 @@ export function BoardroomChat() {
         <span className="text-neutral-600 normal-case tracking-normal">
           mention an agent to talk
         </span>
-        <div className="ml-auto flex items-center gap-2">
-          {AGENTS.map((a) => (
-            <span key={a.id} className="flex items-center gap-1 text-[10px] normal-case tracking-normal">
-              <span className={`w-1.5 h-1.5 rounded-full ${a.online ? COLOR[a.color].dot : "bg-neutral-700"}`} />
-              <span className={a.online ? COLOR[a.color].text : "text-neutral-600"}>{a.name}</span>
+        <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+          {agents.length === 0 ? (
+            <span className="text-[10px] normal-case tracking-normal text-neutral-600">
+              no agents configured
             </span>
-          ))}
+          ) : (
+            agents.map((a) => (
+              <span
+                key={a.id}
+                className="flex items-center gap-1 text-[10px] normal-case tracking-normal"
+                title={a.online ? `${a.name} · @${a.handle}` : `${a.name} not configured`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${a.online ? COLOR[a.color].dot : "bg-neutral-700"}`} />
+                <span className={a.online ? COLOR[a.color].text : "text-neutral-600"}>@{a.handle}</span>
+              </span>
+            ))
+          )}
         </div>
       </div>
 
       <div ref={scrollRef} className="flex-1 min-h-[12rem] overflow-y-auto px-4 py-3 flex flex-col gap-2">
         {items.length === 0 ? (
           <div className="text-xs text-neutral-600 text-center py-4">
-            Empty. Try <code className="text-neutral-400">@{LOCAL_AGENT_ID} what&apos;s on the docket today?</code>
+            Empty. Try{" "}
+            <code className="text-neutral-400">@{firstHandle} what&apos;s on the docket today?</code>
           </div>
         ) : (
-          items.map((it) => <ChatRow key={it.id} item={it} />)
+          items.map((it) => <ChatRow key={it.id} item={it} agents={agents} />)
         )}
       </div>
 
       <div className="relative px-4 py-3 border-t border-neutral-900/60">
         {mentionOpen && filteredAgents.length > 0 && (
-          <div className="absolute bottom-full left-4 mb-2 z-20 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl overflow-hidden min-w-[220px]">
+          <div className="absolute bottom-full left-4 mb-2 z-20 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl overflow-hidden min-w-[260px]">
             <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-neutral-500 border-b border-neutral-800">
               Mention an agent
             </div>
             {filteredAgents.map((a, i) => (
               <button
                 key={a.id}
-                onClick={() => insertMention(a.id)}
+                onClick={() => insertMention(a.handle)}
                 className={`w-full px-2 py-1.5 flex items-center gap-2 text-left text-sm hover:bg-neutral-800 ${
                   i === 0 ? "bg-neutral-800/50" : ""
                 }`}
               >
                 <span className={`w-2 h-2 rounded-full ${a.online ? COLOR[a.color].dot : "bg-neutral-700"}`} />
-                <span className={COLOR[a.color].text}>@{a.id}</span>
+                <span className={COLOR[a.color].text}>@{a.handle}</span>
                 <span className="text-neutral-500 text-xs ml-auto">
-                  {a.online ? a.human : "offline"}
+                  {a.online ? a.name : "not configured"}
                 </span>
               </button>
             ))}
@@ -346,7 +442,7 @@ export function BoardroomChat() {
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={`@${LOCAL_AGENT_ID}  ·  message the boardroom`}
+            placeholder={`@${firstHandle}  ·  message the boardroom`}
             rows={1}
             className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-neutral-600 py-1 max-h-32"
           />
@@ -364,7 +460,7 @@ export function BoardroomChat() {
   );
 }
 
-function ChatRow({ item }: { item: ChatItem }) {
+function ChatRow({ item, agents }: { item: ChatItem; agents: AgentMeta[] }) {
   if (item.kind === "system") {
     return (
       <div className="text-[11px] text-amber-400/80 border-l-2 border-amber-900/50 pl-2 py-0.5">
@@ -381,14 +477,15 @@ function ChatRow({ item }: { item: ChatItem }) {
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-semibold text-neutral-200">{LOCAL.name}</div>
           <div className="text-sm text-neutral-200 whitespace-pre-wrap">
-            {renderWithMentions(item.text)}
+            {renderWithMentions(item.text, agents)}
           </div>
         </div>
       </div>
     );
   }
   // agent
-  const meta = AGENTS.find((a) => a.id === item.agent)!;
+  const meta = agents.find((a) => a.id === item.agent);
+  if (!meta) return null;
   const c = COLOR[meta.color];
   return (
     <div className="flex gap-2">
@@ -410,15 +507,16 @@ function ChatRow({ item }: { item: ChatItem }) {
   );
 }
 
-const AGENT_SPLIT_RE = new RegExp(`(@(?:${AGENTS.map((a) => a.id).join("|")})\\b)`, "gi");
-const AGENT_MATCH_RE = new RegExp(`^@(${AGENTS.map((a) => a.id).join("|")})$`, "i");
-
-function renderWithMentions(text: string) {
-  const parts = text.split(AGENT_SPLIT_RE);
+function renderWithMentions(text: string, agents: AgentMeta[]) {
+  if (agents.length === 0) return text;
+  const handles = agents.map((a) => a.handle.replace(/[.-]/g, "\\$&"));
+  const splitRe = new RegExp(`(@(?:${handles.join("|")})\\b)`, "gi");
+  const matchRe = new RegExp(`^@(${handles.join("|")})$`, "i");
+  const parts = text.split(splitRe);
   return parts.map((p, i) => {
-    const m = p.match(AGENT_MATCH_RE);
+    const m = p.match(matchRe);
     if (m) {
-      const agent = AGENTS.find((a) => a.id === m[1].toLowerCase());
+      const agent = agents.find((a) => a.handle.toLowerCase() === m[1].toLowerCase());
       if (agent) {
         return (
           <span

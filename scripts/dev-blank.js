@@ -26,29 +26,35 @@ const ENV_STASH = path.join(os.tmpdir(), `war-room-env-stash-${process.pid}`);
 const DATA_DIR = path.join(os.tmpdir(), `war-room-blank-${Date.now()}`);
 const PORT = 3030;
 
-// ─── Better-sqlite3 ABI check ────────────────────────────────────────────────
+// ─── Better-sqlite3 ABI guard ────────────────────────────────────────────────
 // The packaged-build path (npm run ship) rebuilds better-sqlite3 against
-// Electron's Node ABI. Switching back to dev needs a rebuild against system
-// Node. Quietly handle that here so the user doesn't see ERR_DLOPEN_FAILED.
-function rebuildIfAbiMismatched() {
-  const probe = spawnSync(process.execPath, [
-    "-e",
-    `try{require("better-sqlite3");process.exit(0)}catch(e){process.stderr.write(e.message);process.exit(1)}`,
-  ], { cwd: REPO, encoding: "utf8" });
-  if (probe.status === 0) return;
-  if (!/NODE_MODULE_VERSION|DLOPEN_FAILED/i.test(probe.stderr || "")) {
-    console.error("better-sqlite3 probe failed with unexpected error:");
-    console.error(probe.stderr);
+// Electron's Node ABI. Switching back to dev needs the binary rebuilt for
+// system Node. We probe first (cheap subprocess that just tries to load the
+// module), and only rebuild on mismatch. Always-rebuild was deterministic
+// but failed on Windows whenever any other process — a stranded dev server,
+// the running Electron app — had the .node file mapped (EBUSY/EPERM on
+// unlink). The probe runs in a fresh Node process so a stale loaded copy in
+// this script's memory doesn't poison the result.
+function ensureSystemNodeBuild() {
+  const probe = spawnSync(
+    process.execPath,
+    ["-e", "require('better-sqlite3'); process.exit(0)"],
+    { cwd: REPO },
+  );
+  if (probe.status === 0) {
+    console.log(`▸ better-sqlite3 already matches system Node (ABI ${process.versions.modules}) — skipping rebuild`);
     return;
   }
-  console.log("▸ better-sqlite3 needs a rebuild for your current Node — running npm rebuild…");
+  console.log(`▸ rebuilding better-sqlite3 for system Node (ABI ${process.versions.modules})…`);
   const rebuild = spawnSync("npm", ["rebuild", "better-sqlite3"], {
     cwd: REPO,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
   if (rebuild.status !== 0) {
-    console.error("✗ npm rebuild failed. Run `npm rebuild better-sqlite3` manually and try again.");
+    console.error(
+      "✗ npm rebuild failed. Likely another process (Electron app, prior dev server) has the .node file open. Close them and try again, or run `npm rebuild better-sqlite3` manually.",
+    );
     process.exit(1);
   }
 }
@@ -100,7 +106,7 @@ function main() {
   console.log(`  use this  : like a stranger seeing War Room for the first time\n`);
   console.log("  When done, hit Ctrl+C — your real .env.local is restored automatically.\n");
 
-  rebuildIfAbiMismatched();
+  ensureSystemNodeBuild();
   stashEnv();
   fs.mkdirSync(DATA_DIR, { recursive: true });
 

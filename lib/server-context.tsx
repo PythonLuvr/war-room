@@ -92,6 +92,8 @@ export function useServers(): Ctx {
 }
 
 export function serverLandingPath(server: { name: string }): string {
-  if (server.name === "The War Room") return "/c/home";
+  // The shared War Room server lands on its dashboard. Personal + custom
+  // servers land on system/activity (their first system surface).
+  if (/war.?room/i.test(server.name)) return "/c/home";
   return "/c/system/activity";
 }

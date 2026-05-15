@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { sendMessage, type StreamEvent } from "@/lib/agents";
+import { ALL_ADAPTERS, sendMessage, type StreamEvent } from "@/lib/agents";
+import { buildHandleMap, resolveMentionedBackend } from "@/lib/agent-handles";
 import { logActivity } from "@/lib/activity";
 import path from "path";
 
@@ -7,9 +8,25 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { projectPath?: string; prompt?: string };
+  const body = (await req.json()) as {
+    projectPath?: string;
+    prompt?: string;
+    channelId?: string;
+    backendId?: string;
+  };
   const projectPath = body.projectPath?.trim();
   const prompt = body.prompt?.trim();
+  const channelId = body.channelId?.trim() || undefined;
+  // Explicit backendId from the client wins. Otherwise, look for a leading
+  // @mention in the prompt — that's the per-turn override that lets users
+  // call any agent from any channel without changing the channel's primary.
+  const explicitBackend = body.backendId?.trim() || undefined;
+  const mentioned = explicitBackend
+    ? null
+    : prompt
+      ? resolveMentionedBackend(prompt, buildHandleMap(ALL_ADAPTERS))
+      : null;
+  const backendId = explicitBackend ?? mentioned ?? undefined;
 
   if (!projectPath || !prompt) {
     return new Response("projectPath and prompt are required", { status: 400 });
@@ -43,7 +60,14 @@ export async function POST(req: NextRequest) {
       const abort = new AbortController();
       req.signal.addEventListener("abort", () => abort.abort());
       try {
-        await sendMessage({ projectPath, prompt, onEvent: send, signal: abort.signal });
+        await sendMessage({
+          projectPath,
+          prompt,
+          onEvent: send,
+          signal: abort.signal,
+          channelId,
+          backendId,
+        });
       } catch (e) {
         send({ type: "error", message: e instanceof Error ? e.message : String(e) });
       } finally {

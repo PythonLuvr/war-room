@@ -145,7 +145,7 @@ export function NewJobDialog({
               })}
             </div>
             <div className="text-[10px] text-neutral-600 mt-1.5">
-              Each assignee gets a channel under their personal Active Clients.
+              Each assignee gets a channel under their personal Active projects.
             </div>
           </div>
           <div>

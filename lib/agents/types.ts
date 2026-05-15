@@ -7,6 +7,11 @@
 // them handles DB bookkeeping (session row, message log, captured session id).
 
 export type StreamEvent =
+  /** Synthesized by the chat wrapper before adapter output starts. Tells
+   *  the client which agent is about to respond — matters when @mentions
+   *  or channel pins routed the turn somewhere other than the global
+   *  default, so the UI can attribute the bubble to the right agent. */
+  | { type: "adapter"; adapterId: string }
   | { type: "session_id"; sessionId: string }
   | { type: "text_delta"; text: string }
   | { type: "tool_use"; name: string; input: unknown; id: string }

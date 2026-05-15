@@ -67,7 +67,8 @@ const ACCENT_DOT: Record<string, string> = {
 export function ChannelList() {
   const [groups, setGroups] = useState<ChannelGroup[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    "Finished Clients": true,
+    "Finished projects": true,
+    "Finished Clients": true, // legacy
   });
   const [query, setQuery] = useState("");
   const [creatingInGroup, setCreatingInGroup] = useState<string | null>(null);

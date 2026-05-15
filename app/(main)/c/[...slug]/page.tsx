@@ -119,6 +119,7 @@ function ChannelBody({
       }
       return (
         <ChannelChat
+          channelId={channelId}
           channelName={name}
           projectPath={projectPath}
           description={description}

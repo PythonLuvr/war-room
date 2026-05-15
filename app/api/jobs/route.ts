@@ -71,14 +71,15 @@ export async function POST(req: NextRequest) {
     assignees,
   });
 
-  // Auto-create personal execution channels for each assignee in their personal server's Active Clients
+  // Auto-create personal execution channels for each assignee under their
+  // personal server's project groups.
   const servers = listUserServers();
   const groupForStatus =
     job.status === "recurring"
-      ? "Recurring Clients"
+      ? "Recurring projects"
       : job.status === "finished"
-        ? "Finished Clients"
-        : "Active Clients";
+        ? "Finished projects"
+        : "Active projects";
   for (const userId of assignees) {
     const member = TEAM.find((m) => m.id === userId);
     if (!member) continue;
