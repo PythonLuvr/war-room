@@ -11,7 +11,20 @@ import { getChannelTree } from "@/lib/channels";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const isDemo = () => process.env.WAR_ROOM_DEMO === "1";
+
 async function countActiveClients(): Promise<number> {
+  // Demo mode: derive the count from the seeded "Active projects" channels
+  // so the KPI matches what the user sees in the sidebar instead of
+  // returning 0 (the empty filesystem CLIENTS_ROOT walk).
+  if (isDemo()) {
+    const row = db()
+      .prepare(
+        `SELECT COUNT(*) as n FROM user_channels WHERE group_label = 'Active projects'`,
+      )
+      .get() as { n: number };
+    return row?.n ?? 0;
+  }
   try {
     const entries = await fs.readdir(CLIENTS_ROOT, { withFileTypes: true });
     let active = 0;
@@ -33,6 +46,19 @@ async function countActiveClients(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+function countDemoApprovals(): number {
+  // Count seeded "approval.new" events in the last 24h. The demo seed
+  // sprinkles 2-4 of these; this turns the KPI light up.
+  if (!isDemo()) return 0;
+  const since = Date.now() - 24 * 3600 * 1000;
+  const row = db()
+    .prepare(
+      `SELECT COUNT(*) as n FROM activity WHERE kind = 'approval.new' AND created_at >= ?`,
+    )
+    .get(since) as { n: number };
+  return Math.min(row?.n ?? 0, 5);
 }
 
 function activityByDay(days = 7): Array<{ day: string; date: string; count: number }> {
@@ -233,15 +259,25 @@ export async function GET() {
     : health.vps.services.filter((s) => s.status === "online").length;
   const vpsTotal = health.vps.error ? 0 : health.vps.services.length;
 
+  // Demo mode: synthesize VPS counts + team presence + approvals so the
+  // KPI strip looks like a real operator's daily view instead of zeros.
+  // The first three KPIs are derived from the seeded data already.
+  const demo = isDemo();
+  const teamTotal = demo ? 4 : TEAM.length;
+  const teamOnline = demo ? 3 : 1;
+  const vpsOnlineFinal = demo ? 4 : vpsOnline;
+  const vpsTotalFinal = demo ? 5 : vpsTotal;
+  const vpsError = demo ? null : (health.vps.error ?? null);
+
   return NextResponse.json({
     kpi: {
       activeClients: clients,
-      openApprovals: 0,
+      openApprovals: demo ? countDemoApprovals() : 0,
       activityToday: activityToday(),
-      vps: { online: vpsOnline, total: vpsTotal, error: health.vps.error ?? null },
+      vps: { online: vpsOnlineFinal, total: vpsTotalFinal, error: vpsError },
       activeSessions: sessions.length,
-      teamOnline: 1,
-      teamTotal: TEAM.length,
+      teamOnline,
+      teamTotal,
     },
     timeseries: activityByDay(7),
     topChannels: topChannels(5),

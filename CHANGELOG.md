@@ -8,6 +8,18 @@ For full details on any release, see the corresponding entry on [GitHub Releases
 
 ---
 
+## [0.5.1] - 2026-05-15
+
+Demo polish for first-impression conversion. `npm run demo` was technically working but read as a single-user sandbox; v0.5.1 makes it look like a populated multi-operator cockpit. All changes confined to demo seed + demo-mode dashboard overrides. Real installs unaffected.
+
+### Changed
+- **Six servers seeded** (was three): The War Room, Personal, ACME Co, plus three teammate workspaces (Sara, Mike, Studio). Distinct colors and icons. Each new server has 1-2 channels seeded so clicking through never hits empty.
+- **Five-plus agent adapters configured** so the boardroom enumerates them as seated agents: `claude-cli`, `codex-cli`, `gemini-cli`, `anthropic-api`, `openai-api`, `gemini-api`. CLI adapters appear green-dot without requiring the binaries to be installed locally.
+- **Multi-agent thread extended** from 7 turns / 2 agents to 9 turns / 4 agents (Claude, OpenAI, Gemini, Codex). Per-bubble attribution reads as real cross-agent collaboration.
+- **Onboarding seeds `agentName: "Jarvis"`** so right-panel and boardroom labels demonstrate the renameable-agent feature out of the box.
+- **War Room dashboard density:** new deterministic 7-day activity generator produces ~250 events with day-of-week weighting (Mon-Thu busier, weekend trickles) and bell-shaped hour-of-day distribution. Project pool of 10 keeps the top-channels leaderboard full. Kind variety populates the by-kind pie. Mulberry32 PRNG seeded with a constant so reseeds look identical across screenshot captures.
+- **Demo-mode dashboard overrides** (`isDemo()` helper in `app/api/dashboard/route.ts`): synthetic KPI numbers for active clients, open approvals, VPS health (4 of 5 online for color contrast), team online (3 of 4). Real installs hit the original code paths.
+
 ## [0.5.0] - 2026-05-15
 
 Adoption hardening pass plus full lint cleanup. New `npm run demo` lets anyone preview a fully populated cockpit before deciding whether to install.
@@ -122,6 +134,7 @@ First public release.
 - Optional Electron desktop wrapper.
 - Optional self-hosted LiveKit boardroom voice channel.
 
+[0.5.1]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.1
 [0.5.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.0
 [0.4.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.4.0
 [0.2.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.2.0

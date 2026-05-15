@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles } from "lucide-react";
-import { localMember } from "@/lib/team";
+import { localMember, useIdentityVersion } from "@/lib/team";
 
 const LOCAL = localMember();
 
@@ -94,6 +94,9 @@ export function ChannelChat({
   projectPath: string;
   description?: string;
 }) {
+  // Re-render when the user changes their display name in the wizard so
+  // both the message author label and the avatar initial stay current.
+  useIdentityVersion();
   const [input, setInput] = useState("");
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);

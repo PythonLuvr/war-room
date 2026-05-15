@@ -4,7 +4,7 @@ import type { Channel } from "@/lib/channels";
 import { PulseDot } from "./pulse-dot";
 import { useEffect, useState } from "react";
 import { Pin, Calendar, FileText, FolderOpen, Bot, User } from "lucide-react";
-import { localMember } from "@/lib/team";
+import { agentLabelFor, localMember, useIdentityVersion } from "@/lib/team";
 
 const LOCAL = localMember();
 
@@ -12,6 +12,9 @@ type AgentInfo = { activeId: string; name: string; isConfigured: boolean } | nul
 
 export function RightPanel({ channel }: { channel: Channel | null }) {
   const [agent, setAgent] = useState<AgentInfo>(null);
+  // Re-render when the user updates their display name via the wizard so
+  // the Agents + Humans rows pick up the new label.
+  useIdentityVersion();
 
   useEffect(() => {
     fetch("/api/agents")
@@ -54,7 +57,7 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
       <Section title={agent?.isConfigured ? "Agents — 1" : "Agents"} icon={<Bot className="w-3 h-3" />}>
         {agent?.isConfigured ? (
           <MemberRow
-            name={`${LOCAL.name}-Agent`}
+            name={agentLabelFor(LOCAL)}
             role={agent.name.toLowerCase()}
             tone="ok"
             kind="agent"

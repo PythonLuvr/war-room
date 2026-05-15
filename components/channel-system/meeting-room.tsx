@@ -27,18 +27,23 @@ import {
 import { ConnectionQuality, type RemoteTrack } from "livekit-client";
 import { useInFullscreenPanel } from "./panel-context";
 import { useMeeting, type ScreenShareInfo } from "@/lib/meeting-context";
-import { TEAM, agentIdFor, type TeamMember } from "@/lib/team";
+import { TEAM, agentIdFor, agentLabelFor, useIdentityVersion, type TeamMember } from "@/lib/team";
 
 type AgentMeta = { id: string; name: string; pair: string };
-const AGENTS: AgentMeta[] = TEAM.map((m) => ({
-  id: agentIdFor(m),
-  name: `${m.name}-Agent`,
-  pair: m.id,
-}));
-
-const HUMAN_LABEL: Record<string, string> = Object.fromEntries(
-  TEAM.map((m) => [m.id, m.name]),
-);
+// Built at render time (not module load) so a renamed display/agent name
+// from the wizard propagates without reloading the page. The TEAM array
+// is mutated in place by IdentityHydrator; useIdentityVersion above
+// triggers the re-render that recomputes these.
+function buildAgents(): AgentMeta[] {
+  return TEAM.map((m) => ({
+    id: agentIdFor(m),
+    name: agentLabelFor(m),
+    pair: m.id,
+  }));
+}
+function buildHumanLabels(): Record<string, string> {
+  return Object.fromEntries(TEAM.map((m) => [m.id, m.name]));
+}
 
 const COLOR_TABLE: Record<TeamMember["color"], { ring: string; text: string }> = {
   amber: { ring: "ring-amber-400/60", text: "text-amber-200" },
@@ -295,8 +300,11 @@ function DevicePicker({
 
 function MeetingStage() {
   const meeting = useMeeting();
+  const identityVersion = useIdentityVersion();
 
   const tiles = useMemo<Tile[]>(() => {
+    const AGENTS = buildAgents();
+    const HUMAN_LABEL = buildHumanLabels();
     const out: Tile[] = [];
     out.push({ kind: "human", identity: meeting.localIdentity, pair: meeting.localIdentity, name: meeting.localName, isLocal: true });
     for (const id of meeting.remoteHumans) {
@@ -308,7 +316,9 @@ function MeetingStage() {
       out.push({ kind: "agent", identity: a.id, pair: a.pair, name: a.name });
     }
     return out;
-  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans]);
+    // identityVersion bumps every time the user renames themselves or
+    // their agent — re-runs this memo so tile labels stay current.
+  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans, identityVersion]);
 
   return meeting.screenShare ? (
     <StageView share={meeting.screenShare} tiles={tiles} />

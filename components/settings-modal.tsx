@@ -157,6 +157,15 @@ function OnboardingSummary() {
     <dl className="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 font-mono">
       <KV k="Identity" v={data["onboarding.identity"]} />
       <KV k="Display name" v={data["onboarding.displayName"]} />
+      <KV
+        k="Agent label"
+        v={
+          data["onboarding.agentName"] ||
+          (data["onboarding.displayName"]
+            ? `${data["onboarding.displayName"]}-Agent`
+            : null)
+        }
+      />
       <KV k="Claude CLI" v={data["onboarding.claudeBin"]} />
       <KV k="Projects folder" v={data["onboarding.workspaceRoot"]} />
       <KV k="Sync opt-in" v={data["onboarding.syncOptIn"] === "1" ? "yes" : "no"} />

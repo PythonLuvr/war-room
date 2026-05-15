@@ -35,7 +35,7 @@ import { BoardroomChat } from "./boardroom-chat";
 import { ActiveJobsPanel } from "./active-jobs-panel";
 import { colorForPath } from "@/lib/workspace-color";
 import { useMeeting } from "@/lib/meeting-context";
-import { TEAM, type TeamMember } from "@/lib/team";
+import { TEAM, useIdentityVersion, type TeamMember } from "@/lib/team";
 import { WelcomeBanner } from "@/components/welcome-banner";
 import { useServers } from "@/lib/server-context";
 
@@ -97,6 +97,9 @@ const KIND_META: Record<string, { dot: string; label: string }> = {
 };
 
 export function WarRoomDashboard() {
+  // Re-render when the user updates their display name via the wizard so
+  // the team-presence list + dashboard header refresh.
+  useIdentityVersion();
   const [data, setData] = useState<Dashboard | null>(null);
   const router = useRouter();
   const search = useSearchParams();

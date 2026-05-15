@@ -21,6 +21,7 @@ type Identity = "primary" | "teammate";
 type WizardData = {
   identity: Identity;
   displayName: string;
+  agentName: string;
   claudeBin: string;
   workspaceRoot: string;
   syncOptIn: boolean;
@@ -53,6 +54,7 @@ export function OnboardingWizard() {
   const [data, setData] = useState<WizardData>({
     identity: "primary",
     displayName: "",
+    agentName: "",
     claudeBin: "claude",
     workspaceRoot: "",
     syncOptIn: false,
@@ -75,6 +77,7 @@ export function OnboardingWizard() {
           identity:
             d.settings["onboarding.identity"] === "teammate" ? "teammate" : "primary",
           displayName: d.settings["onboarding.displayName"] || cur.displayName,
+          agentName: d.settings["onboarding.agentName"] || cur.agentName,
           claudeBin: d.settings["onboarding.claudeBin"] || d.defaults.claudeBin,
           workspaceRoot: d.settings["onboarding.workspaceRoot"] || d.defaults.workspaceRoot,
           syncOptIn: d.settings["onboarding.syncOptIn"] === "1",
@@ -120,6 +123,9 @@ export function OnboardingWizard() {
         body: JSON.stringify({ ...data, completed: true }),
       });
       setShow(false);
+      // Tell the rest of the app the local identity may have changed so
+      // chat/boardroom/team-presence subtrees re-render with the new name.
+      window.dispatchEvent(new CustomEvent("war-room:identity-changed"));
     } finally {
       setSaving(false);
     }
@@ -227,6 +233,28 @@ export function OnboardingWizard() {
                   placeholder="What should we call you?"
                   className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
                 />
+              </div>
+              <div>
+                <Label>Your agent&apos;s name</Label>
+                <input
+                  value={data.agentName}
+                  onChange={(e) => setData((c) => ({ ...c, agentName: e.target.value }))}
+                  placeholder={
+                    data.displayName.trim()
+                      ? `${data.displayName.trim()}-Agent`
+                      : "e.g. Jarvis, Friday, Computer"
+                  }
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
+                />
+                <div className="text-[10px] text-neutral-600 mt-1">
+                  Header label for your AI in chat + the boardroom. The
+                  underlying provider (Claude, GPT, etc.) is shown separately.
+                  Leave blank to use{" "}
+                  <code className="text-neutral-500">
+                    {data.displayName.trim() || "Your"}-Agent
+                  </code>
+                  .
+                </div>
               </div>
             </div>
           )}

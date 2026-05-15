@@ -9,6 +9,7 @@ import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { FloatingMeeting } from "@/components/channel-system/floating-meeting";
 import { UpdateBanner } from "@/components/update-banner";
 import { DemoBanner } from "@/components/demo-banner";
+import { IdentityHydrator } from "@/components/identity-hydrator";
 
 export default function MainLayout({
   children,
@@ -23,6 +24,7 @@ export default function MainLayout({
           <main className="flex-1 flex min-w-0 bg-neutral-950">{children}</main>
         </div>
       </div>
+      <IdentityHydrator />
       <CommandPalette />
       <OnboardingWizard />
       <FloatingMeeting />

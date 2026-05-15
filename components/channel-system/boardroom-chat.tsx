@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, Send, Sparkles } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { localMember, type TeamMember } from "@/lib/team";
+import { localMember, useIdentityVersion, type TeamMember } from "@/lib/team";
 
 type AgentId = string;
 
@@ -116,6 +116,9 @@ type ChatItem =
   | { kind: "system"; id: string; text: string; ts: number };
 
 export function BoardroomChat() {
+  // Re-render when the wizard updates the display name so the local
+  // human's avatar/label picks up the new value.
+  useIdentityVersion();
   const [agents, setAgents] = useState<AgentMeta[]>([]);
   const [items, setItems] = useState<ChatItem[]>([]);
   const [input, setInput] = useState("");

@@ -31,6 +31,7 @@ const KEYS = [
   "onboarding.completed",
   "onboarding.identity",
   "onboarding.displayName",
+  "onboarding.agentName",
   "onboarding.claudeBin",
   "onboarding.workspaceRoot",
   "onboarding.syncOptIn",
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as Partial<{
     identity: string;
     displayName: string;
+    agentName: string;
     claudeBin: string;
     workspaceRoot: string;
     syncOptIn: boolean;
@@ -61,6 +63,7 @@ export async function POST(req: NextRequest) {
     completed: boolean;
   }>;
 
+  if (body.agentName !== undefined) setSetting("onboarding.agentName", body.agentName);
   if (body.identity !== undefined) setSetting("onboarding.identity", body.identity);
   if (body.displayName !== undefined) {
     setSetting("onboarding.displayName", body.displayName);
