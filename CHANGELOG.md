@@ -8,6 +8,13 @@ For full details on any release, see the corresponding entry on [GitHub Releases
 
 ---
 
+## [0.5.2] - 2026-05-15
+
+Hotfix. v0.5.1 broke production builds across every OS/Node combo in CI.
+
+### Fixed
+- `useIdentityVersion` React hook moved out of `lib/team.ts` (which is imported by server code) into a new `lib/use-identity-version.ts` with the `"use client"` directive. Mixing a hook into a server-imported module is a Next.js boundary violation that crashes Turbopack production builds with "Ecmascript file had an error" across all routes. Dev mode masks this. Production builds and CI did not. The hook is re-exported from `lib/team.ts` so existing import sites work unchanged.
+
 ## [0.5.1] - 2026-05-15
 
 Demo polish for first-impression conversion. `npm run demo` was technically working but read as a single-user sandbox; v0.5.1 makes it look like a populated multi-operator cockpit. All changes confined to demo seed + demo-mode dashboard overrides. Real installs unaffected.
@@ -134,6 +141,7 @@ First public release.
 - Optional Electron desktop wrapper.
 - Optional self-hosted LiveKit boardroom voice channel.
 
+[0.5.2]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.2
 [0.5.1]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.1
 [0.5.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.0
 [0.4.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.4.0

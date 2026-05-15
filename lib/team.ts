@@ -52,25 +52,8 @@ export function humanIdForAgent(agentId: string): string | null {
   return m ? m[1] : null;
 }
 
-// ─── Client-side reactivity hook ───────────────────────────────────────────
-//
-// TEAM is mutated in place by IdentityHydrator when the user finishes the
-// onboarding wizard (or refocuses the tab). Components that render
-// `LOCAL.name` need a re-render trigger to pick up the new value, since
-// mutating an object property doesn't notify React on its own. Any subtree
-// that displays the local human's name should call useIdentityVersion() —
-// it's a no-op state hook that re-renders the caller on every
-// "war-room:identity-changed" event.
-//
-// Lives in this module (not a separate hook file) so the import sits next
-// to the rest of the team helpers.
-import { useEffect, useState } from "react";
-export function useIdentityVersion(): number {
-  const [v, setV] = useState(0);
-  useEffect(() => {
-    const onChange = () => setV((n) => n + 1);
-    window.addEventListener("war-room:identity-changed", onChange);
-    return () => window.removeEventListener("war-room:identity-changed", onChange);
-  }, []);
-  return v;
-}
+// useIdentityVersion was moved to lib/use-identity-version.ts.
+// This file is imported by server code (workspace-color, API routes), so a
+// React hook here breaks production builds with a server/client boundary
+// violation. Re-exported below for back-compat with existing import sites.
+export { useIdentityVersion } from "./use-identity-version";
