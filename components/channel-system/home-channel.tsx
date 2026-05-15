@@ -215,13 +215,25 @@ function Empty({ text }: { text: string }) {
   );
 }
 
+// Static widths — Math.random in render breaks React purity. The shimmer
+// is what readers register; varying widths just need to look "varied
+// enough" to avoid monotony.
+const SKELETON_TOP = [62, 48, 70, 55, 44, 68, 50];
+const SKELETON_BOTTOM = [38, 52, 33, 47, 41, 35, 49];
+
 function SkeletonList({ count }: { count: number }) {
   return (
     <div className="flex flex-col">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="px-3 py-2.5 border-b border-neutral-900 last:border-b-0 space-y-1.5">
-          <div className="h-3 bg-neutral-800 rounded animate-pulse" style={{ width: `${40 + Math.random() * 40}%` }} />
-          <div className="h-2.5 bg-neutral-900 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}%` }} />
+          <div
+            className="h-3 bg-neutral-800 rounded animate-pulse"
+            style={{ width: `${SKELETON_TOP[i % SKELETON_TOP.length]}%` }}
+          />
+          <div
+            className="h-2.5 bg-neutral-900 rounded animate-pulse"
+            style={{ width: `${SKELETON_BOTTOM[i % SKELETON_BOTTOM.length]}%` }}
+          />
         </div>
       ))}
     </div>

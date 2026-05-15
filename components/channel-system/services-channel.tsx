@@ -23,9 +23,13 @@ export function ServicesChannel() {
     }
   }, []);
 
+  // Polling subscription. setState only fires inside the load() promise's
+  // .then callbacks (genuine "subscribe to external system" pattern), but
+  // the lint rule does inter-procedural analysis and flags the call site.
   useEffect(() => {
-    load();
-    const t = setInterval(load, REFRESH_MS);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+    const t = setInterval(() => void load(), REFRESH_MS);
     return () => clearInterval(t);
   }, [load]);
 
@@ -69,7 +73,11 @@ export function ServicesChannel() {
               status={s.status}
               cpu={s.cpu}
               memMb={typeof s.mem === "number" ? s.mem / 1024 / 1024 : undefined}
-              uptimeMs={s.uptime ? Date.now() - s.uptime : undefined}
+              uptimeMs={
+                s.uptime && data.checkedAt
+                  ? new Date(data.checkedAt).getTime() - s.uptime
+                  : undefined
+              }
               restarts={s.restarts}
             />
           ))}

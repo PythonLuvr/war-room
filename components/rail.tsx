@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Sparkles, Settings, Cloud, X } from "lucide-react";
+import { Plus, Settings, Cloud, X } from "lucide-react";
 import { SettingsModal, type SettingsTab } from "@/components/settings-modal";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ function isWarRoomServer(server: ServerRow): boolean {
 export function Rail() {
   const { servers, currentId, setCurrentId, refresh } = useServers();
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<ServerRow | null>(null);
   const [settingsOpen, setSettingsOpen] = useState<SettingsTab | null>(null);
   const router = useRouter();
 
@@ -59,6 +60,7 @@ export function Rail() {
           server={s}
           active={s.id === currentId}
           onClick={() => switchTo(s)}
+          onEdit={() => setEditing(s)}
         />
       ))}
 
@@ -111,6 +113,22 @@ export function Rail() {
           }}
         />
       )}
+
+      {editing && (
+        <EditServerModal
+          server={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (patch) => {
+            await fetch("/api/servers", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: editing.id, ...patch }),
+            });
+            await refresh();
+            setEditing(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -119,10 +137,12 @@ function ServerIcon({
   server,
   active,
   onClick,
+  onEdit,
 }: {
   server: ServerRow;
   active: boolean;
   onClick: () => void;
+  onEdit?: () => void;
 }) {
   // The canonical War Room server is always rendered with its purple
   // brand wrapper + SVG mark, regardless of whatever color the row carries
@@ -135,7 +155,12 @@ function ServerIcon({
   return (
     <button
       onClick={onClick}
-      title={server.name}
+      onContextMenu={(e) => {
+        if (!onEdit) return;
+        e.preventDefault();
+        onEdit();
+      }}
+      title={`${server.name} · right-click to edit`}
       className="relative group"
     >
       {active && (
@@ -254,6 +279,134 @@ function CreateServerModal({
             className="px-4 py-2 text-sm rounded-md bg-neutral-100 text-neutral-900 hover:bg-white disabled:opacity-40"
           >
             Create
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditServerModal({
+  server,
+  onClose,
+  onSave,
+}: {
+  server: ServerRow;
+  onClose: () => void;
+  onSave: (input: { name: string; icon: string; color: string }) => void | Promise<void>;
+}) {
+  const [name, setName] = useState(server.name);
+  const [icon, setIcon] = useState(server.icon);
+  const [color, setColor] = useState(server.color);
+  const isWarRoom = isWarRoomServer(server);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-lg font-semibold">Edit server</h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Rename, change the icon, or recolor the wrapper.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-300 p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {isWarRoom && (
+          <div className="mb-4 px-3 py-2 rounded-md border border-amber-500/30 bg-amber-500/5 text-[11px] text-amber-200/90 leading-relaxed">
+            This is the canonical War Room. The brand mark + violet wrapper stay locked so the
+            shared dashboard reads the same across every install. Renaming is allowed if you
+            want to fork your own.
+          </div>
+        )}
+
+        <div className="flex items-center gap-4 mb-5">
+          <div
+            className={`w-16 h-16 rounded-2xl bg-gradient-to-br border flex items-center justify-center text-2xl font-semibold ${
+              isWarRoom
+                ? COLOR_MAP.violet
+                : COLOR_MAP[color] ?? COLOR_MAP.amber
+            }`}
+          >
+            {isWarRoom ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/war-room-logo.svg" alt="" className="w-9 h-9" />
+            ) : (
+              icon || (name.trim() ? name.trim().slice(0, 2).toUpperCase() : "?")
+            )}
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] uppercase tracking-wider text-neutral-500">
+              Server name
+            </label>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Workspace name"
+              className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700 mt-1"
+            />
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-2">
+            Icon (1-2 chars or emoji)
+          </label>
+          <input
+            value={icon}
+            onChange={(e) => setIcon(e.target.value.slice(0, 4))}
+            placeholder="auto"
+            disabled={isWarRoom}
+            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          />
+          {isWarRoom && (
+            <div className="text-[10px] text-neutral-600 mt-1">
+              Locked to the War Room mark.
+            </div>
+          )}
+        </div>
+
+        <div className="mb-6">
+          <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-2">
+            Color
+          </label>
+          <div className="flex gap-2">
+            {COLOR_PICKS.map((c) => (
+              <button
+                key={c}
+                onClick={() => setColor(c)}
+                disabled={isWarRoom}
+                className={`w-8 h-8 rounded-lg bg-gradient-to-br border ${COLOR_MAP[c]} ${
+                  color === c ? "ring-2 ring-white/40 ring-offset-2 ring-offset-[#0d0d0f]" : ""
+                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                title={c}
+              />
+            ))}
+          </div>
+          {isWarRoom && (
+            <div className="text-[10px] text-neutral-600 mt-1">
+              Locked to violet to match the brand.
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-2 text-sm rounded-md border border-neutral-800 hover:bg-neutral-900"
+          >
+            Cancel
+          </button>
+          <button
+            disabled={!name.trim()}
+            onClick={() => onSave({ name: name.trim(), icon: icon.trim(), color })}
+            className="px-4 py-2 text-sm rounded-md bg-neutral-100 text-neutral-900 hover:bg-white disabled:opacity-40"
+          >
+            Save
           </button>
         </div>
       </div>

@@ -212,7 +212,7 @@ export function ChannelChat({
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, projectPath, streaming]);
+  }, [input, projectPath, streaming, channelId]);
 
   function applyEvent(evt: { type: string } & Record<string, unknown>, asstId: string) {
     switch (evt.type) {

@@ -89,7 +89,6 @@ export function OnboardingWizard() {
     const handler = () => load(true);
     window.addEventListener("war-room:open-onboarding", handler);
     return () => window.removeEventListener("war-room:open-onboarding", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pickIdentity = (id: Identity) => {
@@ -455,65 +454,6 @@ function AgentPickStep() {
 
   const byId = new Map(adapters.map((a) => [a.id, a] as const));
 
-  const Pill = ({
-    adapterId,
-    icon,
-    label,
-  }: {
-    adapterId: string | null;
-    icon: React.ReactNode;
-    label: string;
-  }) => {
-    if (!adapterId) {
-      return (
-        <span className="px-2.5 py-1.5 text-[11px] rounded border border-neutral-900 bg-neutral-950 text-neutral-700 italic">
-          n/a
-        </span>
-      );
-    }
-    const a = byId.get(adapterId);
-    const isActive = activeId === adapterId;
-    const ready = a?.isConfigured ?? false;
-    return (
-      <button
-        onClick={() => pick(adapterId)}
-        className={`group flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded border transition-colors ${
-          isActive
-            ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
-            : "border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-neutral-700"
-        }`}
-        title={ready ? "Configured · click to use" : "Click to use · still needs setup in Settings → Agent"}
-      >
-        <span
-          className={`w-1.5 h-1.5 rounded-full shrink-0 ${ready ? "bg-emerald-500" : "bg-neutral-700"}`}
-        />
-        {icon}
-        <span>{label}</span>
-      </button>
-    );
-  };
-
-  const Row = ({ p }: { p: ProviderRow }) => (
-    <div className="flex items-center gap-3 py-2.5 border-b border-neutral-900 last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-neutral-100">{p.label}</div>
-        {p.cliId && p.installUrl && !byId.get(p.cliId)?.isConfigured && (
-          <a
-            href={p.installUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1 mt-0.5"
-          >
-            don&apos;t have the CLI? install
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>
-        )}
-      </div>
-      <Pill adapterId={p.cliId} icon={<Terminal className="w-3 h-3" />} label="CLI" />
-      <Pill adapterId={p.apiId} icon={<KeyRound className="w-3 h-3" />} label="API key" />
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold">Pick your AI backend</h3>
@@ -529,7 +469,7 @@ function AgentPickStep() {
 
       <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
         {PROVIDER_ROWS.map((p) => (
-          <Row key={p.label} p={p} />
+          <ProviderPickerRow key={p.label} p={p} byId={byId} activeId={activeId} pick={pick} />
         ))}
       </div>
 
@@ -538,7 +478,7 @@ function AgentPickStep() {
           Anything else
         </div>
         <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
-          <Row p={CUSTOM_ROW} />
+          <ProviderPickerRow p={CUSTOM_ROW} byId={byId} activeId={activeId} pick={pick} />
         </div>
         <div className="text-[10px] text-neutral-600 mt-1.5 leading-snug">
           <strong className="text-neutral-500">Custom CLI</strong>: run any command-line agent
@@ -567,6 +507,100 @@ function Hint({ icon, title, children }: { icon: React.ReactNode; title: string;
         <span className="text-xs font-semibold text-neutral-200">{title}</span>
       </div>
       <div className="text-[11px] text-neutral-500 leading-snug">{children}</div>
+    </div>
+  );
+}
+
+// Hoisted to module scope so React's reconciler keeps the same component
+// identity across renders (defining a component inside another component's
+// body resets state on every parent render).
+function ProviderPickerPill({
+  adapterId,
+  icon,
+  label,
+  byId,
+  activeId,
+  pick,
+}: {
+  adapterId: string | null;
+  icon: React.ReactNode;
+  label: string;
+  byId: Map<string, AgentMeta>;
+  activeId: string;
+  pick: (id: string) => void;
+}) {
+  if (!adapterId) {
+    return (
+      <span className="px-2.5 py-1.5 text-[11px] rounded border border-neutral-900 bg-neutral-950 text-neutral-700 italic">
+        n/a
+      </span>
+    );
+  }
+  const a = byId.get(adapterId);
+  const isActive = activeId === adapterId;
+  const ready = a?.isConfigured ?? false;
+  return (
+    <button
+      onClick={() => pick(adapterId)}
+      className={`group flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded border transition-colors ${
+        isActive
+          ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
+          : "border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-neutral-700"
+      }`}
+      title={ready ? "Configured · click to use" : "Click to use · still needs setup in Settings → Agent"}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full shrink-0 ${ready ? "bg-emerald-500" : "bg-neutral-700"}`}
+      />
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function ProviderPickerRow({
+  p,
+  byId,
+  activeId,
+  pick,
+}: {
+  p: ProviderRow;
+  byId: Map<string, AgentMeta>;
+  activeId: string;
+  pick: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-neutral-900 last:border-b-0">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-neutral-100">{p.label}</div>
+        {p.cliId && p.installUrl && !byId.get(p.cliId)?.isConfigured && (
+          <a
+            href={p.installUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1 mt-0.5"
+          >
+            don&apos;t have the CLI? install
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
+        )}
+      </div>
+      <ProviderPickerPill
+        adapterId={p.cliId}
+        icon={<Terminal className="w-3 h-3" />}
+        label="CLI"
+        byId={byId}
+        activeId={activeId}
+        pick={pick}
+      />
+      <ProviderPickerPill
+        adapterId={p.apiId}
+        icon={<KeyRound className="w-3 h-3" />}
+        label="API key"
+        byId={byId}
+        activeId={activeId}
+        pick={pick}
+      />
     </div>
   );
 }

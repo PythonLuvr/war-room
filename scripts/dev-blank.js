@@ -71,7 +71,7 @@ function restoreEnv() {
     try {
       fs.renameSync(ENV_STASH, ENV_FILE);
       console.log("▸ restored .env.local");
-    } catch (e) {
+    } catch {
       console.error(
         `\n✗ could not restore .env.local automatically. Your file is at ${ENV_STASH} — move it back manually.`,
       );

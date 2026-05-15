@@ -132,9 +132,16 @@ function AgentChip({
   const [saving, setSaving] = useState(false);
   const popRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // React's "state derived from props" pattern: when the parent passes a
+  // different `pinned` (or the user navigates to another channel), reset
+  // the local state during render. Avoids the setState-in-effect cascade.
+  const [prevPinned, setPrevPinned] = useState(pinned);
+  const [prevChannelId, setPrevChannelId] = useState(channelId);
+  if (prevPinned !== pinned || prevChannelId !== channelId) {
+    setPrevPinned(pinned);
+    setPrevChannelId(channelId);
     setPin(pinned);
-  }, [pinned, channelId]);
+  }
 
   useEffect(() => {
     fetch("/api/agents")

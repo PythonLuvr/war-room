@@ -50,13 +50,14 @@ npm run dev
 
 Open `http://localhost:3000`. The onboarding wizard walks you through picking an AI backend, naming yourself, and optionally wiring up extras (clients folder, VPS monitoring, LiveKit). You can skip everything and configure later from the settings modal.
 
-To preview what a brand-new user sees with zero config:
+## Try it without committing
 
 ```bash
-npm run dev:blank
+npm run demo       # populated cockpit on :3031, isolated demo data dir
+npm run dev:blank  # cold-clone empty state on :3030, fresh SQLite
 ```
 
-Spins up dev on port 3030 with a fresh temp database and your real `.env.local` stashed out of the way. Ctrl+C restores everything.
+Both stash your `.env.local` while running and restore it on Ctrl+C. Demo data lives in `~/.war-room-demo/` and never touches a real install. Run `demo` to see a fully populated cockpit (channels, agents, conversations, services); run `dev:blank` to see what a first-time forker sees.
 
 ## Production build
 
@@ -92,6 +93,26 @@ Edit `lib/team.ts` to define the people in your operation. The default ships wit
 ## Optional self-hosted LiveKit
 
 If you want the boardroom voice channel, run `tools/install-livekit.sh` on a Linux VPS as root. It installs LiveKit, generates credentials, sets up an nginx reverse proxy, and prints the env vars to paste into your local `.env.local`.
+
+## Auto-updater (Electron desktop builds)
+
+The auto-updater is **opt-in** by environment variable. The packaged installer ships with a deliberately invalid `publish.url` placeholder; the updater code checks `WAR_ROOM_UPDATE_URL` at runtime and stays disabled if it's not set, so a forker who hasn't published anywhere never sees a failed update check.
+
+To enable for your own fork:
+
+1. Stand up a generic-provider HTTP host that serves your `latest.yml` + installer artifacts (S3, nginx, Cloudflare R2, anything static).
+2. Set `WAR_ROOM_UPDATE_URL=https://your-host/path/` in the environment the app runs under.
+3. Use `npm run release` to build. It bakes the real URL into the build artifact while restoring the placeholder in committed `package.json` (open-source hygiene).
+
+## Testing
+
+```bash
+npm test                # runs migration + UI smoke tests
+npm run test:migration  # tsx + node:test, no browser needed
+npm run test:smoke      # Playwright against dev:blank
+```
+
+CI runs both on every push and PR via [`.github/workflows/test.yml`](.github/workflows/test.yml). First-time local setup needs `npx playwright install chromium` (downloads ~150MB).
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "war-room",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Local-first cockpit for solo operators running AI agents at scale. Plug in any AI backend (Claude, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, more) and drive them all from one Discord-style dashboard.",
   "license": "AGPL-3.0-or-later",
@@ -8,21 +8,17 @@
     "name": "pythonluvr",
     "email": "ejredd2007@gmail.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pythonluvr/war-room.git"
-  },
-  "bugs": {
-    "url": "https://github.com/pythonluvr/war-room/issues"
-  },
-  "homepage": "https://github.com/pythonluvr/war-room#readme",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
     "dev:blank": "node scripts/dev-blank.js",
+    "demo": "node scripts/demo.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "npm run test:migration && npm run test:smoke",
+    "test:migration": "tsx --test tests/migration.test.ts",
+    "test:smoke": "playwright test",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "electron:dev:full": "concurrently -k \"npm:dev\" \"wait-on http://localhost:3000 && npm run electron:dev\"",
     "electron:build": "next build --webpack && electron-builder",
@@ -51,6 +47,7 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
     "@types/better-sqlite3": "^7.6.13",
@@ -65,6 +62,7 @@
     "eslint-config-next": "16.2.6",
     "png-to-ico": "^3.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5",
     "wait-on": "^9.0.10"
   },
@@ -95,8 +93,16 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://your-host.example.com/war-room-updates/",
+      "url": "https://example.invalid/UNSET-set-WAR_ROOM_UPDATE_URL-before-release",
       "channel": "latest"
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pythonluvr/war-room.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pythonluvr/war-room/issues"
+  },
+  "homepage": "https://github.com/pythonluvr/war-room#readme"
 }

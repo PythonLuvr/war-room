@@ -287,6 +287,14 @@ function broadcastUpdateState(state) {
 }
 
 function wireAutoUpdater() {
+  // Auto-updater is opt-in. Forkers must point WAR_ROOM_UPDATE_URL at a
+  // host they control before the updater does anything. Without it we
+  // skip wiring entirely so the installer doesn't ping a placeholder
+  // domain that returns 404 for every user.
+  if (!process.env.WAR_ROOM_UPDATE_URL) {
+    console.log("auto-updater disabled: WAR_ROOM_UPDATE_URL not set");
+    return;
+  }
   const autoUpdater = getAutoUpdater();
   if (!autoUpdater) return;
 

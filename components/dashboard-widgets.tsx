@@ -9,8 +9,6 @@ import {
   Bot,
   TrendingUp,
   Activity as ActivityIcon,
-  Layers,
-  MessageSquare,
   FileText,
   LayoutDashboard,
   Home as HomeIcon,
@@ -73,7 +71,9 @@ export function DashboardWidgets() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const search = useSearchParams();
-  const activePanel = search?.get("panel");
+  // search?.get("panel") is reserved for future "highlight active panel"
+  // wiring; keeping the import here so the eventual addition is one-line.
+  void search;
   const onHome = pathname === "/c/home";
 
   return (

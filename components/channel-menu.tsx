@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Lock, LockOpen, Trash2, Copy, Hash, Settings2 } from "lucide-react";
 import type { Channel } from "@/lib/channels";
 

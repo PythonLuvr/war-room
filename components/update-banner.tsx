@@ -62,7 +62,7 @@ function DownloadingCard({ percent, version, onDismiss }: { percent: number; ver
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-neutral-100">Downloading update</div>
         <div className="text-xs text-neutral-500 mt-0.5">
-          {version ? `v${version} · ` : ""}War Room will let you know when it's ready.
+          {version ? `v${version} · ` : ""}War Room will let you know when it&apos;s ready.
         </div>
         <div className="mt-2 h-1 bg-neutral-900 rounded overflow-hidden">
           <div className="h-full bg-sky-500 transition-[width] duration-300" style={{ width: `${percent}%` }} />

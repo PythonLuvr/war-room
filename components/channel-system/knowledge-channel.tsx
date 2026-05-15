@@ -50,14 +50,19 @@ export function KnowledgeChannel({
   }, [load]);
 
   useEffect(() => {
-    if (openId === null) {
-      setOpenEntry(null);
-      return;
-    }
+    if (openId === null) return;
     fetch(`/api/knowledge?id=${openId}`)
       .then((r) => r.json())
       .then((d) => setOpenEntry(d.entry ?? null));
   }, [openId]);
+
+  // Clearing the cached entry when the modal closes is derived state — do
+  // it during render instead of in an effect so React doesn't cascade.
+  const [prevOpenId, setPrevOpenId] = useState<number | null>(openId);
+  if (prevOpenId !== openId) {
+    setPrevOpenId(openId);
+    if (openId === null && openEntry !== null) setOpenEntry(null);
+  }
 
   const filtered = useMemo(() => {
     if (!items) return null;
@@ -519,7 +524,7 @@ function EntryEditor({
               </button>
             </div>
             <div className="text-[10px] text-neutral-600 mt-1">
-              Lowercased, hyphenated automatically (e.g. "AI Gen" → "ai-gen")
+              Lowercased, hyphenated automatically (e.g. &ldquo;AI Gen&rdquo; → &ldquo;ai-gen&rdquo;)
             </div>
           </div>
           <div className="flex-1 flex flex-col">

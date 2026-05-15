@@ -13,8 +13,14 @@ export async function GET() {
       version: pkg.version ?? "0.0.0",
       name: pkg.productName ?? pkg.name ?? "War Room",
       repo: pkg.build?.publish?.url ?? null,
+      demo: process.env.WAR_ROOM_DEMO === "1",
     });
   } catch {
-    return NextResponse.json({ version: "unknown", name: "War Room", repo: null });
+    return NextResponse.json({
+      version: "unknown",
+      name: "War Room",
+      repo: null,
+      demo: process.env.WAR_ROOM_DEMO === "1",
+    });
   }
 }

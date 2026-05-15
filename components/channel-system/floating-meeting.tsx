@@ -29,18 +29,18 @@ export function FloatingMeeting() {
   const pathname = usePathname();
   const visible = meeting.phase === "in-meeting" && pathname !== "/c/home";
 
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  // Lazy initializer reads the viewport once on mount instead of mirroring
+  // it through a setState-in-effect on first paint. Falls through to null
+  // on the SSR pass — the first client render then computes the real
+  // anchor and the panel snaps into bottom-right.
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
+    if (typeof window === "undefined") return null;
+    return {
+      x: window.innerWidth - WIDTH - MARGIN,
+      y: window.innerHeight - HEIGHT - MARGIN,
+    };
+  });
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-
-  // Default position: bottom-right
-  useEffect(() => {
-    if (pos === null && typeof window !== "undefined") {
-      setPos({
-        x: window.innerWidth - WIDTH - MARGIN,
-        y: window.innerHeight - HEIGHT - MARGIN,
-      });
-    }
-  }, [pos]);
 
   // Pick the most-relevant video to show in the mini.
   const featuredTrack = useMemo<RemoteTrack | LocalTrack | undefined>(() => {

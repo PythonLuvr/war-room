@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Sparkles,
   Users,
   FolderOpen,
   CheckSquare,
@@ -13,7 +12,6 @@ import {
   MessageSquare,
   TrendingUp,
   ArrowUpRight,
-  Hash,
   Plus,
   Bot,
   Maximize2,
@@ -28,11 +26,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import { FileText, Layers, Briefcase } from "lucide-react";
+import { FileText, Briefcase } from "lucide-react";
 import { PulseDot } from "@/components/pulse-dot";
 import { AgentFlow } from "./agent-flow";
 import { MeetingRoom } from "./meeting-room";
@@ -82,16 +77,6 @@ type Dashboard = {
   }>;
   recentFiles: Array<{ path: string; name: string; mtime: number; size: number }>;
   checkedAt: string;
-};
-
-const KIND_COLOR: Record<string, string> = {
-  "chat.user": "#0ea5e9",
-  "chat.assistant": "#10b981",
-  "chat.tool": "#f59e0b",
-  "service.check": "#737373",
-  "service.down": "#ef4444",
-  "approval.new": "#a78bfa",
-  system: "#525252",
 };
 
 const SERVER_PALETTE: Record<string, string> = {
@@ -561,6 +546,10 @@ function Panel({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
+    // setFullscreen is stable (either local setState or the parent's setter
+    // via panelId/onPanelChange); listing it would force re-subscribing to
+    // keydown on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullscreen]);
 
   const header = (full: boolean) => (
@@ -709,120 +698,6 @@ function ServerStat({
   );
 }
 
-function ActivityKindChart({ items }: { items: Array<{ kind: string; count: number }> }) {
-  const data = items.map((i) => ({
-    name: i.kind,
-    value: i.count,
-    color: KIND_COLOR[i.kind] ?? "#525252",
-  }));
-  return (
-    <div className="flex gap-2 px-3 pb-3 pt-1">
-      <div className="w-28 h-28 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              innerRadius={28}
-              outerRadius={50}
-              stroke="none"
-              paddingAngle={1}
-            >
-              {data.map((d) => (
-                <Cell key={d.name} fill={d.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#0d0d0f",
-                border: "1px solid #262626",
-                borderRadius: 6,
-                fontSize: 11,
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-        {data.slice(0, 5).map((d) => (
-          <div key={d.name} className="flex items-center gap-2 text-[11px]">
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: d.color }}
-            />
-            <span className="text-neutral-400 truncate flex-1">{d.name}</span>
-            <span className="text-neutral-500 font-mono">{d.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Heatmap({ data }: { data: { days: string[]; matrix: number[][] } }) {
-  const max = Math.max(1, ...data.matrix.flat());
-  const tone = (v: number) => {
-    if (v === 0) return "bg-neutral-900";
-    const intensity = Math.min(1, v / max);
-    const opacity = 0.15 + intensity * 0.7;
-    return "";
-  };
-  return (
-    <div className="px-4 py-3">
-      <div className="flex items-center mb-2 text-[9px] text-neutral-600 uppercase tracking-wider">
-        <span className="w-10 shrink-0" />
-        <div className="grid grid-cols-24 gap-px flex-1" style={{ gridTemplateColumns: "repeat(24, 1fr)" }}>
-          {Array.from({ length: 24 }).map((_, h) => (
-            <span key={h} className="text-center">
-              {h % 6 === 0 ? `${h}` : ""}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col gap-px">
-        {data.matrix.map((row, dayIdx) => (
-          <div key={dayIdx} className="flex items-center">
-            <span className="w-10 shrink-0 text-[10px] text-neutral-500 uppercase tracking-wider">
-              {data.days[dayIdx]}
-            </span>
-            <div className="grid gap-px flex-1" style={{ gridTemplateColumns: "repeat(24, 1fr)" }}>
-              {row.map((v, hour) => {
-                const intensity = v === 0 ? 0 : Math.max(0.15, Math.min(1, v / max));
-                return (
-                  <div
-                    key={hour}
-                    className={`aspect-square rounded-sm ${tone(v)}`}
-                    style={
-                      v === 0
-                        ? {}
-                        : {
-                            backgroundColor: `rgba(167, 139, 250, ${intensity})`,
-                          }
-                    }
-                    title={`${data.days[dayIdx]} ${hour}:00 — ${v} events`}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2 mt-3 text-[9px] text-neutral-600 uppercase tracking-wider">
-        <span>Less</span>
-        {[0.15, 0.3, 0.5, 0.7, 0.9].map((o) => (
-          <span
-            key={o}
-            className="w-3 h-3 rounded-sm"
-            style={{ backgroundColor: `rgba(167, 139, 250, ${o})` }}
-          />
-        ))}
-        <span>More</span>
-        <span className="ml-auto text-neutral-700">peak {max}</span>
-      </div>
-    </div>
-  );
-}
-
 function ActionTile({
   icon,
   label,
@@ -852,19 +727,23 @@ function Empty({ text }: { text: string }) {
   return <div className="px-4 py-8 text-center text-xs text-neutral-600">{text}</div>;
 }
 
+// Deterministic skeleton widths — Math.random in render breaks React purity
+// (every render re-rolls and produces a layout shift). The shimmer is the
+// thing readers notice; the exact widths only need to look "varied enough".
+const SKELETON_BAR_HEIGHTS = [40, 78, 32, 65, 50, 72, 45];
+const SKELETON_LINE_WIDTHS_TOP = [62, 48, 70, 55, 44];
+const SKELETON_LINE_WIDTHS_BOTTOM = [38, 52, 33, 47, 41];
+
 function ChartSkeleton() {
   return (
     <div className="h-full w-full flex items-end gap-1.5 px-2 py-2">
-      {Array.from({ length: 7 }).map((_, i) => {
-        const h = 20 + Math.random() * 60;
-        return (
-          <div
-            key={i}
-            className="flex-1 bg-neutral-900 rounded-t animate-pulse"
-            style={{ height: `${h}%` }}
-          />
-        );
-      })}
+      {SKELETON_BAR_HEIGHTS.map((h, i) => (
+        <div
+          key={i}
+          className="flex-1 bg-neutral-900 rounded-t animate-pulse"
+          style={{ height: `${h}%` }}
+        />
+      ))}
     </div>
   );
 }
@@ -872,7 +751,7 @@ function ChartSkeleton() {
 function FeedSkeleton() {
   return (
     <div className="flex flex-col">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {SKELETON_LINE_WIDTHS_TOP.map((top, i) => (
         <div
           key={i}
           className="flex items-start gap-3 px-4 py-2.5 border-b border-neutral-900 last:border-b-0"
@@ -881,39 +760,13 @@ function FeedSkeleton() {
           <div className="flex-1 space-y-1.5">
             <div
               className="h-3 bg-neutral-800 rounded animate-pulse"
-              style={{ width: `${40 + Math.random() * 40}%` }}
+              style={{ width: `${top}%` }}
             />
             <div
               className="h-2.5 bg-neutral-900 rounded animate-pulse"
-              style={{ width: `${30 + Math.random() * 30}%` }}
+              style={{ width: `${SKELETON_LINE_WIDTHS_BOTTOM[i]}%` }}
             />
           </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TopChannelsSkeleton() {
-  return (
-    <div className="flex flex-col">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-3 px-4 py-2.5 border-b border-neutral-900 last:border-b-0"
-        >
-          <div className="w-4 h-3 bg-neutral-900 rounded animate-pulse" />
-          <div className="flex-1 space-y-1.5">
-            <div
-              className="h-3 bg-neutral-800 rounded animate-pulse"
-              style={{ width: `${40 + Math.random() * 40}%` }}
-            />
-            <div
-              className="h-2.5 bg-neutral-900 rounded animate-pulse"
-              style={{ width: `${30 + Math.random() * 30}%` }}
-            />
-          </div>
-          <div className="w-6 h-3 bg-neutral-900 rounded animate-pulse" />
         </div>
       ))}
     </div>

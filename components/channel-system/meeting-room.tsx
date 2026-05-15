@@ -5,7 +5,7 @@
 // level context so the meeting survives route changes and can collapse into
 // a FloatingMeeting window when the user navigates away from /c/home.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Camera,
   CameraOff,
@@ -24,7 +24,7 @@ import {
   Video,
   Volume2,
 } from "lucide-react";
-import { ConnectionQuality, type LocalTrack, type RemoteTrack } from "livekit-client";
+import { ConnectionQuality, type RemoteTrack } from "livekit-client";
 import { useInFullscreenPanel } from "./panel-context";
 import { useMeeting, type ScreenShareInfo } from "@/lib/meeting-context";
 import { TEAM, agentIdFor, type TeamMember } from "@/lib/team";
@@ -185,7 +185,6 @@ function PreJoin() {
           <div className="md:w-64 shrink-0">
             <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center">
               {previewStream ? (
-                // eslint-disable-next-line jsx-a11y/media-has-caption
                 <video
                   ref={previewRef}
                   autoPlay

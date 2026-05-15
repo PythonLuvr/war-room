@@ -4,7 +4,6 @@ import { listUserServers } from "@/lib/db";
 import { ChannelHeader } from "@/components/channel-header";
 import { ChannelChat } from "@/components/channel-chat";
 import { RightPanel } from "@/components/right-panel";
-import { HomeChannel } from "@/components/channel-system/home-channel";
 import { WarRoomDashboard } from "@/components/channel-system/war-room-dashboard";
 import { ServicesChannel } from "@/components/channel-system/services-channel";
 import { ActivityChannel } from "@/components/channel-system/activity-channel";

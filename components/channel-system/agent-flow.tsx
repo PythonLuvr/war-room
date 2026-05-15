@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   ReactFlow,
   Background,
-  Controls,
   Handle,
   Position,
   type Node,

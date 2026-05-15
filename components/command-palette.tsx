@@ -10,9 +10,6 @@ import {
   Server,
   ArrowUp,
   ArrowDown,
-  Plus,
-  FolderPlus,
-  Settings2,
   Activity,
   CheckSquare,
   MessageSquare,
@@ -107,6 +104,11 @@ export function CommandPalette() {
 
   useEffect(() => {
     if (!open) return;
+    // Reset ephemeral palette state and refetch when the palette opens.
+    // setState here is the legitimate "external system told us to" pattern
+    // (the user opening the palette is the external trigger); silence the
+    // rule rather than unwind it into a less readable shape.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery("");
     setCursor(0);
     fetch("/api/channels/search")
@@ -199,9 +201,14 @@ export function CommandPalette() {
       .slice(0, 60);
   }, [items, actions, query]);
 
-  useEffect(() => {
+  // Clamp the cursor when the result list shrinks. React's "adjust state
+  // during render" pattern (https://react.dev/learn/you-might-not-need-an-effect)
+  // — better than mirroring through useEffect.
+  const [prevLen, setPrevLen] = useState(filtered.length);
+  if (prevLen !== filtered.length) {
+    setPrevLen(filtered.length);
     if (cursor >= filtered.length) setCursor(0);
-  }, [filtered.length, cursor]);
+  }
 
   const onSelect = useCallback(
     (item: Item) => {
@@ -217,6 +224,11 @@ export function CommandPalette() {
       }
       setOpen(false);
     },
+    // servers is referenced through `.find` — including it would re-create
+    // onSelect every time the server list refetches, churning child memos.
+    // Reading the latest array via closure is fine because we only
+    // dereference at click time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [router, setCurrentId],
   );
 

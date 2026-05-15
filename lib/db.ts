@@ -52,30 +52,53 @@ function migrateClaudeSessionsAdapterId(d: Database.Database) {
   if (cols.length === 0) return; // first-run, table created with new schema
   if (cols.some((c) => c.name === "adapter_id")) return; // already migrated
 
-  d.exec(`
-    CREATE TABLE claude_sessions_new (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_path TEXT NOT NULL,
-      adapter_id TEXT NOT NULL DEFAULT 'claude-cli',
-      claude_session_id TEXT,
-      label TEXT,
-      created_at INTEGER NOT NULL,
-      last_used_at INTEGER NOT NULL,
-      UNIQUE(project_path, adapter_id)
-    );
+  // SQLite requires foreign_keys=OFF during a rebuild of any table that's
+  // referenced by an FK (chat_messages.session_id → claude_sessions.id).
+  // Per the official "ALTER TABLE" recipe: flip the pragma off, do the
+  // table swap inside a transaction, run foreign_key_check before commit,
+  // then re-enable. The ids are preserved by SELECTing them through, so
+  // existing chat_messages rows continue to resolve to the right session.
+  const fkBefore = (d.pragma("foreign_keys", { simple: true }) as number) === 1;
+  d.pragma("foreign_keys = OFF");
+  try {
+    d.exec(`
+      BEGIN;
 
-    INSERT INTO claude_sessions_new
-      (id, project_path, adapter_id, claude_session_id, label, created_at, last_used_at)
-    SELECT
-      id, project_path, 'claude-cli', claude_session_id, label, created_at, last_used_at
-    FROM claude_sessions;
+      CREATE TABLE claude_sessions_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_path TEXT NOT NULL,
+        adapter_id TEXT NOT NULL DEFAULT 'claude-cli',
+        claude_session_id TEXT,
+        label TEXT,
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER NOT NULL,
+        UNIQUE(project_path, adapter_id)
+      );
 
-    DROP TABLE claude_sessions;
-    ALTER TABLE claude_sessions_new RENAME TO claude_sessions;
-  `);
+      INSERT INTO claude_sessions_new
+        (id, project_path, adapter_id, claude_session_id, label, created_at, last_used_at)
+      SELECT
+        id, project_path, 'claude-cli', claude_session_id, label, created_at, last_used_at
+      FROM claude_sessions;
+
+      DROP TABLE claude_sessions;
+      ALTER TABLE claude_sessions_new RENAME TO claude_sessions;
+
+      COMMIT;
+    `);
+    const violations = d.prepare(`PRAGMA foreign_key_check`).all();
+    if (violations.length > 0) {
+      throw new Error(`foreign key violations after rebuild: ${JSON.stringify(violations)}`);
+    }
+  } finally {
+    if (fkBefore) d.pragma("foreign_keys = ON");
+  }
 }
 
-function migrate(d: Database.Database) {
+/** Runs every schema migration the app needs, plus the canonical seeds.
+ *  Exported so tests can apply migrations to a fixture DB without booting
+ *  the rest of the app. Safe to call repeatedly — every step is idempotent. */
+export function migrate(d: Database.Database) {
   d.exec(`
     -- Sessions are scoped per (project, adapter) so each agent maintains
     -- its own conversation thread and CLI --resume token. Lets you bounce
@@ -138,8 +161,6 @@ function migrate(d: Database.Database) {
       project_path TEXT,
       created_at INTEGER NOT NULL
     );
-
-    CREATE INDEX IF NOT EXISTS idx_user_channels_group ON user_channels(server_id, group_label);
 
     CREATE TABLE IF NOT EXISTS channel_overrides (
       channel_id TEXT PRIMARY KEY,
@@ -268,6 +289,12 @@ function migrate(d: Database.Database) {
   migrateAddColumn(d, "chat_messages", "agent_id", "TEXT");
   migrateAddServerId(d, "user_channels");
   migrateAddServerId(d, "user_groups");
+  // Index lives here (not in the CREATE TABLE block) because legacy DBs
+  // get server_id added by the migration above; running it earlier would
+  // hit "no such column".
+  d.exec(
+    `CREATE INDEX IF NOT EXISTS idx_user_channels_group ON user_channels(server_id, group_label);`,
+  );
   migrateAddColumn(d, "user_channels", "is_private", "INTEGER NOT NULL DEFAULT 0");
   migrateAddColumn(d, "user_channels", "description", "TEXT");
   migrateAddColumn(d, "user_channels", "sidebar_hidden", "INTEGER NOT NULL DEFAULT 0");
@@ -365,6 +392,38 @@ export function createUserServer(input: { name: string; icon?: string; color?: s
   return db()
     .prepare(`SELECT * FROM user_servers WHERE id = ?`)
     .get(Number(r.lastInsertRowid)) as UserServerRow;
+}
+
+export function updateUserServer(
+  id: number,
+  patch: { name?: string; icon?: string; color?: string },
+) {
+  const fields: string[] = [];
+  const values: (string | number)[] = [];
+  if (patch.name !== undefined) {
+    fields.push("name = ?");
+    values.push(patch.name);
+  }
+  if (patch.icon !== undefined) {
+    fields.push("icon = ?");
+    values.push(patch.icon);
+  }
+  if (patch.color !== undefined) {
+    fields.push("color = ?");
+    values.push(patch.color);
+  }
+  if (fields.length === 0) return;
+  values.push(id);
+  db()
+    .prepare(`UPDATE user_servers SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+}
+
+/** Find the user's personal workspace server (is_personal=1). */
+export function getPersonalServer(): UserServerRow | undefined {
+  return db()
+    .prepare(`SELECT * FROM user_servers WHERE is_personal = 1 LIMIT 1`)
+    .get() as UserServerRow | undefined;
 }
 
 export function deleteUserServer(id: number) {

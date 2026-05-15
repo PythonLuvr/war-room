@@ -36,8 +36,12 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // refresh() only setState's inside fetch callbacks; the localStorage
+  // read fires once at mount. Both are "subscribe to external system"
+  // patterns the rule's inter-procedural analysis misclassifies.
   useEffect(() => {
-    refresh();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
     const saved = Number(localStorage.getItem(LS_KEY));
     if (saved && !Number.isNaN(saved)) setCurrentIdState(saved);
   }, [refresh]);

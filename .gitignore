@@ -44,6 +44,12 @@ next-env.d.ts
 # Electron build outputs
 /dist-electron/
 
+# Playwright artifacts
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # OS junk
 .DS_Store
 Thumbs.db

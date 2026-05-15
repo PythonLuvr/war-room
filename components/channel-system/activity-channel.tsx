@@ -92,20 +92,25 @@ export function ActivityChannel() {
   );
 }
 
+// Static widths — Math.random in render breaks React purity. Repeating the
+// pattern looks identical to the eye while keeping reconciliation stable.
+const SKELETON_TOP = [62, 48, 70, 55, 44, 68];
+const SKELETON_BOTTOM = [38, 52, 33, 47, 41, 35];
+
 function SkeletonRows() {
   return (
     <div className="flex flex-col gap-2">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {SKELETON_TOP.map((top, i) => (
         <div key={i} className="flex items-start gap-3 py-2.5 border-b border-neutral-900">
           <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-neutral-800 animate-pulse" />
           <div className="flex-1 space-y-1.5">
             <div
               className="h-3 bg-neutral-800/80 rounded animate-pulse"
-              style={{ width: `${40 + Math.random() * 40}%` }}
+              style={{ width: `${top}%` }}
             />
             <div
               className="h-2.5 bg-neutral-900 rounded animate-pulse"
-              style={{ width: `${30 + Math.random() * 30}%` }}
+              style={{ width: `${SKELETON_BOTTOM[i]}%` }}
             />
           </div>
         </div>

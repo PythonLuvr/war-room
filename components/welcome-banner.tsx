@@ -16,10 +16,14 @@ export function WelcomeBanner() {
   const [loaded, setLoaded] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [needsAgent, setNeedsAgent] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  // Initialize the dismissed flag lazily so we read localStorage exactly
+  // once at mount (client-only — useState's initializer runs after hydration
+  // when this is a "use client" component). Avoids a setState-in-effect.
+  const [dismissed, setDismissed] = useState(() =>
+    typeof window !== "undefined" && window.localStorage?.getItem(DISMISS_KEY) === "1",
+  );
 
   useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
     let cancelled = false;
     Promise.all([
       fetch("/api/onboarding").then((r) => r.json()),

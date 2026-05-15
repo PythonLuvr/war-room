@@ -74,7 +74,7 @@ export function DecisionsChannel({ channelId }: { channelId: string }) {
         <div>
           <h2 className="text-xl font-semibold">Decisions</h2>
           <p className="text-xs text-neutral-500">
-            Append-only log · "what we agreed on" lives here
+            Append-only log · &ldquo;what we agreed on&rdquo; lives here
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">

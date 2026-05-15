@@ -8,6 +8,31 @@ For full details on any release, see the corresponding entry on [GitHub Releases
 
 ---
 
+## [0.5.0] - 2026-05-15
+
+Adoption hardening pass plus full lint cleanup. New `npm run demo` lets anyone preview a fully populated cockpit before deciding whether to install.
+
+### Added
+- **`npm run demo`** boots a fully populated cockpit on port 3031 with isolated demo data at `~/.war-room-demo/`. Three servers, nine channels, three seated agents, a seven-turn multi-agent thread exercising per-(project, adapter) sessions. Never touches a real install.
+- **`components/demo-banner.tsx`** amber top banner only renders when `WAR_ROOM_DEMO=1`, links to `dev:blank` for a clean start.
+- **Test scaffold:** `tests/migration.test.ts` (node:test via tsx) exercises legacy-DB upgrade, migration idempotency, and cold-DB seeding. `tests/smoke.spec.ts` (Playwright) walks the rail and the settings modal. Wired into `.github/workflows/test.yml`.
+- **Auto-updater opt-in flow.** `electron/main.js` early-returns when `WAR_ROOM_UPDATE_URL` is unset; forkers without their own update host never see a failed update check.
+- README sections: "Try it without committing", "Testing", "Auto-updater".
+
+### Fixed
+- **Legacy-DB upgrade bug.** `CREATE INDEX idx_user_channels_group ON user_channels(server_id, group_label)` was running before `migrateAddServerId` added the `server_id` column, throwing `SQLITE_ERROR: no such column: server_id` on every legacy upgrade. Index creation now runs after migration.
+- **`claude_sessions` table rebuild** now wraps the table swap in `PRAGMA foreign_keys = OFF` plus `BEGIN/COMMIT` plus `PRAGMA foreign_key_check` per SQLite's ALTER recipe. `chat_messages.session_id` foreign keys survive the rebuild.
+
+### Changed
+- **Full lint cleanup:** 89 problems (61 errors, 28 warnings) across 23 files → 0 errors, 0 warnings. CI lint is now hard-fail again.
+- Replaced `Math.random()` in render with module-scope deterministic width arrays (7 sites).
+- Hoisted inline component definitions to module scope (`onboarding-wizard`, `files-panel`).
+- Applied React's "adjust state during render" idiom, lazy `useState` initializers, or per-line disables with documented reasons for `set-state-in-effect` (8 sites).
+- Escaped JSX entities (`"` → `&ldquo;`/`&rdquo;`, `'` → `&apos;`) across 8 files.
+- Deleted unused imports and dead components/constants across ~15 files.
+- `eslint.config.mjs` targeted override disables `@typescript-eslint/no-require-imports` for `scripts/**/*.js` and `electron/**/*.js` only.
+- `package.json` `build.publish.url` rewritten to `https://example.invalid/UNSET-set-WAR_ROOM_UPDATE_URL-before-release` so the intent is obvious to anyone inspecting the manifest.
+
 ## [0.4.0] - 2026-05-15
 
 Schema migrations make this a minor bump. Idempotent on fresh clones and existing installs.
@@ -97,6 +122,7 @@ First public release.
 - Optional Electron desktop wrapper.
 - Optional self-hosted LiveKit boardroom voice channel.
 
+[0.5.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.0
 [0.4.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.4.0
 [0.2.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.2.0
 [0.1.3]: https://github.com/pythonluvr/war-room/releases/tag/v0.1.3

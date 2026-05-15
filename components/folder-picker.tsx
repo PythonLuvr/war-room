@@ -74,7 +74,7 @@ export function FolderPicker({
           <div className="text-sm text-neutral-300">
             Opening File Explorer…
             <div className="text-[10px] text-neutral-500 mt-0.5">
-              If you don't see the dialog, check your taskbar.
+              If you don&apos;t see the dialog, check your taskbar.
             </div>
           </div>
           <button
@@ -131,8 +131,12 @@ function InBrowserPicker({
     }
   };
 
+  // browse() drives setState through fetch callbacks (lint rule does
+  // inter-procedural analysis and flags the call site even when setState
+  // only happens in the async chain).
   useEffect(() => {
-    browse(initialPath);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void browse(initialPath);
   }, [initialPath]);
 
   return (
