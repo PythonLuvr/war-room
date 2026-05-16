@@ -58,7 +58,17 @@ Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollam
 - **better-sqlite3** native module compiles on your platform (it bundles on first install)
 - Linux, macOS, or Windows
 
-## Quick start
+## Install
+
+War Room runs two ways. **You do not need to install an .exe.** Pick whichever fits.
+
+**Localhost (recommended for forkers, developers, Linux / macOS users).** Clone the repo, `npm install`, `npm run dev`. The app runs as a Next.js server at `http://localhost:3000`. No installer, no admin rights, no DLLs. Hot reload included.
+
+**Desktop installer (Windows only).** Download the latest `war-room-setup-x.x.x.exe` from [GitHub Releases](https://github.com/PythonLuvr/war-room/releases). One-click install for non-developers who want a native window, system tray, and no terminal.
+
+Both paths run the identical app. Same data dir, same features, same DB schema. Pick the one that fits.
+
+## Quick start (localhost)
 
 ```bash
 git clone https://github.com/pythonluvr/war-room.git
