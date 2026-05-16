@@ -397,12 +397,14 @@ export function OnboardingWizard() {
   );
 }
 
-// ─── Agent picker step ──────────────────────────────────────────────────────
+// ─── Agent setup step ──────────────────────────────────────────────────────
 //
-// Layout B: one row per provider. Each row shows the provider name + two
-// buttons inline: [CLI] and [API key]. Clicking either picks that adapter
-// as the active backend. Configured adapters get a green dot; unconfigured
-// CLI buttons surface a small "install →" link to the official docs.
+// Multi-provider setup: forkers paste keys / set binary paths for as many
+// adapters as they want during onboarding. Each provider card has all
+// relevant inputs visible at once. Saves happen on blur via /api/agents
+// POST so nothing is lost between fields. The "Default backend" picker
+// at the bottom lists every adapter that became configured + lets the
+// user mark one as primary.
 
 type AgentMeta = {
   id: string;
@@ -412,64 +414,190 @@ type AgentMeta = {
   isConfigured: boolean;
 };
 
-type ProviderRow = {
+type FieldSpec = {
+  /** Settings key. */
+  k: string;
+  /** Field label shown in the form. */
   label: string;
-  cliId: string | null;
-  apiId: string | null;
-  installUrl?: string;
-  installNote?: string;
+  /** Placeholder example. */
+  ph?: string;
+  /** Render as a password input (mask + don't trip browser autofill). */
+  secret?: boolean;
+  /** Width hint within the card grid. */
+  span?: 1 | 2;
 };
 
-const PROVIDER_ROWS: ProviderRow[] = [
+type ProviderCard = {
+  label: string;
+  /** Optional install link surfaced when the CLI isn't configured. */
+  installUrl?: string;
+  installNote?: string;
+  /** Adapter ids that get marked configured when their fields are filled. */
+  cliAdapterId?: string;
+  apiAdapterId?: string;
+  cliFields: FieldSpec[];
+  apiFields: FieldSpec[];
+};
+
+const PROVIDER_CARDS: ProviderCard[] = [
   {
     label: "Claude",
-    cliId: "claude-cli",
-    apiId: "anthropic-api",
     installUrl: "https://docs.claude.com/en/docs/claude-code/setup",
     installNote: "npm i -g @anthropic-ai/claude-code",
+    cliAdapterId: "claude-cli",
+    apiAdapterId: "anthropic-api",
+    cliFields: [
+      { k: "agent.cli.claude.bin", label: "Claude Code binary", ph: "claude" },
+    ],
+    apiFields: [
+      { k: "agent.api.anthropic.key", label: "Anthropic API key", ph: "sk-ant-…", secret: true },
+      { k: "agent.api.anthropic.model", label: "Model", ph: "claude-sonnet-4-6" },
+    ],
   },
   {
     label: "OpenAI",
-    cliId: "codex-cli",
-    apiId: "openai-api",
     installUrl: "https://github.com/openai/codex",
     installNote: "Codex CLI",
+    cliAdapterId: "codex-cli",
+    apiAdapterId: "openai-api",
+    cliFields: [{ k: "agent.cli.codex.bin", label: "Codex binary", ph: "codex" }],
+    apiFields: [
+      { k: "agent.api.openai.key", label: "OpenAI API key", ph: "sk-…", secret: true },
+      { k: "agent.api.openai.model", label: "Model", ph: "gpt-5" },
+    ],
   },
   {
     label: "Google Gemini",
-    cliId: "gemini-cli",
-    apiId: "gemini-api",
     installUrl: "https://github.com/google-gemini/gemini-cli",
     installNote: "npm i -g @google/gemini-cli",
+    cliAdapterId: "gemini-cli",
+    apiAdapterId: "gemini-api",
+    cliFields: [{ k: "agent.cli.gemini.bin", label: "Gemini CLI binary", ph: "gemini" }],
+    apiFields: [
+      { k: "agent.api.gemini.key", label: "Gemini API key", ph: "AIza…", secret: true },
+      { k: "agent.api.gemini.model", label: "Model", ph: "gemini-2.5-pro" },
+    ],
   },
   {
     label: "xAI Grok",
-    cliId: null,
-    apiId: "grok-api",
+    apiAdapterId: "grok-api",
+    cliFields: [],
+    apiFields: [
+      { k: "agent.api.grok.key", label: "xAI API key", ph: "xai-…", secret: true },
+      { k: "agent.api.grok.model", label: "Model", ph: "grok-3" },
+    ],
+  },
+  {
+    label: "OpenClaw",
+    installUrl: "https://openclaw.ai/",
+    installNote: "openclaw.ai",
+    cliAdapterId: "openclaw-cli",
+    cliFields: [
+      { k: "agent.cli.openclaw.bin", label: "OpenClaw binary", ph: "openclaw" },
+    ],
+    apiFields: [],
+  },
+  {
+    label: "Hermes (Nous Research)",
+    installUrl: "https://github.com/nousresearch/hermes-agent",
+    installNote: "Hermes agent CLI",
+    cliAdapterId: "hermes-cli",
+    cliFields: [
+      { k: "agent.cli.hermes.bin", label: "Hermes binary", ph: "hermes" },
+    ],
+    apiFields: [],
+  },
+  {
+    label: "SemaClaw",
+    cliAdapterId: "semaclaw-cli",
+    cliFields: [
+      { k: "agent.cli.semaclaw.bin", label: "SemaClaw binary", ph: "semaclaw" },
+    ],
+    apiFields: [],
   },
 ];
 
-const CUSTOM_ROW: ProviderRow = {
-  label: "Custom",
-  cliId: "custom-cli",
-  apiId: "openai-compat-api",
+const CUSTOM_CARD: ProviderCard = {
+  label: "Custom (any CLI / OpenAI-compatible endpoint)",
+  cliAdapterId: "custom-cli",
+  apiAdapterId: "openai-compat-api",
+  cliFields: [
+    { k: "agent.cli.custom.bin", label: "Binary path", ph: "/path/to/your-cli", span: 2 },
+    { k: "agent.cli.custom.template", label: "Args template", ph: '--prompt "{{prompt}}" --cwd "{{cwd}}"', span: 2 },
+  ],
+  apiFields: [
+    { k: "agent.api.openai-compat.baseUrl", label: "Base URL", ph: "https://openrouter.ai/api/v1", span: 2 },
+    { k: "agent.api.openai-compat.key", label: "API key", ph: "sk-or-…", secret: true },
+    { k: "agent.api.openai-compat.model", label: "Model", ph: "anthropic/claude-3.5-sonnet" },
+  ],
 };
 
 function AgentPickStep() {
   const [adapters, setAdapters] = useState<AgentMeta[]>([]);
   const [activeId, setActiveId] = useState<string>("claude-cli");
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [frameworkList, setFrameworkList] = useState<Array<{ id: string; name: string; description: string }>>([]);
+  const [defaultFramework, setDefaultFramework] = useState<string>("openwar");
+
+  const refresh = async () => {
+    try {
+      const r = await fetch("/api/agents");
+      const d = (await r.json()) as {
+        activeId: string;
+        adapters: AgentMeta[];
+        settings: Record<string, string | null>;
+      };
+      setAdapters(d.adapters);
+      setActiveId(d.activeId);
+      const seed: Record<string, string> = {};
+      for (const [k, v] of Object.entries(d.settings ?? {})) seed[k] = v ?? "";
+      setSettings(seed);
+    } catch {}
+  };
 
   useEffect(() => {
-    fetch("/api/agents")
+    // refresh() drives setState through fetch callbacks; the rule's
+    // inter-procedural analysis flags the call site even though setState
+    // only happens inside the async chain.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refresh();
+    fetch("/api/frameworks")
       .then((r) => r.json())
-      .then((d: { activeId: string; adapters: AgentMeta[] }) => {
-        setAdapters(d.adapters);
-        setActiveId(d.activeId);
+      .then((d: { frameworks: Array<{ id: string; name: string; description: string }>; defaultId: string | null }) => {
+        setFrameworkList(d.frameworks ?? []);
+        // Default OpenWar as the new-install default if nothing else is set
+        // server-side. Server returns null when unset; user can opt out via
+        // the picker without leaving the wizard.
+        if (d.defaultId) setDefaultFramework(d.defaultId);
       })
       .catch(() => {});
   }, []);
 
-  const pick = async (id: string) => {
+  const persistDefaultFramework = async (id: string) => {
+    setDefaultFramework(id);
+    try {
+      await fetch("/api/frameworks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultId: id }),
+      });
+    } catch {}
+  };
+
+  const saveField = async (key: string, value: string) => {
+    setSettings((cur) => ({ ...cur, [key]: value }));
+    try {
+      await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+      // Refresh so isConfigured + activeId reflect the new state.
+      await refresh();
+    } catch {}
+  };
+
+  const pickPrimary = async (id: string) => {
     setActiveId(id);
     try {
       await fetch("/api/agents", {
@@ -481,38 +609,84 @@ function AgentPickStep() {
   };
 
   const byId = new Map(adapters.map((a) => [a.id, a] as const));
+  const configured = adapters.filter((a) => a.isConfigured);
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Pick your AI backend</h3>
+      <h3 className="text-xl font-semibold">Set up your AI agents</h3>
       <p className="text-sm text-neutral-400">
-        Which AI should War Room talk to? Each provider has two options:
-        <span className="text-neutral-300"> CLI</span> runs the official command-line tool against
-        your project folder (full feature set — tools, memory, file access).{" "}
-        <span className="text-neutral-300">API key</span> hits the provider directly using a key
-        you paste (chat only, no project files). Click any one to pick it. Green dot means it&apos;s
-        configured and ready; grey means you still need to set the binary path or paste a key
-        under <strong>Settings → Agent</strong>.
+        Configure as many providers as you want — paste API keys, set binary paths, all in one
+        place. Each filled-in adapter becomes a seated agent in the boardroom and is reachable
+        via <code className="text-neutral-300">@mention</code> in any chat. The{" "}
+        <strong className="text-neutral-300">Default backend</strong> selector at the bottom
+        picks which one handles unaddressed messages.
       </p>
 
-      <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
-        {PROVIDER_ROWS.map((p) => (
-          <ProviderPickerRow key={p.label} p={p} byId={byId} activeId={activeId} pick={pick} />
+      <div className="space-y-3">
+        {PROVIDER_CARDS.map((card) => (
+          <ProviderSetupCard
+            key={card.label}
+            card={card}
+            byId={byId}
+            settings={settings}
+            saveField={saveField}
+          />
         ))}
+        <ProviderSetupCard
+          card={CUSTOM_CARD}
+          byId={byId}
+          settings={settings}
+          saveField={saveField}
+        />
       </div>
 
-      <div>
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">
-          Anything else
+      <div className="pt-2 border-t border-neutral-900 space-y-3">
+        <div>
+          <Label>Agent framework (recommended)</Label>
+          <select
+            value={defaultFramework}
+            onChange={(e) => persistDefaultFramework(e.target.value)}
+            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
+          >
+            {frameworkList.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name} — {f.description.split(".")[0]}
+              </option>
+            ))}
+            <option value="none">None — raw model behavior</option>
+          </select>
+          <div className="text-[10px] text-neutral-600 mt-1">
+            A system preamble that wraps every agent reply: confirms briefs before acting, breaks
+            work into phases, asks before destructive actions, talks like a senior peer. New users
+            should keep <strong>OpenWar</strong> on. Power users with their own framework should
+            pick <strong>None</strong>.
+          </div>
         </div>
-        <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 px-4">
-          <ProviderPickerRow p={CUSTOM_ROW} byId={byId} activeId={activeId} pick={pick} />
+
+        <div>
+        <Label>Default backend</Label>
+        {configured.length === 0 ? (
+          <div className="text-xs text-neutral-600 italic mt-1">
+            Configure at least one provider above to pick a default. Until then, mentions in chat
+            still work — there&apos;s just no fallback for unaddressed messages.
+          </div>
+        ) : (
+          <select
+            value={activeId}
+            onChange={(e) => pickPrimary(e.target.value)}
+            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
+          >
+            {configured.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} {a.kind === "cli" ? "(CLI)" : "(API)"}
+              </option>
+            ))}
+          </select>
+        )}
+        <div className="text-[10px] text-neutral-600 mt-1.5">
+          You can change any of this later in <strong>Settings → Agent</strong>, or per-channel
+          via the AI chip in any chat header.
         </div>
-        <div className="text-[10px] text-neutral-600 mt-1.5 leading-snug">
-          <strong className="text-neutral-500">Custom CLI</strong>: run any command-line agent
-          via a template (point at the binary + args under Settings).{" "}
-          <strong className="text-neutral-500">Custom API</strong>: any OpenAI-compatible
-          endpoint — OpenRouter, Groq, Together, Mistral, DeepSeek, Ollama, etc.
         </div>
       </div>
     </div>
@@ -542,94 +716,133 @@ function Hint({ icon, title, children }: { icon: React.ReactNode; title: string;
 // Hoisted to module scope so React's reconciler keeps the same component
 // identity across renders (defining a component inside another component's
 // body resets state on every parent render).
-function ProviderPickerPill({
-  adapterId,
-  icon,
-  label,
+function ProviderSetupCard({
+  card,
   byId,
-  activeId,
-  pick,
+  settings,
+  saveField,
 }: {
-  adapterId: string | null;
-  icon: React.ReactNode;
-  label: string;
+  card: ProviderCard;
   byId: Map<string, AgentMeta>;
-  activeId: string;
-  pick: (id: string) => void;
+  settings: Record<string, string>;
+  saveField: (key: string, value: string) => void;
 }) {
-  if (!adapterId) {
-    return (
-      <span className="px-2.5 py-1.5 text-[11px] rounded border border-neutral-900 bg-neutral-950 text-neutral-700 italic">
-        n/a
-      </span>
-    );
-  }
-  const a = byId.get(adapterId);
-  const isActive = activeId === adapterId;
-  const ready = a?.isConfigured ?? false;
-  return (
-    <button
-      onClick={() => pick(adapterId)}
-      className={`group flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded border transition-colors ${
-        isActive
-          ? "border-amber-500/50 bg-amber-500/15 text-amber-200"
-          : "border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-neutral-700"
-      }`}
-      title={ready ? "Configured · click to use" : "Click to use · still needs setup in Settings → Agent"}
-    >
-      <span
-        className={`w-1.5 h-1.5 rounded-full shrink-0 ${ready ? "bg-emerald-500" : "bg-neutral-700"}`}
-      />
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
+  const cliReady = card.cliAdapterId ? byId.get(card.cliAdapterId)?.isConfigured : false;
+  const apiReady = card.apiAdapterId ? byId.get(card.apiAdapterId)?.isConfigured : false;
+  const anyReady = cliReady || apiReady;
+  const dot = anyReady ? "bg-emerald-500" : "bg-neutral-700";
 
-function ProviderPickerRow({
-  p,
-  byId,
-  activeId,
-  pick,
-}: {
-  p: ProviderRow;
-  byId: Map<string, AgentMeta>;
-  activeId: string;
-  pick: (id: string) => void;
-}) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-neutral-900 last:border-b-0">
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-neutral-100">{p.label}</div>
-        {p.cliId && p.installUrl && !byId.get(p.cliId)?.isConfigured && (
+    <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 p-3">
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+        <span className="text-sm font-semibold text-neutral-100">{card.label}</span>
+        {anyReady && (
+          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            ready
+          </span>
+        )}
+        {card.installUrl && !cliReady && (
           <a
-            href={p.installUrl}
+            href={card.installUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1 mt-0.5"
+            className="ml-auto text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1"
+            title={card.installNote ?? "install instructions"}
           >
-            don&apos;t have the CLI? install
+            install CLI
             <ExternalLink className="w-2.5 h-2.5" />
           </a>
         )}
       </div>
-      <ProviderPickerPill
-        adapterId={p.cliId}
-        icon={<Terminal className="w-3 h-3" />}
-        label="CLI"
-        byId={byId}
-        activeId={activeId}
-        pick={pick}
-      />
-      <ProviderPickerPill
-        adapterId={p.apiId}
-        icon={<KeyRound className="w-3 h-3" />}
-        label="API key"
-        byId={byId}
-        activeId={activeId}
-        pick={pick}
-      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {card.cliFields.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <Terminal className="w-3 h-3" />
+              CLI bridge
+            </div>
+            {card.cliFields.map((f) => (
+              <ProviderField
+                key={f.k}
+                field={f}
+                value={settings[f.k] ?? ""}
+                onCommit={(v) => saveField(f.k, v)}
+              />
+            ))}
+          </div>
+        )}
+        {card.cliFields.length === 0 && (
+          <div className="space-y-2 opacity-50">
+            <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <Terminal className="w-3 h-3" />
+              CLI bridge
+            </div>
+            <div className="text-[10px] text-neutral-600 italic px-1">
+              No official CLI from this provider yet — API only.
+            </div>
+          </div>
+        )}
+        {card.apiFields.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
+              <KeyRound className="w-3 h-3" />
+              Direct API
+            </div>
+            {card.apiFields.map((f) => (
+              <ProviderField
+                key={f.k}
+                field={f}
+                value={settings[f.k] ?? ""}
+                onCommit={(v) => saveField(f.k, v)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function ProviderField({
+  field,
+  value,
+  onCommit,
+}: {
+  field: FieldSpec;
+  value: string;
+  onCommit: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  // Reset draft when the parent value changes (e.g. after refresh()).
+  const [prev, setPrev] = useState(value);
+  if (prev !== value) {
+    setPrev(value);
+    setDraft(value);
+  }
+  const commit = () => {
+    if (draft !== value) onCommit(draft);
+  };
+  // Detect masked-secret placeholder ("ab••••cd") and treat it as
+  // "field already filled, don't show as empty"; clearing requires the
+  // user to actually type.
+  const isMaskedPlaceholder = field.secret && /^[\w-]{0,4}•+[\w-]{0,4}$/.test(value);
+  return (
+    <label className="block">
+      <span className="text-[10px] text-neutral-500 mb-0.5 block">{field.label}</span>
+      <input
+        type={field.secret ? "password" : "text"}
+        value={draft}
+        placeholder={isMaskedPlaceholder ? "(saved — type to replace)" : field.ph}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-700"
+      />
+    </label>
   );
 }
 

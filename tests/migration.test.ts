@@ -156,12 +156,29 @@ test("migrate adds adapter_id + agent_id + new seeds without losing legacy rows"
       .get() as { name: string };
     assert.equal(warRoom.name, "The War Room", "War Room should be the new default");
 
-    // channel_overrides gained agent_backend.
+    // channel_overrides gained agent_backend + cross-agent context fields
+    // + framework_preset (the per-channel OpenWar opt-in).
     const overrideCols = db.prepare(`PRAGMA table_info(channel_overrides)`).all() as Array<{ name: string }>;
-    assert.ok(
-      overrideCols.some((c) => c.name === "agent_backend"),
-      "agent_backend column missing on channel_overrides",
-    );
+    for (const required of [
+      "agent_backend",
+      "context_mode",
+      "context_messages",
+      "context_chars",
+      "framework_preset",
+    ]) {
+      assert.ok(
+        overrideCols.some((c) => c.name === required),
+        `${required} column missing on channel_overrides`,
+      );
+    }
+
+    // Cold-clone seeds default.framework=openwar. Legacy installs that
+    // hadn't seen this seed before get it added now (no existing setting
+    // row → seedDefaultFramework inserts).
+    const fw = db.prepare(`SELECT value FROM settings WHERE key = ?`).get("default.framework") as
+      | { value: string }
+      | undefined;
+    assert.equal(fw?.value, "openwar", "default.framework setting should be seeded to openwar");
   } finally {
     cleanup();
   }

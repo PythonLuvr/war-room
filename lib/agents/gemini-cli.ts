@@ -4,6 +4,7 @@
 import { spawn } from "child_process";
 import { getSetting } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
+import { isBinaryAvailable } from "./bin-probe";
 
 function geminiBin(): string {
   return getSetting("agent.cli.gemini.bin") || process.env.GEMINI_BIN || "gemini";
@@ -11,6 +12,7 @@ function geminiBin(): string {
 
 export const geminiCli: AgentAdapter = {
   id: "gemini-cli",
+  iconUrl: "/agent-logos/gemini.svg",
   name: "Google Gemini (CLI)",
   kind: "cli",
   capabilities: {
@@ -21,7 +23,7 @@ export const geminiCli: AgentAdapter = {
       "Spawns the Google Gemini CLI in your project directory. Requires the `gemini` binary on PATH and an authenticated Google account.",
   },
   isConfigured() {
-    return !!geminiBin();
+    return isBinaryAvailable(geminiBin());
   },
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, onEvent, signal } = opts;

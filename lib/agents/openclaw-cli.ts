@@ -1,39 +1,38 @@
-// OpenAI Codex CLI adapter — invokes the official `codex` binary.
-// Codex doesn't expose a structured streaming protocol like Claude Code, so
-// we just pipe stdout through as text deltas and surface stderr as system
-// events.
+// OpenClaw CLI adapter — invokes the local `openclaw` binary in
+// non-interactive mode. OpenClaw is a self-hostable agent framework with
+// its own skill system + chat-app gateways; from War Room's POV it's
+// just another CLI we pipe a prompt into and stream stdout back from.
 
 import { spawn } from "child_process";
 import { getSetting } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
 import { isBinaryAvailable } from "./bin-probe";
 
-function codexBin(): string {
-  return getSetting("agent.cli.codex.bin") || process.env.CODEX_BIN || "codex";
+function openclawBin(): string {
+  return getSetting("agent.cli.openclaw.bin") || process.env.OPENCLAW_BIN || "openclaw";
 }
 
-export const codexCli: AgentAdapter = {
-  id: "codex-cli",
-  iconUrl: "/agent-logos/openai.svg",
-  name: "OpenAI Codex (CLI)",
+export const openclawCli: AgentAdapter = {
+  id: "openclaw-cli",
+  iconUrl: "/agent-logos/openclaw.svg",
+  name: "OpenClaw (CLI)",
   kind: "cli",
   capabilities: {
     toolUse: true,
     memory: true,
     fileAccess: true,
     notes:
-      "Spawns the OpenAI Codex CLI in your project directory. Requires the `codex` binary on PATH and your OpenAI account configured via `codex login`.",
+      "Spawns the OpenClaw agent in your project directory. Requires the `openclaw` binary on PATH and `openclaw onboard` already completed at least once.",
   },
   isConfigured() {
-    return isBinaryAvailable(codexBin());
+    return isBinaryAvailable(openclawBin());
   },
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, onEvent, signal } = opts;
     return new Promise((resolve) => {
-      // `codex exec` is the non-interactive mode: takes a prompt, runs to
-      // completion, prints the agent's output to stdout. Falls back to bare
-      // invocation if exec subcommand isn't available.
-      const child = spawn(codexBin(), ["exec", prompt], {
+      // `openclaw run` is the documented non-interactive entry: takes a
+      // prompt, runs to completion, prints results to stdout.
+      const child = spawn(openclawBin(), ["run", prompt], {
         cwd: projectPath,
         shell: process.platform === "win32",
         env: { ...process.env },

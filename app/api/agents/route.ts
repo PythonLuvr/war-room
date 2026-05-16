@@ -14,6 +14,9 @@ const SETTINGS_KEYS = [
   "agent.cli.claude.bin",
   "agent.cli.codex.bin",
   "agent.cli.gemini.bin",
+  "agent.cli.openclaw.bin",
+  "agent.cli.hermes.bin",
+  "agent.cli.semaclaw.bin",
   "agent.cli.custom.bin",
   "agent.cli.custom.template",
   // API keys + models
@@ -59,6 +62,7 @@ export async function GET() {
       kind: a.kind,
       capabilities: a.capabilities,
       isConfigured: a.isConfigured(),
+      iconUrl: a.iconUrl ?? null,
     })),
   });
 }

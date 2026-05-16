@@ -27,7 +27,8 @@ import {
 import { ConnectionQuality, type RemoteTrack } from "livekit-client";
 import { useInFullscreenPanel } from "./panel-context";
 import { useMeeting, type ScreenShareInfo } from "@/lib/meeting-context";
-import { TEAM, agentIdFor, agentLabelFor, useIdentityVersion, type TeamMember } from "@/lib/team";
+import { TEAM, agentIdFor, agentLabelFor, type TeamMember } from "@/lib/team";
+import { useIdentityVersion } from "@/lib/use-identity-version";
 
 type AgentMeta = { id: string; name: string; pair: string };
 // Built at render time (not module load) so a renamed display/agent name

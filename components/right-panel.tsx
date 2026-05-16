@@ -4,11 +4,17 @@ import type { Channel } from "@/lib/channels";
 import { PulseDot } from "./pulse-dot";
 import { useEffect, useState } from "react";
 import { Pin, Calendar, FileText, FolderOpen, Bot, User } from "lucide-react";
-import { agentLabelFor, localMember, useIdentityVersion } from "@/lib/team";
+import { agentLabelFor, localMember } from "@/lib/team";
+import { useIdentityVersion } from "@/lib/use-identity-version";
 
 const LOCAL = localMember();
 
-type AgentInfo = { activeId: string; name: string; isConfigured: boolean } | null;
+type AgentInfo = {
+  activeId: string;
+  name: string;
+  isConfigured: boolean;
+  iconUrl: string | null;
+} | null;
 
 export function RightPanel({ channel }: { channel: Channel | null }) {
   const [agent, setAgent] = useState<AgentInfo>(null);
@@ -19,9 +25,21 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
   useEffect(() => {
     fetch("/api/agents")
       .then((r) => r.json())
-      .then((d: { activeId: string; adapters: Array<{ id: string; name: string; isConfigured: boolean }> }) => {
+      .then((d: {
+        activeId: string;
+        adapters: Array<{ id: string; name: string; isConfigured: boolean; iconUrl: string | null }>;
+      }) => {
         const active = d.adapters.find((a) => a.id === d.activeId);
-        setAgent(active ? { activeId: d.activeId, name: active.name, isConfigured: active.isConfigured } : null);
+        setAgent(
+          active
+            ? {
+                activeId: d.activeId,
+                name: active.name,
+                isConfigured: active.isConfigured,
+                iconUrl: active.iconUrl,
+              }
+            : null,
+        );
       })
       .catch(() => {});
   }, []);
@@ -61,6 +79,7 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
             role={agent.name.toLowerCase()}
             tone="ok"
             kind="agent"
+            iconUrl={agent.iconUrl}
           />
         ) : (
           <button
@@ -132,11 +151,13 @@ function MemberRow({
   role,
   tone,
   kind,
+  iconUrl,
 }: {
   name: string;
   role: string;
   tone: "ok" | "warn" | "idle";
   kind: "agent" | "human";
+  iconUrl?: string | null;
 }) {
   const avatarClass =
     kind === "agent"
@@ -148,7 +169,14 @@ function MemberRow({
       <div
         className={`w-7 h-7 rounded-full border flex items-center justify-center text-[10px] uppercase font-semibold ${avatarClass}`}
       >
-        {kind === "agent" ? "✦" : name[0]}
+        {kind === "agent" && iconUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={iconUrl} alt="" className="w-3.5 h-3.5" />
+        ) : kind === "agent" ? (
+          "✦"
+        ) : (
+          name[0]
+        )}
       </div>
       <div className="min-w-0 flex-1">
         <div className={`text-sm truncate ${nameClass}`}>{name}</div>

@@ -11,6 +11,7 @@
 import { spawn } from "child_process";
 import { getSetting } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
+import { isBinaryAvailable } from "./bin-probe";
 
 function customBin(): string {
   return getSetting("agent.cli.custom.bin") || "";
@@ -55,7 +56,7 @@ export const customCli: AgentAdapter = {
       'Spawns any binary you point us at. Set the path under settings → Agent backend → Custom. Use {{prompt}} and {{cwd}} placeholders in the template (default: just "{{prompt}}").',
   },
   isConfigured() {
-    return !!customBin();
+    return isBinaryAvailable(customBin());
   },
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, onEvent, signal } = opts;

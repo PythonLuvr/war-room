@@ -1,6 +1,6 @@
 {
   "name": "war-room",
-  "version": "0.5.2",
+  "version": "0.7.1",
   "private": true,
   "description": "Local-first cockpit for solo operators running AI agents at scale. Plug in any AI backend (Claude, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, more) and drive them all from one Discord-style dashboard.",
   "license": "AGPL-3.0-or-later",
@@ -13,6 +13,7 @@
     "dev": "next dev",
     "dev:blank": "node scripts/dev-blank.js",
     "demo": "node scripts/demo.js",
+    "update-frameworks": "node scripts/update-frameworks.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

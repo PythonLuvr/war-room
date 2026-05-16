@@ -313,6 +313,9 @@ function AgentTab() {
         <KVInput label="claude" value={draft["agent.cli.claude.bin"] ?? ""} onChange={(v) => set("agent.cli.claude.bin", v)} />
         <KVInput label="codex" value={draft["agent.cli.codex.bin"] ?? ""} onChange={(v) => set("agent.cli.codex.bin", v)} />
         <KVInput label="gemini" value={draft["agent.cli.gemini.bin"] ?? ""} onChange={(v) => set("agent.cli.gemini.bin", v)} />
+        <KVInput label="openclaw" value={draft["agent.cli.openclaw.bin"] ?? ""} onChange={(v) => set("agent.cli.openclaw.bin", v)} />
+        <KVInput label="hermes" value={draft["agent.cli.hermes.bin"] ?? ""} onChange={(v) => set("agent.cli.hermes.bin", v)} />
+        <KVInput label="semaclaw" value={draft["agent.cli.semaclaw.bin"] ?? ""} onChange={(v) => set("agent.cli.semaclaw.bin", v)} />
         <KVInput label="custom binary" value={draft["agent.cli.custom.bin"] ?? ""} onChange={(v) => set("agent.cli.custom.bin", v)} placeholder="C:\path\to\your-cli.exe" />
         <KVInput label="custom args template" value={draft["agent.cli.custom.template"] ?? ""} onChange={(v) => set("agent.cli.custom.template", v)} placeholder='--prompt "{{prompt}}" --cwd "{{cwd}}"' />
       </Section>

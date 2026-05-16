@@ -46,6 +46,14 @@ const nextConfig: NextConfig = {
   // they're loaded from node_modules at runtime, both in dev and inside the
   // standalone build.
   serverExternalPackages: ["better-sqlite3"],
+  // Pull arbitrary repo files into the standalone bundle so server-side
+  // code that reads them at runtime (lib/frameworks.ts → presets/frameworks/*.md)
+  // finds them after packaging. Without this, the first request that
+  // touches a framework throws fs ENOENT, the embedded Next server crashes,
+  // and the Electron main window shows "Page couldn't load."
+  outputFileTracingIncludes: {
+    "/**": ["./presets/**/*"],
+  },
 };
 
 export default nextConfig;

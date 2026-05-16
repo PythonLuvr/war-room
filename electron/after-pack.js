@@ -39,6 +39,19 @@ exports.default = async function afterPack(context) {
     );
   }
 
+  // 3b. /presets — bundled framework markdown (OpenWar etc.) that
+  //     lib/frameworks.ts reads at runtime. Without this the framework
+  //     loader returns null for every preset, the OpenWar overlay never
+  //     fires, and the wizard's framework picker shows an empty list.
+  if (fs.existsSync(path.join(projectRoot, "presets"))) {
+    fs.cpSync(
+      path.join(projectRoot, "presets"),
+      path.join(dest, "presets"),
+      { recursive: true },
+    );
+    console.log(`[after-pack] copied presets/ into standalone bundle`);
+  }
+
   // 4. Native modules — @electron/rebuild compiled better-sqlite3 against
   //    Electron's ABI into the project root's node_modules. The standalone
   //    bundle's own copy of node_modules/better-sqlite3 has the JS but no

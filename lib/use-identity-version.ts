@@ -1,16 +1,14 @@
 "use client";
 
-// Re-render trigger for components that display the local user's name.
+// Client-only re-render trigger for components that read the user's
+// display name or agent label from the in-memory TEAM[0] roster. Lives
+// in its own file because lib/team.ts is imported by server-side code
+// too (api routes, the channel tree resolver) and React hooks can't be
+// loaded into a React Server Component.
 //
-// TEAM in lib/team.ts is mutated in place by IdentityHydrator when the user
-// finishes the onboarding wizard. Mutating an object property doesn't notify
-// React on its own, so any subtree that displays the local human's name
-// should call useIdentityVersion(). It's a no-op state hook that re-renders
-// the caller on every `war-room:identity-changed` event.
-//
-// Lives in its own file (separate from lib/team.ts) because lib/team.ts is
-// imported by server code as well, and a React hook in a server-imported
-// module is a Next.js boundary violation.
+// IdentityHydrator mutates TEAM[0] in place, then dispatches the event
+// this hook listens for, forcing every consuming subtree to re-render
+// with the new values.
 
 import { useEffect, useState } from "react";
 

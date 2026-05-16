@@ -7,6 +7,7 @@ const DEFAULT_MODEL = "grok-3";
 
 export const grokApi: AgentAdapter = {
   id: "grok-api",
+  iconUrl: "/agent-logos/grok.svg",
   name: "xAI Grok (API · BYOK)",
   kind: "api",
   capabilities: {

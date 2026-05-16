@@ -6,8 +6,10 @@
 // Generic names only. No real client paths, identities, or services.
 
 import {
+  createAnnouncement,
   createDecision,
   createJob,
+  createKnowledge,
   createUserChannel,
   db,
   listUserServers,
@@ -84,8 +86,69 @@ export function seedDemoData() {
   seedChannels(personal, acme, sara, mike, studio);
   seedJobs();
   seedDecisions();
+  seedKnowledge();
+  seedAnnouncements();
   seedActivity();
   seedMultiAgentChat();
+}
+
+function seedKnowledge() {
+  createKnowledge({
+    channelId: "user/acme-knowledge",
+    title: "Brand voice cheatsheet",
+    body:
+      "## Voice\n\nConfident, direct, occasionally dry. Avoid superlatives. Always lead with the outcome.\n\n## Banned phrases\n\n- \"world-class\"\n- \"cutting-edge\"\n- \"in today's fast-paced world\"\n- \"unlock\" (unless literal)\n",
+    tags: ["copy", "brand"],
+    author: "you",
+  });
+  createKnowledge({
+    channelId: "user/acme-knowledge",
+    title: "Deployment runbook",
+    body:
+      "1. Open the change in staging.\n2. Run smoke tests against the staging URL.\n3. Tag a release candidate.\n4. Promote to production via the deploy dashboard.\n5. Watch the cache-edge p99 for 10 minutes.\n6. Post a one-liner in #launches.",
+    tags: ["ops", "deploy"],
+    author: "you",
+  });
+  createKnowledge({
+    channelId: "user/sara-notes",
+    title: "Onboarding research — week 2 themes",
+    body:
+      "Three themes surfaced from the second batch of interviews:\n\n- Users want a tour they can dismiss permanently after the first run.\n- The empty state of the first canvas is the highest-friction surface.\n- Most participants tried to drag-and-drop on day one and were surprised it didn't work.",
+    tags: ["research", "onboarding"],
+    author: "you",
+  });
+  createKnowledge({
+    channelId: "user/mike-runbooks",
+    title: "Production cutover checklist",
+    body:
+      "T-24h: freeze writes on legacy.\nT-2h: dual-write enabled, verify lag < 200ms.\nT-0: flip primary, monitor error budget for 30m.\nT+30m: revoke legacy write credentials.\nRollback path documented at the top of this doc.",
+    tags: ["ops", "migration"],
+    author: "you",
+  });
+}
+
+function seedAnnouncements() {
+  createAnnouncement({
+    channelId: "user/acme-launches",
+    title: "ACME homepage refresh — shipping Friday",
+    body:
+      "New hero, restored trust badges, A/B on the CTA copy. Comms in #general, status updates in this channel. React with the eye to ack.",
+    author: "you",
+  });
+  createAnnouncement({
+    channelId: "user/acme-launches",
+    title: "Q3 redesign discovery — kickoff Monday",
+    body:
+      "Two-week scoping pass. We'll be touching navigation IA + dashboard density. Ping the channel if any of your screens are in scope.",
+    author: "you",
+  });
+  createAnnouncement({
+    channelId: "user/studio-announcements",
+    title: "Render box online — please retire local renders",
+    body:
+      "The shared render box is live on the VPS. Hand off long renders via the queue script in the runbooks channel. Local renders should now be the exception.",
+    author: "you",
+  });
 }
 
 function seedOnboarding() {
@@ -650,7 +713,9 @@ function seedMultiAgentChat() {
   const codexSession = upsertSession(project, "codex-cli");
 
   const HOUR = 3600 * 1000;
-  const start = Date.now() - 4 * HOUR;
+  // Backdated so the Phase 0 brief + confirmation summary land before
+  // the ~4h-old execution thread. Total span: ~5h of history.
+  const start = Date.now() - 5 * HOUR;
   const turns: Array<{
     session: number;
     agentId: string | null;
@@ -658,18 +723,54 @@ function seedMultiAgentChat() {
     text: string;
     offsetMs: number;
   }> = [
+    // Phase 0: operator drops a brief. Claude (running under OpenWar)
+    // produces a Confirmation Summary instead of jumping in. Showcases
+    // the framework wrapping the agent's behavior.
     {
       session: claudeSession.id,
       agentId: null,
       role: "user",
       offsetMs: 0,
+      text:
+        "Brief:\n\nObjective: figure out why /pricing CTA conversion dropped ~12% week-over-week.\n" +
+        "Deliverables: a root cause and a revert PR if it's a regression.\n" +
+        "Constraints: no production changes without me confirming first.\n" +
+        "Mode: per-step gating.",
+    },
+    {
+      session: claudeSession.id,
+      agentId: "claude-cli",
+      role: "assistant",
+      offsetMs: 60_000,
+      text:
+        "**Confirmation Summary**\n\n" +
+        "- **Objective**: diagnose the 12% drop in /pricing CTA conversion week-over-week.\n" +
+        "- **Deliverables**: (1) root cause, (2) revert PR if it's a regression.\n" +
+        "- **Constraints**: no production changes without explicit approval.\n" +
+        "- **Tools required**: read access to the marketing site repo + analytics dashboard. Both should be wired already.\n" +
+        "- **Unknowns**: which dashboard you're pulling the 12% number from (Plausible, GA4, or internal), and whether the comparison window controls for traffic-source mix. Flag if you want me to verify before assuming.\n\n" +
+        "**Mode**: per-step gating, confirmed. I'll surface the next step and wait for your ok.\n\n" +
+        "Phase 1 step 1: pull the last 7 days of /pricing engagement from analytics, segmented by traffic source. Sound right?",
+    },
+    {
+      session: claudeSession.id,
+      agentId: null,
+      role: "user",
+      offsetMs: 120_000,
+      text: "Yes, run it. The number is from Plausible.",
+    },
+    {
+      session: claudeSession.id,
+      agentId: null,
+      role: "user",
+      offsetMs: 240_000,
       text: "Hey, can you take a look at the /pricing page? The CTA conversion is down ~12% this week.",
     },
     {
       session: claudeSession.id,
       agentId: "claude-cli",
       role: "assistant",
-      offsetMs: 90_000,
+      offsetMs: 390000,
       text:
         "Pulled it up. Three things stand out:\n\n" +
         "1. The hero CTA copy changed last Tuesday — \"Get started\" → \"Start your free trial\". Longer = lower scan rate.\n" +
@@ -681,14 +782,14 @@ function seedMultiAgentChat() {
       session: claudeSession.id,
       agentId: null,
       role: "user",
-      offsetMs: 180_000,
+      offsetMs: 480000,
       text: "Yes on #1 and #3, revert. @openai give me three CTA variants we can A/B against the original \"Get started\".",
     },
     {
       session: openaiSession.id,
       agentId: "openai-api",
       role: "assistant",
-      offsetMs: 200_000,
+      offsetMs: 500000,
       text:
         "Three options, ordered from safest to boldest:\n\n" +
         "• **\"Try it free\"** — short, action-first, removes friction word \"start\".\n" +
@@ -700,14 +801,14 @@ function seedMultiAgentChat() {
       session: claudeSession.id,
       agentId: null,
       role: "user",
-      offsetMs: 320_000,
+      offsetMs: 620000,
       text: "@gemini eyeball the screenshots in #design-review and tell me if the badge row was removed intentionally or by accident.",
     },
     {
       session: geminiSession.id,
       agentId: "gemini-cli",
       role: "assistant",
-      offsetMs: 360_000,
+      offsetMs: 660000,
       text:
         "Compared the before/after captures. The trust badges row was replaced by a single \"500+ teams\" line in 60% smaller type. " +
         "Reads like a conscious simplification, not a regression — but the line lost the logos that did the actual social-proof work. " +
@@ -717,14 +818,14 @@ function seedMultiAgentChat() {
       session: claudeSession.id,
       agentId: null,
       role: "user",
-      offsetMs: 460_000,
+      offsetMs: 760000,
       text: "Good. @codex set up the experiment in our flag service and ship the revert PR with the logo row restored.",
     },
     {
       session: codexSession.id,
       agentId: "codex-cli",
       role: "assistant",
-      offsetMs: 540_000,
+      offsetMs: 840000,
       text:
         "Both done.\n\n" +
         "- Revert PR: #2147 — restores hero copy + trust badges + logo row, ready for review.\n" +
@@ -735,7 +836,7 @@ function seedMultiAgentChat() {
       session: claudeSession.id,
       agentId: null,
       role: "user",
-      offsetMs: 620_000,
+      offsetMs: 920000,
       text: "Confirmed, that order. Thanks all.",
     },
   ];

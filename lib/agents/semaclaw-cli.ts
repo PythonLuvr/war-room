@@ -1,39 +1,37 @@
-// OpenAI Codex CLI adapter — invokes the official `codex` binary.
-// Codex doesn't expose a structured streaming protocol like Claude Code, so
-// we just pipe stdout through as text deltas and surface stderr as system
-// events.
+// SemaClaw CLI adapter — invokes the local `semaclaw` binary. SemaClaw
+// is the framework family this cockpit was originally built around, so
+// having it as a first-class adapter (instead of going through the
+// generic custom-cli plumbing) gives it a proper logo + name in the
+// boardroom seats and chat bubbles.
 
 import { spawn } from "child_process";
 import { getSetting } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
 import { isBinaryAvailable } from "./bin-probe";
 
-function codexBin(): string {
-  return getSetting("agent.cli.codex.bin") || process.env.CODEX_BIN || "codex";
+function semaclawBin(): string {
+  return getSetting("agent.cli.semaclaw.bin") || process.env.SEMACLAW_BIN || "semaclaw";
 }
 
-export const codexCli: AgentAdapter = {
-  id: "codex-cli",
-  iconUrl: "/agent-logos/openai.svg",
-  name: "OpenAI Codex (CLI)",
+export const semaclawCli: AgentAdapter = {
+  id: "semaclaw-cli",
+  iconUrl: "/agent-logos/semaclaw.svg",
+  name: "SemaClaw (CLI)",
   kind: "cli",
   capabilities: {
     toolUse: true,
     memory: true,
     fileAccess: true,
     notes:
-      "Spawns the OpenAI Codex CLI in your project directory. Requires the `codex` binary on PATH and your OpenAI account configured via `codex login`.",
+      "Spawns the SemaClaw agent in your project directory. Requires the `semaclaw` binary on PATH.",
   },
   isConfigured() {
-    return isBinaryAvailable(codexBin());
+    return isBinaryAvailable(semaclawBin());
   },
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, onEvent, signal } = opts;
     return new Promise((resolve) => {
-      // `codex exec` is the non-interactive mode: takes a prompt, runs to
-      // completion, prints the agent's output to stdout. Falls back to bare
-      // invocation if exec subcommand isn't available.
-      const child = spawn(codexBin(), ["exec", prompt], {
+      const child = spawn(semaclawBin(), ["run", prompt], {
         cwd: projectPath,
         shell: process.platform === "win32",
         env: { ...process.env },

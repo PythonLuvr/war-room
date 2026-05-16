@@ -210,6 +210,7 @@ function topSessions(limit = 5) {
 }
 
 async function recentFiles(limit = 8) {
+  if (isDemo()) return demoRecentFiles(limit);
   const roots = [
     ...STATIC_WORKSPACES.map((w) => w.path),
     CLIENTS_ROOT,
@@ -220,6 +221,25 @@ async function recentFiles(limit = 8) {
   }
   items.sort((a, b) => b.mtime - a.mtime);
   return items.slice(0, limit);
+}
+
+function demoRecentFiles(limit: number) {
+  // Synthetic recently-touched list. Mirrors the project paths used by
+  // the activity seeder so the file rows feel like they came from the
+  // same work shown elsewhere on the dashboard.
+  const now = Date.now();
+  const m = (h: number) => now - h * 3600 * 1000;
+  const files = [
+    { path: "/demo/projects/acme-website/src/app/contact/schema.ts", name: "schema.ts", mtime: m(0.5), size: 1842 },
+    { path: "/demo/projects/q3-redesign/notes/2026-q2-discovery.md", name: "2026-q2-discovery.md", mtime: m(2), size: 12_408 },
+    { path: "/demo/projects/studio-motion-pack/scenes/hero-loop-03.aep", name: "hero-loop-03.aep", mtime: m(3.5), size: 4_980_222 },
+    { path: "/demo/projects/side-project-beta/copy/waitlist-confirmation.md", name: "waitlist-confirmation.md", mtime: m(6), size: 2_104 },
+    { path: "/demo/projects/platform-migration/runbooks/cutover.md", name: "cutover.md", mtime: m(9), size: 8_722 },
+    { path: "/demo/projects/acme-website/tailwind.config.ts", name: "tailwind.config.ts", mtime: m(14), size: 3_310 },
+    { path: "/demo/projects/studio-brand-system/tokens/oklch-map.json", name: "oklch-map.json", mtime: m(20), size: 1_540 },
+    { path: "/demo/projects/sara-onboarding-redesign/research/interviews-week-2.md", name: "interviews-week-2.md", mtime: m(28), size: 18_910 },
+  ];
+  return files.slice(0, limit);
 }
 
 async function walk(
@@ -247,17 +267,23 @@ async function walk(
 }
 
 export async function GET() {
+  // Demo mode skips the SSH probe entirely — without VPS credentials it
+  // would just block the dashboard load for the SSH timeout each call.
+  // KPI numbers are synthesized further below.
+  const healthPromise = isDemo()
+    ? Promise.resolve(null)
+    : getHealthReport();
   const [clients, health, perServer, files] = await Promise.all([
     countActiveClients(),
-    getHealthReport(),
+    healthPromise,
     perServerStats(),
     recentFiles(8),
   ]);
   const sessions = listSessions();
-  const vpsOnline = health.vps.error
+  const vpsOnline = !health || health.vps.error
     ? 0
     : health.vps.services.filter((s) => s.status === "online").length;
-  const vpsTotal = health.vps.error ? 0 : health.vps.services.length;
+  const vpsTotal = !health || health.vps.error ? 0 : health.vps.services.length;
 
   // Demo mode: synthesize VPS counts + team presence + approvals so the
   // KPI strip looks like a real operator's daily view instead of zeros.
@@ -267,7 +293,7 @@ export async function GET() {
   const teamOnline = demo ? 3 : 1;
   const vpsOnlineFinal = demo ? 4 : vpsOnline;
   const vpsTotalFinal = demo ? 5 : vpsTotal;
-  const vpsError = demo ? null : (health.vps.error ?? null);
+  const vpsError = demo || !health ? null : (health.vps.error ?? null);
 
   return NextResponse.json({
     kpi: {

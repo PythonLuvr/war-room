@@ -30,6 +30,29 @@ LIVEKIT_RTC_PORT_START=50000
 LIVEKIT_RTC_PORT_END=50100
 KEYS_FILE=/etc/livekit-keys.txt
 
+# --print-creds: don't install anything, just dump the env vars from the
+# existing keys file. Useful when a teammate joins later and needs the
+# values to paste into their own ~/.war-room/.env without re-running the
+# whole installer.
+if [ "${1:-}" = "--print-creds" ]; then
+  if [ ! -f "$KEYS_FILE" ]; then
+    echo "✗ no keys file at $KEYS_FILE — run the installer first." >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  source "$KEYS_FILE"
+  IP="$(curl -sS https://api.ipify.org || hostname -I | awk '{print $1}')"
+  if [ -n "${LIVEKIT_DOMAIN:-}" ]; then
+    URL="wss://$LIVEKIT_DOMAIN"
+  else
+    URL="ws://$IP:$LIVEKIT_PORT"
+  fi
+  echo "LIVEKIT_URL=$URL"
+  echo "LIVEKIT_API_KEY=$LIVEKIT_API_KEY"
+  echo "LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET"
+  exit 0
+fi
+
 # Tweak these if you want a real hostname behind nginx
 DOMAIN="${LIVEKIT_DOMAIN:-}"           # e.g. "livekit.example.com" — leave empty to use raw IP+port
 VPS_IP="$(curl -sS https://api.ipify.org || hostname -I | awk '{print $1}')"

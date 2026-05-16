@@ -6,6 +6,7 @@ const DEFAULT_MODEL = "gpt-5";
 
 export const openaiApi: AgentAdapter = {
   id: "openai-api",
+  iconUrl: "/agent-logos/openai.svg",
   name: "OpenAI GPT (API · BYOK)",
   kind: "api",
   capabilities: {

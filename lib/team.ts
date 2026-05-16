@@ -52,8 +52,7 @@ export function humanIdForAgent(agentId: string): string | null {
   return m ? m[1] : null;
 }
 
-// useIdentityVersion was moved to lib/use-identity-version.ts.
-// This file is imported by server code (workspace-color, API routes), so a
-// React hook here breaks production builds with a server/client boundary
-// violation. Re-exported below for back-compat with existing import sites.
-export { useIdentityVersion } from "./use-identity-version";
+// The matching client-side hook — components that need to re-render when
+// TEAM[0] is mutated (display name / agent label changes via the wizard)
+// import `useIdentityVersion` from `lib/use-identity-version`. Kept in a
+// separate file so this module stays safe to import from server code.

@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus, Settings, Cloud, X } from "lucide-react";
+import { Plus, Settings, Cloud, X, UserPlus } from "lucide-react";
 import { SettingsModal, type SettingsTab } from "@/components/settings-modal";
+import { InviteModal } from "@/components/invite-modal";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useServers, serverLandingPath, type ServerRow } from "@/lib/server-context";
@@ -32,6 +33,7 @@ export function Rail() {
   const { servers, currentId, setCurrentId, refresh } = useServers();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ServerRow | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState<SettingsTab | null>(null);
   const router = useRouter();
 
@@ -77,6 +79,13 @@ export function Rail() {
       <div className="flex-1" />
 
       <button
+        title="Invite teammates"
+        onClick={() => setInviting(true)}
+        className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-600 hover:text-amber-300 flex items-center justify-center"
+      >
+        <UserPlus className="w-4 h-4" />
+      </button>
+      <button
         title="Sync status"
         onClick={() => setSettingsOpen("sync")}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-600 hover:text-neutral-300 flex items-center justify-center"
@@ -94,6 +103,8 @@ export function Rail() {
       {settingsOpen && (
         <SettingsModal initialTab={settingsOpen} onClose={() => setSettingsOpen(null)} />
       )}
+
+      {inviting && <InviteModal onClose={() => setInviting(false)} />}
 
       {creating && (
         <CreateServerModal

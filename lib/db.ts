@@ -303,6 +303,21 @@ export function migrate(d: Database.Database) {
   // Per-channel AI backend pin. NULL means "use whatever the global default
   // is right now" — surfaces in the channel header agent chip.
   migrateAddColumn(d, "channel_overrides", "agent_backend", "TEXT");
+  // Per-channel context mode for multi-agent threads:
+  //   "isolated" (default, NULL): each agent sees only its own past turns
+  //   "shared":   server prepends recent cross-agent history, attributed,
+  //               to every adapter call so models can reason about what
+  //               other agents in the channel said. Both budgets nullable
+  //               with sensible defaults applied at read time (15 msgs,
+  //               3000 chars).
+  migrateAddColumn(d, "channel_overrides", "context_mode", "TEXT");
+  migrateAddColumn(d, "channel_overrides", "context_messages", "INTEGER");
+  migrateAddColumn(d, "channel_overrides", "context_chars", "INTEGER");
+  // Framework preset id (e.g. "openwar") that War Room prepends as a
+  // system-prompt overlay to every adapter call in this channel. NULL =
+  // inherit the global `default.framework` setting; "none" = explicit
+  // opt-out (overrides the global default for this channel only).
+  migrateAddColumn(d, "channel_overrides", "framework_preset", "TEXT");
   migrateAddColumn(d, "decisions", "status", "TEXT NOT NULL DEFAULT 'open'");
   migrateAddColumn(d, "announcements", "status", "TEXT NOT NULL DEFAULT 'open'");
   // is_personal marks the user's local "Personal" workspace — the server
@@ -312,9 +327,23 @@ export function migrate(d: Database.Database) {
   migrateAddColumn(d, "user_servers", "is_personal", "INTEGER NOT NULL DEFAULT 0");
 
   seedDefaultServers(d);
+  seedDefaultFramework(d);
 }
 
 const SHARED_SERVER_NAME = "The War Room";
+
+function seedDefaultFramework(d: Database.Database) {
+  // Cold-clone DBs get OpenWar set as the global default agent framework.
+  // Existing installs keep whatever they had (this only inserts when the
+  // setting row doesn't exist). User can opt out via the wizard or the
+  // per-channel chip without leaving the app.
+  const existing = d
+    .prepare(`SELECT 1 FROM settings WHERE key = 'default.framework'`)
+    .get();
+  if (!existing) {
+    d.prepare(`INSERT INTO settings(key, value) VALUES('default.framework', 'openwar')`).run();
+  }
+}
 
 function seedDefaultServers(d: Database.Database) {
   const now = Date.now();
@@ -584,6 +613,168 @@ export function getChannelOverrideAgent(channelId: string): string | null {
   return row?.agent_backend ?? null;
 }
 
+// ─── Cross-agent context settings ──────────────────────────────────────────
+
+export type ChannelContextMode = "isolated" | "shared";
+export type ChannelContextSettings = {
+  mode: ChannelContextMode;
+  /** Hard cap on number of cross-agent messages to inject. */
+  messages: number;
+  /** Hard cap on total character count of the injected preamble. */
+  chars: number;
+};
+
+/** Defaults applied at read time when the channel hasn't been customized. */
+export const DEFAULT_CONTEXT_SETTINGS: ChannelContextSettings = {
+  mode: "isolated",
+  messages: 15,
+  chars: 3000,
+};
+
+export function getChannelContextSettings(channelId: string): ChannelContextSettings {
+  const row = db()
+    .prepare(
+      `SELECT context_mode, context_messages, context_chars FROM channel_overrides WHERE channel_id = ?`,
+    )
+    .get(channelId) as
+    | {
+        context_mode: string | null;
+        context_messages: number | null;
+        context_chars: number | null;
+      }
+    | undefined;
+  return {
+    mode: row?.context_mode === "shared" ? "shared" : "isolated",
+    messages: row?.context_messages ?? DEFAULT_CONTEXT_SETTINGS.messages,
+    chars: row?.context_chars ?? DEFAULT_CONTEXT_SETTINGS.chars,
+  };
+}
+
+export function setChannelContextSettings(
+  channelId: string,
+  patch: Partial<ChannelContextSettings>,
+) {
+  const now = Date.now();
+  const cur = getChannelContextSettings(channelId);
+  const next: ChannelContextSettings = {
+    mode: patch.mode ?? cur.mode,
+    messages: clamp(patch.messages ?? cur.messages, 1, 200),
+    chars: clamp(patch.chars ?? cur.chars, 100, 50_000),
+  };
+  db()
+    .prepare(
+      `INSERT INTO channel_overrides(channel_id, context_mode, context_messages, context_chars, created_at, updated_at)
+       VALUES(?, ?, ?, ?, ?, ?)
+       ON CONFLICT(channel_id) DO UPDATE SET
+         context_mode = excluded.context_mode,
+         context_messages = excluded.context_messages,
+         context_chars = excluded.context_chars,
+         updated_at = excluded.updated_at`,
+    )
+    .run(channelId, next.mode, next.messages, next.chars, now, now);
+}
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+// ─── Framework preset settings ────────────────────────────────────────────
+//
+// "Framework" = a system-prompt preamble War Room prepends to every adapter
+// call. OpenWar is the bundled default; users can opt-out per-channel or
+// globally. Resolution order (per send):
+//   1. channel_overrides.framework_preset (NULL = inherit global)
+//   2. settings["default.framework"] (NULL = no framework)
+//   3. "none" anywhere short-circuits to no framework
+//
+// Stored as the preset's id ("openwar"); the actual markdown content lives
+// in /presets/frameworks/<id>.md and is loaded at adapter-call time.
+
+export type ChannelFrameworkSetting = string | null;
+
+export function getChannelFrameworkPreset(channelId: string): ChannelFrameworkSetting {
+  const row = db()
+    .prepare(`SELECT framework_preset FROM channel_overrides WHERE channel_id = ?`)
+    .get(channelId) as { framework_preset: string | null } | undefined;
+  return row?.framework_preset ?? null;
+}
+
+export function setChannelFrameworkPreset(channelId: string, preset: string | null) {
+  const now = Date.now();
+  db()
+    .prepare(
+      `INSERT INTO channel_overrides(channel_id, framework_preset, created_at, updated_at)
+       VALUES(?, ?, ?, ?)
+       ON CONFLICT(channel_id) DO UPDATE SET
+         framework_preset = excluded.framework_preset,
+         updated_at = excluded.updated_at`,
+    )
+    .run(channelId, preset, now, now);
+}
+
+/** Resolve the effective framework id for a given channel:
+ *  channel pin (when not null) > global default > null. */
+export function resolveFrameworkId(channelId: string | undefined): string | null {
+  if (channelId) {
+    const pin = getChannelFrameworkPreset(channelId);
+    if (pin === "none") return null; // explicit opt-out
+    if (pin) return pin;
+  }
+  const fallback = getSetting("default.framework");
+  if (!fallback || fallback === "none") return null;
+  return fallback;
+}
+
+/** Pulls cross-agent history for a project — every message NOT generated by
+ *  `excludeAdapterId` — newest-last, capped by both budgets. Used by the
+ *  agents wrapper to inject "what other agents said" before each call when
+ *  a channel is in shared-context mode. */
+export function getCrossAgentContext(
+  projectPath: string,
+  excludeAdapterId: string,
+  budget: { messages: number; chars: number },
+): Array<{ role: string; agentId: string | null; adapterId: string; content: string; created_at: number }> {
+  // Fetch up to 2x the message budget, then trim by char budget. Going
+  // wider than `messages` lets us drop verbose ones in favor of more turns
+  // when the char budget is tight.
+  const rows = db()
+    .prepare(
+      `SELECT m.role, m.agent_id, m.content, m.created_at, s.adapter_id
+       FROM chat_messages m
+       JOIN claude_sessions s ON s.id = m.session_id
+       WHERE s.project_path = ? AND s.adapter_id != ?
+       ORDER BY m.created_at DESC
+       LIMIT ?`,
+    )
+    .all(projectPath, excludeAdapterId, budget.messages * 2) as Array<{
+    role: string;
+    agent_id: string | null;
+    content: string;
+    created_at: number;
+    adapter_id: string;
+  }>;
+
+  // Walk newest-first, accept while within both budgets, then reverse so
+  // the caller gets chronological order suitable for a preamble.
+  const accepted: typeof rows = [];
+  let chars = 0;
+  for (const r of rows) {
+    if (accepted.length >= budget.messages) break;
+    const cost = r.content.length;
+    if (chars + cost > budget.chars && accepted.length > 0) break;
+    accepted.push(r);
+    chars += cost;
+  }
+  accepted.reverse();
+  return accepted.map((r) => ({
+    role: r.role,
+    agentId: r.agent_id,
+    adapterId: r.adapter_id,
+    content: r.content,
+    created_at: r.created_at,
+  }));
+}
+
 export function updateUserChannel(
   slug: string,
   patch: { name?: string; projectPath?: string | null; description?: string | null },
@@ -615,10 +806,16 @@ export function listChannelOverrides(): Array<{
   project_path: string | null;
   description: string | null;
   agent_backend: string | null;
+  context_mode: string | null;
+  context_messages: number | null;
+  context_chars: number | null;
+  framework_preset: string | null;
 }> {
   return db()
     .prepare(
-      `SELECT channel_id, is_private, project_path, description, agent_backend FROM channel_overrides`,
+      `SELECT channel_id, is_private, project_path, description, agent_backend,
+              context_mode, context_messages, context_chars, framework_preset
+       FROM channel_overrides`,
     )
     .all() as Array<{
     channel_id: string;
@@ -626,6 +823,10 @@ export function listChannelOverrides(): Array<{
     project_path: string | null;
     description: string | null;
     agent_backend: string | null;
+    context_mode: string | null;
+    context_messages: number | null;
+    context_chars: number | null;
+    framework_preset: string | null;
   }>;
 }
 

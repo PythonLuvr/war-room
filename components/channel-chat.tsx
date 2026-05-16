@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles } from "lucide-react";
-import { localMember, useIdentityVersion } from "@/lib/team";
+import { localMember } from "@/lib/team";
+import { useIdentityVersion } from "@/lib/use-identity-version";
 
 const LOCAL = localMember();
 
@@ -17,7 +18,7 @@ type HistoryMessage = {
   created_at: number;
 };
 
-type AdapterMeta = { id: string; name: string };
+type AdapterMeta = { id: string; name: string; iconUrl: string | null };
 
 type ChatItem =
   | { kind: "user"; text: string; id: string; ts: number }
@@ -105,10 +106,10 @@ export function ChannelChat({
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Adapter id → display name lookup, used to label assistant bubbles.
+  // Adapter id → meta lookup, used to label + brand assistant bubbles.
   const adapterMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of adapters) m.set(a.id, a.name);
+    const m = new Map<string, AdapterMeta>();
+    for (const a of adapters) m.set(a.id, a);
     return m;
   }, [adapters]);
 
@@ -253,6 +254,27 @@ export function ChannelChat({
           ),
         );
         break;
+      case "system": {
+        // The server emits a system event when a pinned framework can't
+        // be resolved (file deleted, typo, presets dir missing). Surface
+        // it inline so the user knows their channel's primary lost its
+        // framework, instead of silently running raw-model behavior.
+        const sub = String(evt.subtype ?? "");
+        if (sub === "framework_missing") {
+          const payload = (evt.payload ?? {}) as { frameworkId?: string };
+          const fwId = payload.frameworkId ?? "(unknown)";
+          setItems((cur) => [
+            ...cur,
+            {
+              kind: "system",
+              text: `Framework "${fwId}" not found in presets/frameworks/. Falling back to no framework for this turn. Pick another in the AI chip popover.`,
+              id: `fw-${Date.now()}`,
+              ts: Date.now(),
+            },
+          ]);
+        }
+        break;
+      }
       case "error":
         setItems((cur) => [
           ...cur,
@@ -358,7 +380,7 @@ function ChatMessage({
 }: {
   item: ChatItem;
   prev?: ChatItem;
-  adapterMap: Map<string, string>;
+  adapterMap: Map<string, AdapterMeta>;
 }) {
   if (item.kind === "system") {
     return (
@@ -389,7 +411,8 @@ function ChatMessage({
 
   const agentId = item.kind === "assistant" ? item.agentId : null;
   const palette = AGENT_PALETTE[colorForAgent(agentId)];
-  const agentName = agentId ? adapterMap.get(agentId) ?? agentId : "Agent";
+  const adapter = agentId ? adapterMap.get(agentId) : null;
+  const agentName = adapter?.name ?? agentId ?? "Agent";
 
   return (
     <div className={`flex gap-3 ${sameAuthor ? "mt-0.5" : "mt-4"} group hover:bg-neutral-900/30 rounded -mx-2 px-2 py-0.5`}>
@@ -402,7 +425,16 @@ function ChatMessage({
                 : `${palette.ring} ${palette.avatar}`
             }`}
           >
-            {isUser ? LOCAL.name[0] : <Sparkles className="w-4 h-4" />}
+            {isUser ? (
+              LOCAL.name[0]
+            ) : adapter?.iconUrl ? (
+              // Brand mark for the adapter that produced this turn. The
+              // SVG is monochrome and inherits the palette text color.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={adapter.iconUrl} alt="" className="w-4 h-4" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
           </div>
         )}
       </div>

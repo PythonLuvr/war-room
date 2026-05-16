@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, Send, Sparkles } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { localMember, useIdentityVersion, type TeamMember } from "@/lib/team";
+import { localMember, type TeamMember } from "@/lib/team";
+import { useIdentityVersion } from "@/lib/use-identity-version";
 
 type AgentId = string;
 
@@ -18,6 +19,8 @@ type AgentMeta = {
   online: boolean;
   /** "cli" | "api" — used only for the offline reason text. */
   kind: "cli" | "api";
+  /** Brand mark URL for this adapter, or null for the generic Sparkles glyph. */
+  iconUrl: string | null;
 };
 
 type AdapterApi = {
@@ -25,6 +28,7 @@ type AdapterApi = {
   name: string;
   kind: "cli" | "api";
   isConfigured: boolean;
+  iconUrl: string | null;
 };
 
 const LOCAL = localMember();
@@ -67,6 +71,7 @@ function buildAgents(adapters: AdapterApi[]): AgentMeta[] {
       color: colorForAdapter(raw.id),
       online: raw.isConfigured,
       kind: raw.kind,
+      iconUrl: raw.iconUrl,
     };
   });
 }
@@ -495,7 +500,12 @@ function ChatRow({ item, agents }: { item: ChatItem; agents: AgentMeta[] }) {
       <div
         className={`w-7 h-7 rounded-full border bg-gradient-to-br ${c.bubble} flex items-center justify-center shrink-0`}
       >
-        <Sparkles className="w-3.5 h-3.5" />
+        {meta.iconUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={meta.iconUrl} alt="" className="w-3.5 h-3.5" />
+        ) : (
+          <Sparkles className="w-3.5 h-3.5" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <div className={`text-[11px] font-semibold ${c.text}`}>{meta.name}</div>

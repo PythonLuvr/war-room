@@ -35,7 +35,8 @@ import { BoardroomChat } from "./boardroom-chat";
 import { ActiveJobsPanel } from "./active-jobs-panel";
 import { colorForPath } from "@/lib/workspace-color";
 import { useMeeting } from "@/lib/meeting-context";
-import { TEAM, useIdentityVersion, type TeamMember } from "@/lib/team";
+import { TEAM, type TeamMember } from "@/lib/team";
+import { useIdentityVersion } from "@/lib/use-identity-version";
 import { WelcomeBanner } from "@/components/welcome-banner";
 import { useServers } from "@/lib/server-context";
 
@@ -84,6 +85,8 @@ const SERVER_PALETTE: Record<string, string> = {
   sky: "from-sky-500/20 to-sky-700/10 border-sky-500/30 text-sky-200",
   emerald: "from-emerald-500/20 to-emerald-700/10 border-emerald-500/30 text-emerald-200",
   violet: "from-violet-500/20 to-violet-700/10 border-violet-500/30 text-violet-200",
+  rose: "from-rose-500/20 to-rose-700/10 border-rose-500/30 text-rose-200",
+  fuchsia: "from-fuchsia-500/20 to-fuchsia-700/10 border-fuchsia-500/30 text-fuchsia-200",
 };
 
 const KIND_META: Record<string, { dot: string; label: string }> = {

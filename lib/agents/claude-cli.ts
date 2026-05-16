@@ -5,6 +5,7 @@
 import { spawn } from "child_process";
 import { getSetting } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
+import { isBinaryAvailable } from "./bin-probe";
 
 function claudeBin(): string {
   return (
@@ -17,6 +18,7 @@ function claudeBin(): string {
 
 export const claudeCli: AgentAdapter = {
   id: "claude-cli",
+  iconUrl: "/agent-logos/claude.svg",
   name: "Claude Code (CLI)",
   kind: "cli",
   capabilities: {
@@ -27,7 +29,7 @@ export const claudeCli: AgentAdapter = {
       "Full Claude Code experience: tools, MCP servers, skills, hooks, session memory. Requires the `claude` binary on PATH.",
   },
   isConfigured() {
-    return !!claudeBin();
+    return isBinaryAvailable(claudeBin());
   },
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, sessionId, onEvent, signal } = opts;

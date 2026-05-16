@@ -17,6 +17,7 @@ function model(): string {
 
 export const anthropicApi: AgentAdapter = {
   id: "anthropic-api",
+  iconUrl: "/agent-logos/claude.svg",
   name: "Claude (API · BYOK)",
   kind: "api",
   capabilities: {

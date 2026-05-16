@@ -8,6 +8,56 @@ For full details on any release, see the corresponding entry on [GitHub Releases
 
 ---
 
+## [0.7.1] - 2026-05-16
+
+Patch on v0.7.0. Bundled OpenWar bumped to upstream v0.3.0, mid-conversation framework switch confirmed via modal, graceful degrade when a framework file is missing.
+
+### Added
+- **Vendored OpenWar v0.3.0** at `presets/frameworks/openwar.md` with a vendor-trace header noting upstream tag and commit SHA. Replaces the v0.1-era draft that shipped in v0.7.0.
+- **`scripts/update-frameworks.mjs`** (`npm run update-frameworks`). Fetches pinned tags of registered upstream frameworks, lints fetched content for em-dashes and personal-data patterns, writes to `presets/frameworks/`. Manual invocation only. Sanity patterns are forker-extensible via the `WAR_ROOM_FRAMEWORK_SANITY_PATTERNS` env var.
+- **Mid-conversation framework switch modal** in the channel header chip. Explains the contract (next turn uses the new framework, existing context stays as-is). Esc cancels, Enter confirms.
+- **Inline "framework not found" toast** in chat when a channel pins a framework whose markdown file isn't bundled. Graceful degrade to no framework instead of 500.
+- **Demo seed Phase 0 turns:** the acme-website multi-agent thread now opens with a brief + Confirmation Summary exchange, demonstrating the OpenWar framework's gating behavior before the Phase 1 execution continues.
+
+### Changed
+- `lib/frameworks.ts` registry gains a `refresh` flag on `listFrameworks()` and an exported `refreshFrameworkCache()` so dev-watcher and test scenarios can drop the in-process cache without restarting the process.
+- README "Behavioral framework" section describes the framework system, the update workflow, and the graceful-degrade rules.
+
+### Fixed
+- **Bundled frameworks now ship in the packaged Electron installer.** `next.config.ts` adds `presets/**/*` to `outputFileTracingIncludes`, `electron/after-pack.js` copies `presets/` into the standalone bundle, and `lib/frameworks.ts` resolves the dir robustly across cwd and the module's `__dirname` ancestors. Fixes the "Page couldn't load" crash on v0.7.0's first NSIS install where the embedded Next server crashed trying to read missing framework files.
+
+## [0.7.0] - 2026-05-16
+
+Behavioral framework system + three new CLI adapters + brand-mark logos throughout the UI.
+
+### Added
+- **Framework registry** + per-channel framework override + global default setting (`channel_overrides.framework_preset`, `default.framework`).
+- **OpenWar bundled** as the default framework, auto-seeded for cold-clone installs.
+- Per-channel framework picker in the chat-header AI chip (next to the context-mode controls).
+- Framework picker in the onboarding wizard's Agent step.
+- API: `GET /api/frameworks` (list + default), `POST /api/frameworks` (set global default or per-channel pin).
+- OpenWar logo (`public/openwar-logo.svg`). Heater-shield silhouette with a four-bar phase-stack, sibling to the War Room mark.
+- **Three new CLI adapters**: OpenClaw, Hermes (Nous Research), SemaClaw (midea-ai). All probe via `where`/`which` so the green-dot signal in the UI means "binary genuinely on PATH," not just "setting non-empty."
+- Brand-mark SVGs at `public/agent-logos/` for Claude, OpenAI, Gemini, Grok, OpenClaw, Hermes, SemaClaw. Adapters carry an `iconUrl` field; channel chat bubbles, boardroom seats, and right-panel agent rows render the matching mark.
+- Reusable `<AgentAvatar>` component.
+
+### Changed
+- `sendMessage` in `lib/agents/index.ts` now layers prompt overlays in three positions: framework preamble (outermost), cross-agent context (middle), user prompt (innermost). Each layer is opt-in per channel; defaults skip them so the single-agent flow is unchanged.
+- Onboarding wizard's Agent step is a multi-adapter setup form instead of a single-pick picker. Paste keys / set binary paths for as many providers as you want in one pass.
+
+### Fixed
+- `isConfigured()` on all CLI adapters now genuinely probes whether the binary exists on PATH (`where`/`which` with 30s cache), instead of returning true for any non-empty setting. Fixes the earlier confusion where every CLI showed green-dot regardless of install state.
+
+## [0.6.0] - 2026-05-16
+
+Identity polish. Customizable display name, agent label, server icon. Changes propagate live without page reload.
+
+### Added
+- Right-click context menu on any rail server icon. Edit modal for rename, change icon, change color. The War Room server stays locked to the brand mark and violet palette.
+- Personal workspace icon auto-derives from display name (first letter) on wizard completion. `ServerProvider` listens for `war-room:identity-changed` to refresh in place.
+- `useIdentityVersion()` hook + `IdentityHydrator` component so the display name and agent label propagate to chat bubbles, boardroom seats, and team-presence rows on wizard finish without a page reload.
+- Customizable agent label (`onboarding.agentName`). Defaults to `${displayName}-Agent`; user can rename in the wizard's Identity step or under Settings → General.
+
 ## [0.5.2] - 2026-05-15
 
 Hotfix. v0.5.1 broke production builds across every OS/Node combo in CI.
@@ -141,6 +191,9 @@ First public release.
 - Optional Electron desktop wrapper.
 - Optional self-hosted LiveKit boardroom voice channel.
 
+[0.7.1]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.1
+[0.7.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.0
+[0.6.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.6.0
 [0.5.2]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.2
 [0.5.1]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.1
 [0.5.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.5.0

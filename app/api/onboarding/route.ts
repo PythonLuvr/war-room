@@ -32,6 +32,7 @@ const KEYS = [
   "onboarding.identity",
   "onboarding.displayName",
   "onboarding.agentName",
+  "onboarding.agentIcon",
   "onboarding.claudeBin",
   "onboarding.workspaceRoot",
   "onboarding.syncOptIn",
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     identity: string;
     displayName: string;
     agentName: string;
+    agentIcon: string;
     claudeBin: string;
     workspaceRoot: string;
     syncOptIn: boolean;
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
   }>;
 
   if (body.agentName !== undefined) setSetting("onboarding.agentName", body.agentName);
+  if (body.agentIcon !== undefined) setSetting("onboarding.agentIcon", body.agentIcon);
   if (body.identity !== undefined) setSetting("onboarding.identity", body.identity);
   if (body.displayName !== undefined) {
     setSetting("onboarding.displayName", body.displayName);

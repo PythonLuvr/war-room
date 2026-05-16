@@ -45,6 +45,13 @@ export type AgentAdapter = {
   kind: "cli" | "api";
   capabilities: AgentCapabilities;
   /**
+   * Path (relative to /public) of the brand mark used wherever this adapter
+   * appears: boardroom seats, chat bubbles, agent picker rows. Falls back
+   * to a generic Sparkles glyph when unset. The user's per-channel /
+   * per-agent override (`onboarding.agentIcon`) wins over this.
+   */
+  iconUrl?: string;
+  /**
    * Returns true if this adapter has everything it needs (binary on PATH,
    * API key set, etc.) to actually run. UI uses this to surface "not
    * configured" states.

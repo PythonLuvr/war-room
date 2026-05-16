@@ -39,6 +39,15 @@ export type Channel = {
   /** Adapter id pinned for this channel, e.g. "claude-cli" or "openai-api".
    *  null/undefined = inherit the global default at send time. */
   agentBackend?: string | null;
+  /** "shared" if cross-agent context injection is on for this channel.
+   *  Defaults to "isolated". */
+  contextMode?: "isolated" | "shared";
+  contextMessages?: number;
+  contextChars?: number;
+  /** Framework preset id pinned for this channel (e.g. "openwar"), or
+   *  "none" for explicit opt-out, or null/undefined to inherit the
+   *  global default at send time. */
+  frameworkPreset?: string | null;
 };
 
 export type ChannelGroup = {
@@ -214,6 +223,10 @@ export async function getChannelTree(
     if (o.project_path) ch.projectPath = o.project_path;
     if (o.description) ch.description = o.description;
     if (o.agent_backend) ch.agentBackend = o.agent_backend;
+    if (o.context_mode) ch.contextMode = o.context_mode === "shared" ? "shared" : "isolated";
+    if (o.context_messages != null) ch.contextMessages = o.context_messages;
+    if (o.context_chars != null) ch.contextChars = o.context_chars;
+    if (o.framework_preset !== null) ch.frameworkPreset = o.framework_preset;
   }
 
   const byGroup = new Map<string, Channel[]>();

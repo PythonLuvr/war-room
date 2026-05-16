@@ -49,6 +49,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  // Demo pretends LiveKit is wired so the boardroom doesn't show its
+  // amber "voice + video not enabled" warning. Actual joins still 503
+  // from the POST handler — but the surface reads as ready, which is
+  // what screenshots need.
+  if (process.env.WAR_ROOM_DEMO === "1") {
+    return NextResponse.json({ configured: true, room: ROOM_NAME });
+  }
   const ok = !!(
     process.env.LIVEKIT_URL &&
     process.env.LIVEKIT_API_KEY &&

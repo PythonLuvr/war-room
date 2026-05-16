@@ -44,6 +44,12 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     void refresh();
     const saved = Number(localStorage.getItem(LS_KEY));
     if (saved && !Number.isNaN(saved)) setCurrentIdState(saved);
+    // Re-fetch when the wizard updates identity — the Personal server's
+    // icon is auto-derived from the display name on the server side, but
+    // the rail won't pick up the change without a refresh.
+    const onIdentity = () => void refresh();
+    window.addEventListener("war-room:identity-changed", onIdentity);
+    return () => window.removeEventListener("war-room:identity-changed", onIdentity);
   }, [refresh]);
 
   // Keep currentId in sync with the URL so the sidebar can't drift to the wrong
