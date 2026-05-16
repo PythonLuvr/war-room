@@ -41,6 +41,7 @@ Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollam
 
 - **Boardroom voice channel.** Multi-agent voice room backed by self-hosted LiveKit. Optional, gracefully hidden when not configured.
 - **Cross-machine config.** Shared env at `~/.war-room/.env`, machine-specific overrides at `.env.local`. API keys live in your local config, never in the repo.
+- **Behavioral framework built in.** War Room ships with [OpenWar](https://github.com/pythonluvr/openwar), a MIT-licensed framework that makes agents confirm briefs before acting, gate destructive actions, and write like a peer instead of a customer service rep. Toggle per-channel or set a global default. Use it standalone via `npm install openwar` if you want the framework without the dashboard.
 
 ---
 
