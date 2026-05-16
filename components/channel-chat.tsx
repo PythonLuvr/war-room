@@ -356,18 +356,28 @@ function Welcome({
   description?: string;
 }) {
   return (
-    <div className="py-6 mb-2">
-      <div className="text-2xl font-semibold mb-1">Welcome to #{channelName}!</div>
-      {description ? (
-        <div className="text-sm text-neutral-300 mb-3 max-w-2xl">{description}</div>
-      ) : (
-        <div className="text-sm text-neutral-500 mb-3">
-          This is the start of the{" "}
-          <span className="text-neutral-300 font-medium">#{channelName}</span> channel.
+    <div className="py-6 mb-2 flex items-start gap-4">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/war-bit/friendly.png"
+        alt=""
+        width={96}
+        height={96}
+        className="w-20 h-20 [image-rendering:pixelated] shrink-0"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-2xl font-semibold mb-1">Welcome to #{channelName}.</div>
+        {description ? (
+          <div className="text-sm text-neutral-300 mb-3 max-w-2xl">{description}</div>
+        ) : (
+          <div className="text-sm text-neutral-500 mb-3">
+            This is the start of the{" "}
+            <span className="text-neutral-300 font-medium">#{channelName}</span> channel.
+          </div>
+        )}
+        <div className="text-xs text-neutral-500 flex items-center gap-2">
+          <code className="text-neutral-400">📍 {projectPath}</code>
         </div>
-      )}
-      <div className="text-xs text-neutral-500 flex items-center gap-2">
-        <code className="text-neutral-400">📍 {projectPath}</code>
       </div>
     </div>
   );

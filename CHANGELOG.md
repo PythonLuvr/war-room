@@ -8,6 +8,37 @@ For full details on any release, see the corresponding entry on [GitHub Releases
 
 ---
 
+## [0.7.3] - 2026-05-16
+
+WarBit goes from single mascot to ten-mood set. Mascot wired into error pages, empty-state placeholders, and the cold-clone welcome banner.
+
+### Added
+- **Curated WarBit mood set** at `public/war-bit/` (default, confused, calm, focused, alert, friendly, happy, angry, sleepy, done). Each variant maps to a specific UI mood per `public/war-bit/README.md`. Drop new variants in with a semantic filename to extend.
+- Mascot wired into warmer surfaces:
+  - **Cold-clone WelcomeBanner**: `happy.png` 48px avatar replaces the Sparkles glyph
+  - **DemoBanner**: tiny `happy.png` 20px left of the demo notice text
+  - **PlaceholderChannel** (system/approvals + system/sessions empty states): `sleepy.png` 112px above the "nothing pending" copy
+  - **Channel chat Welcome** (empty thread state): `friendly.png` 80px next to the channel intro
+
+### Changed
+- Error surfaces use mood-specific variants:
+  - `app/not-found.tsx` (404) uses `confused.png`
+  - `app/error.tsx` (runtime error) uses `focused.png`
+  - `app/global-error.tsx` (layout crash) uses `angry.png`
+- `public/war-bit.png` (the single original) stays available for any surface that wants the generic mascot without picking a mood.
+
+## [0.7.2] - 2026-05-16
+
+WarBit's first wiring into the app surface. The mascot now shows up when things go wrong.
+
+### Added
+- **WarBit lands on the error surfaces.** The pixel-art knight sits at the top of three new pages:
+  - `app/not-found.tsx` (404)
+  - `app/error.tsx` (runtime error boundary)
+  - `app/global-error.tsx` (top-level layout-failure fallback)
+  Copy follows OpenWar voice: "Hit a wall," not "Oh no!"
+- Asset bundled at `public/war-bit.png` (1920x1920 RGBA, served as-is, rendered with `image-rendering: pixelated` for crisp upscaling).
+
 ## [0.7.1] - 2026-05-16
 
 Patch on v0.7.0. Bundled OpenWar bumped to upstream v0.3.0, mid-conversation framework switch confirmed via modal, graceful degrade when a framework file is missing.
@@ -191,6 +222,8 @@ First public release.
 - Optional Electron desktop wrapper.
 - Optional self-hosted LiveKit boardroom voice channel.
 
+[0.7.3]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.3
+[0.7.2]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.2
 [0.7.1]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.1
 [0.7.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.7.0
 [0.6.0]: https://github.com/pythonluvr/war-room/releases/tag/v0.6.0

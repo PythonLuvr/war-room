@@ -70,9 +70,14 @@ export function WelcomeBanner() {
     return (
       <div className="mb-6 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.08] to-neutral-950 p-5">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-500/15 border border-amber-500/40 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-amber-300" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/war-bit/happy.png"
+            alt="WarBit waving"
+            width={64}
+            height={64}
+            className="w-12 h-12 [image-rendering:pixelated] shrink-0"
+          />
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-neutral-50 mb-1">Welcome to War Room.</h3>
             <p className="text-sm text-neutral-300 leading-relaxed mb-3">

@@ -1,9 +1,7 @@
-import { CheckSquare, MessageSquare } from "lucide-react";
-
-const ICONS = {
-  approvals: CheckSquare,
-  sessions: MessageSquare,
-} as const;
+// Placeholder surface for System channels that don't have real content
+// yet (approvals queue when nothing is pending, sessions list before
+// any chat has run). WarBit's "sleepy" variant communicates "feature
+// exists, nothing to show right now" instead of broken-empty.
 
 export function PlaceholderChannel({
   kind,
@@ -14,14 +12,21 @@ export function PlaceholderChannel({
   title: string;
   hint: string;
 }) {
-  const Icon = ICONS[kind];
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-      <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-4">
-        <Icon className="w-6 h-6 text-neutral-500" />
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/war-bit/sleepy.png"
+        alt=""
+        width={128}
+        height={128}
+        className="w-28 h-28 mb-4 [image-rendering:pixelated] opacity-80"
+      />
       <h2 className="text-xl font-semibold mb-1">{title}</h2>
       <p className="text-sm text-neutral-500 max-w-md">{hint}</p>
+      <p className="text-[10px] text-neutral-600 mt-3 uppercase tracking-wider">
+        {kind}
+      </p>
     </div>
   );
 }

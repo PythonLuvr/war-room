@@ -7,7 +7,6 @@
 // set.
 
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
 
 export function DemoBanner() {
   const [demo, setDemo] = useState(false);
@@ -20,7 +19,14 @@ export function DemoBanner() {
   if (!demo) return null;
   return (
     <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 text-[11px] leading-relaxed px-4 py-1.5 flex items-center gap-2 justify-center">
-      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/war-bit/happy.png"
+        alt=""
+        width={20}
+        height={20}
+        className="w-5 h-5 [image-rendering:pixelated] shrink-0"
+      />
       <span>
         <strong className="text-amber-100">Demo data.</strong> Servers, channels, jobs, and chat
         history below are synthetic so you can see the app populated. Run{" "}
