@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles } from "lucide-react";
-import { localMember } from "@/lib/team";
+import { agentLabelFor, localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
 
 const LOCAL = localMember();
@@ -310,6 +310,12 @@ export function ChannelChat({
           </div>
         )}
       </div>
+      {items.length === 0 && !loadingHistory && (
+        <FirstChatHint
+          projectPath={projectPath}
+          onUse={(text) => setInput(text)}
+        />
+      )}
       <Composer
         value={input}
         onChange={setInput}
@@ -496,6 +502,43 @@ function Dots() {
         className="w-1.5 h-1.5 rounded-full bg-neutral-500 animate-pulse"
         style={{ animationDelay: "300ms" }}
       />
+    </div>
+  );
+}
+
+// One-time prompt nudge that appears above the composer when a chat
+// channel has zero messages. Goes away the instant the user sends
+// anything because items.length stops being 0. No localStorage. The
+// data state IS the dismissal signal, which means it correctly
+// reappears if the user wipes history and walks back in.
+function FirstChatHint({
+  projectPath,
+  onUse,
+}: {
+  projectPath: string;
+  onUse: (text: string) => void;
+}) {
+  const folder = projectPath.split(/[\\/]+/).filter(Boolean).pop() ?? "this folder";
+  const agent = agentLabelFor(localMember());
+  const suggestion = `@${agent} what's in ${folder}?`;
+  return (
+    <div className="px-6 pt-3 pb-1">
+      <div className="flex items-center gap-3 text-xs text-neutral-500 border border-neutral-800/70 rounded-lg bg-neutral-900/30 px-3 py-2">
+        <Sparkles className="w-3.5 h-3.5 text-amber-400/80 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">
+          New here? Try{" "}
+          <code className="text-neutral-300 bg-neutral-900 border border-neutral-800 px-1.5 py-0.5 rounded">
+            {suggestion}
+          </code>{" "}
+          to see what your agent can do.
+        </span>
+        <button
+          onClick={() => onUse(suggestion)}
+          className="shrink-0 text-amber-300 hover:text-amber-200 underline underline-offset-2"
+        >
+          Use this
+        </button>
+      </div>
     </div>
   );
 }

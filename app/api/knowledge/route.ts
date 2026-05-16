@@ -7,6 +7,7 @@ import {
   updateKnowledge,
 } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
+import { emitEvent } from "@/lib/sync/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
   logActivity("system", `Knowledge entry: ${entry.title}`, {
     detail: entry.body.slice(0, 120),
   });
+  emitEvent("knowledge.created", entry as unknown as Record<string, unknown>);
   return NextResponse.json({ entry });
 }
 
@@ -63,6 +65,8 @@ export async function PATCH(req: NextRequest) {
     body: body.body,
     tags: body.tags,
   });
+  const updated = getKnowledge(body.id);
+  if (updated) emitEvent("knowledge.updated", updated as unknown as Record<string, unknown>);
   return NextResponse.json({ ok: true });
 }
 
@@ -72,5 +76,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
   deleteKnowledge(body.id);
+  emitEvent("knowledge.deleted", { id: body.id });
   return NextResponse.json({ ok: true });
 }

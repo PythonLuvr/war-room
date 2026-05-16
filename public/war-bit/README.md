@@ -25,4 +25,4 @@ Drop new PNGs in here with a semantic name (mood, not number). Update the table 
 
 ## Source
 
-Variants authored as part of the [OpenWar branding pack](https://github.com/pythonluvr/openwar). The originals live in that repo's `branding/` directory; this folder is a curated subset for the War Room app.
+Variants authored as part of the OpenWar branding pack. This folder is a curated subset for the War Room app.

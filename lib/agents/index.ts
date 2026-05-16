@@ -12,12 +12,14 @@ import {
   getSession,
   getSetting,
   resolveFrameworkId,
+  resolvePrimerEnabled,
   setClaudeSessionId,
   upsertSession,
   type SessionRow,
 } from "../db";
 import { buildHandleMap } from "../agent-handles";
 import { readFramework } from "../frameworks";
+import { readAgentPrimer } from "../agent-primer";
 import type { AgentAdapter, SendOptions, StreamEvent } from "./types";
 import { claudeCli } from "./claude-cli";
 import { codexCli } from "./codex-cli";
@@ -152,6 +154,21 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
     }
   }
 
+  // Agent primer: outermost layer. Teaches the agent that it's running
+  // inside War Room and what HTTP endpoints it can call on the user's
+  // behalf (log decisions, post announcements, etc). Goes outside the
+  // framework so the framework's rules-of-engagement apply to the
+  // tool-use the primer enables. Toggle is per-channel with a global
+  // default; default on for cold-clone installs.
+  if (resolvePrimerEnabled(opts.channelId)) {
+    const primer = readAgentPrimer();
+    if (primer) {
+      effectivePrompt = renderPrimerPrompt(primer, effectivePrompt, {
+        channelId: opts.channelId,
+      });
+    }
+  }
+
   let assistantText = "";
   const wrappedOnEvent = (e: StreamEvent) => {
     if (e.type === "session_id" && row) {
@@ -180,6 +197,32 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
 // model reads it as "operating instructions" rather than user content.
 // Position is outermost — the framework defines how the agent receives
 // every other piece of text below it.
+// Outermost layer: War Room environment briefing. Wraps everything
+// else (framework, cross-agent context, user prompt) so the agent
+// reads "you're in War Room, here's the model, here are the tools.
+// Then: behavior framework. Then: channel context. Then: user said X."
+// The channel id is appended as a live context line so the agent
+// can call GET /api/war-room/context?channelId=... to self-locate
+// without the user having to say where they are.
+function renderPrimerPrompt(
+  primer: string,
+  body: string,
+  ctx: { channelId: string | undefined },
+): string {
+  const liveContext = ctx.channelId
+    ? `\n\n[ LIVE CONTEXT ]\ncurrent_channel_id = "${ctx.channelId}"\n[ /LIVE CONTEXT ]\n`
+    : "";
+  return [
+    "[ WAR ROOM ENVIRONMENT - read once, then act. ]",
+    "",
+    primer.trim(),
+    liveContext,
+    "[ /WAR ROOM ENVIRONMENT ]",
+    "",
+    body,
+  ].join("\n");
+}
+
 function renderFrameworkPrompt(framework: string, body: string): string {
   return [
     "[ AGENT FRAMEWORK — operating instructions for this turn.",

@@ -86,3 +86,21 @@ export function isLiveKitConfigured(): boolean {
 // Used at build time by scripts/release.js and read at runtime by the
 // electron-updater bundled into the .exe.
 export const UPDATE_URL = process.env.WAR_ROOM_UPDATE_URL ?? "";
+
+// ─── Cross-machine sync server ───────────────────────────────────────────────
+// Optional WebSocket URL pointing at a War Room sync server (your own
+// VPS running tools/reference-sync-server, or any compatible
+// implementation). Unset = sync disabled, everything is local-only.
+// Workspace defaults to "default"; multiple workspaces on the same
+// server let one user run separate-environments-on-same-VPS without
+// state bleed. Token is the optional shared secret the server
+// requires (compared to its own WAR_ROOM_SYNC_TOKEN env).
+export const SYNC = {
+  url: process.env.WAR_ROOM_SYNC_URL ?? "",
+  workspace: process.env.WAR_ROOM_SYNC_WORKSPACE ?? "default",
+  token: process.env.WAR_ROOM_SYNC_TOKEN ?? "",
+};
+
+export function isSyncConfigured(): boolean {
+  return !!SYNC.url;
+}

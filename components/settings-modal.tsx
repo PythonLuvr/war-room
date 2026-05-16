@@ -4,7 +4,7 @@
 // top-level surface. Triggered by the rail's settings gear (and the cloud
 // button, which opens directly on the Sync tab).
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bot,
   Cloud,
@@ -443,10 +443,28 @@ function BoardroomTab() {
   );
 }
 
+type SyncStatusPayload = {
+  state: "disabled" | "connecting" | "open" | "closed" | "error";
+  url: string;
+  workspaceId: string;
+  lastSeen: number;
+  lastEventAt: number | null;
+  lastError: string | null;
+  clientId: string;
+};
+
 function SyncTab() {
   const [syncUrl, setSyncUrl] = useState<string>("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<SyncStatusPayload | null>(null);
+
+  const refreshStatus = useCallback(() => {
+    fetch("/api/sync/status")
+      .then((r) => r.json())
+      .then((d: SyncStatusPayload) => setStatus(d))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/onboarding")
@@ -456,7 +474,10 @@ function SyncTab() {
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-  }, []);
+    refreshStatus();
+    const t = setInterval(refreshStatus, 5_000);
+    return () => clearInterval(t);
+  }, [refreshStatus]);
 
   const save = async () => {
     setSaving(true);
@@ -466,35 +487,68 @@ function SyncTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ syncUrl, syncOptIn: !!syncUrl.trim() }),
       });
+      refreshStatus();
     } finally {
       setSaving(false);
     }
   };
 
-  const connected = !!syncUrl.trim();
+  const dotClass =
+    status?.state === "open"
+      ? "bg-emerald-500 animate-pulse"
+      : status?.state === "connecting"
+        ? "bg-amber-500 animate-pulse"
+        : status?.state === "error" || status?.state === "closed"
+          ? "bg-red-500"
+          : "bg-neutral-600";
+
+  const stateLabel =
+    status?.state === "open"
+      ? `Connected to ${status.url}`
+      : status?.state === "connecting"
+        ? `Connecting to ${status.url}…`
+        : status?.state === "closed"
+          ? `Disconnected (will retry)`
+          : status?.state === "error"
+            ? `Error: ${status.lastError ?? "unknown"}`
+            : syncUrl.trim()
+              ? "Configured but not live yet — open Settings to boot"
+              : "Not configured — staying local";
 
   return (
     <div className="space-y-6">
-      <Section title="Cross-machine sync" description="War Room is local-first by default. Each install only talks to the agent on its own machine. To bridge teammates' installs in real time, point this at a sync relay you host.">
+      <Section
+        title="Cross-machine sync"
+        description="War Room is local-first by default. To bridge teammates' installs in real time, point this at a sync relay you host. A reference implementation ships in tools/reference-sync-server/."
+      >
         <div className="flex items-center gap-2 text-sm mb-3">
-          <span className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-neutral-600"}`} />
-          <span className="text-neutral-300">
-            {connected ? `Configured — ${syncUrl}` : "Not configured — staying local"}
-          </span>
+          <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+          <span className="text-neutral-300">{stateLabel}</span>
         </div>
+        {status?.state === "open" && (
+          <div className="mb-3 text-[11px] text-neutral-500 flex flex-wrap gap-x-4 gap-y-1">
+            <span>Workspace: <span className="text-neutral-300 font-mono">{status.workspaceId}</span></span>
+            <span>Last seq: <span className="text-neutral-300 font-mono">{status.lastSeen}</span></span>
+            {status.lastEventAt && (
+              <span>Last event: <span className="text-neutral-300">{new Date(status.lastEventAt).toLocaleTimeString()}</span></span>
+            )}
+          </div>
+        )}
         <div className="space-y-2">
           <input
             value={syncUrl}
             onChange={(e) => setSyncUrl(e.target.value)}
-            placeholder="wss://war-room.your-domain.com  or  http://192.168.1.50:7880"
+            placeholder="wss://war-room.your-domain.com  or  ws://192.168.1.50:8788"
             className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-700"
             disabled={!loaded}
           />
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] text-neutral-500 flex-1 leading-relaxed">
               <strong className="text-neutral-400">Self-hosted only.</strong> War Room never connects
-              to a server we run. Bring your own — a small relay on your VPS, your home network,
-              or whatever you control. Reference implementation will live in <code className="text-neutral-400">tools/</code> in the repo.
+              to a server we run. Bring your own. Reference server lives in{" "}
+              <code className="text-neutral-400">tools/reference-sync-server/</code> in the repo. Set{" "}
+              <code className="text-neutral-400">WAR_ROOM_SYNC_TOKEN</code> in your env if the server
+              requires auth.
             </p>
             <button
               onClick={save}
@@ -506,9 +560,8 @@ function SyncTab() {
           </div>
         </div>
         <p className="text-[11px] text-neutral-500 mt-4 leading-relaxed">
-          Without sync, your channels, jobs, and knowledge live in{" "}
-          <code className="mx-0.5 text-neutral-400">~/.war-room/app.db</code> on this machine only.
-          That&apos;s a feature, not a limitation.
+          Decisions, announcements, and knowledge entries sync across machines in the same workspace.
+          Chat history, Claude sessions, and per-user settings stay local on each install.
         </p>
       </Section>
       <Section title="Auto-update" description="The app pulls new versions from whatever update server was baked into this build. Check the WAR_ROOM_UPDATE_URL config or your release.js to change the source.">

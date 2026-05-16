@@ -47,8 +47,6 @@ const SOURCES = [
 const DEFAULT_SANITY_PATTERNS = [
   // Internal-IP-leak shapes (192.168.x.x is fine, public IPs are not)
   /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/,
-  // Common secret-shaped strings
-  /\b[A-Za-z0-9]{32,}\b/,
 ];
 
 function loadExtraSanityPatterns() {

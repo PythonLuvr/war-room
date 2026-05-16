@@ -33,6 +33,13 @@ export function ServicesChannel() {
     return () => clearInterval(t);
   }, [load]);
 
+  const nothingConfigured =
+    data !== null &&
+    !data.vps.error &&
+    data.vps.services.length === 0 &&
+    data.local.length === 0 &&
+    data.env.every((e) => !e.exists);
+
   return (
     <div className="overflow-y-auto px-6 py-5 flex-1">
       <div className="flex items-center justify-between mb-6">
@@ -56,6 +63,8 @@ export function ServicesChannel() {
           {loading ? "Checking…" : "Refresh"}
         </button>
       </div>
+
+      {nothingConfigured && <NothingConfigured />}
 
       <SectionHeader icon={<Server className="w-4 h-4" />} title="VPS PM2" subtitle="Remote services" />
       {!data ? (
@@ -138,6 +147,43 @@ export function ServicesChannel() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function NothingConfigured() {
+  return (
+    <div className="mb-8 border border-neutral-800 rounded-2xl bg-gradient-to-br from-neutral-900/40 to-neutral-950 p-6 flex items-start gap-5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/war-bit/calm.png"
+        alt=""
+        width={96}
+        height={96}
+        className="w-20 h-20 [image-rendering:pixelated] shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <h3 className="text-base font-semibold mb-1">Nothing wired up yet.</h3>
+        <p className="text-sm text-neutral-400 leading-relaxed mb-3">
+          This panel watches PM2 processes on your VPS, local daemon ports, and which keys live in your{" "}
+          <code className="px-1 py-0.5 rounded bg-neutral-800/60 text-neutral-300 text-xs">.env</code>{" "}
+          files. Add config to <code className="px-1 py-0.5 rounded bg-neutral-800/60 text-neutral-300 text-xs">~/.war-room/.env</code> to start probing.
+        </p>
+        <div className="grid sm:grid-cols-3 gap-2 text-xs">
+          <ConfigHint label="VPS" code="WAR_ROOM_VPS_HOST=..." />
+          <ConfigHint label="Local daemons" code='WAR_ROOM_LOCAL_SERVICES=[{"name":"x","port":1234}]' />
+          <ConfigHint label="env audit" code="WAR_ROOM_ENV_FILE=/path/to/.env" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConfigHint({ label, code }: { label: string; code: string }) {
+  return (
+    <div className="border border-neutral-800/60 rounded-md bg-neutral-900/40 p-2.5">
+      <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">{label}</div>
+      <code className="text-[10px] text-neutral-300 break-all">{code}</code>
     </div>
   );
 }

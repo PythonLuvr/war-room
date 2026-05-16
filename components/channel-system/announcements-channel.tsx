@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { colorForAuthor } from "@/lib/workspace-color";
+import { EmptyState } from "./empty-state";
 
 type Announcement = {
   id: number;
@@ -123,12 +124,16 @@ export function AnnouncementsChannel({ channelId }: { channelId: string }) {
             showArchived ? true : a.status === "open",
           );
           if (visible.length === 0) {
-            return (
+            return items.length > 0 && !showArchived ? (
               <div className="text-center py-16 text-sm text-neutral-600">
-                {items.length > 0 && !showArchived
-                  ? "All announcements archived. Toggle 'Show archived' to view."
-                  : "No announcements yet. Important team-wide updates go here."}
+                All announcements archived. Toggle &lsquo;Show archived&rsquo; to view.
               </div>
+            ) : (
+              <EmptyState
+                mood="friendly"
+                title="Nothing pinned."
+                body="Announcements are broadcasts the whole team should see on next launch. Click 'New announcement' to post one."
+              />
             );
           }
           return (

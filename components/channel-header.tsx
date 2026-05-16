@@ -461,6 +461,13 @@ function AgentChip({
               <code className="text-neutral-500">presets/frameworks/</code>.
             </div>
           </div>
+
+          <div className="px-3 py-2 border-t border-neutral-800 text-[10px] uppercase tracking-wider text-neutral-500">
+            War Room primer
+          </div>
+          <div className="px-3 py-2">
+            <PrimerToggle channelId={channelId} />
+          </div>
         </div>
       )}
 
@@ -473,6 +480,80 @@ function AgentChip({
           onConfirm={confirmFrameworkChange}
         />
       )}
+    </div>
+  );
+}
+
+function PrimerToggle({ channelId }: { channelId: string }) {
+  const [pin, setPin] = useState<boolean | null>(null);
+  const [effective, setEffective] = useState<boolean>(true);
+  const [defaultEnabled, setDefaultEnabled] = useState<boolean>(true);
+  const [primerLoaded, setPrimerLoaded] = useState<boolean>(true);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/primer?channelId=${encodeURIComponent(channelId)}`)
+      .then((r) => r.json())
+      .then(
+        (d: {
+          channelPin: boolean | null;
+          effective: boolean;
+          defaultEnabled: boolean;
+          primerLoaded: boolean;
+        }) => {
+          setPin(d.channelPin);
+          setEffective(d.effective);
+          setDefaultEnabled(d.defaultEnabled);
+          setPrimerLoaded(d.primerLoaded);
+          setLoaded(true);
+        },
+      )
+      .catch(() => setLoaded(true));
+  }, [channelId]);
+
+  const choose = async (next: boolean | null) => {
+    setPin(next);
+    setEffective(next === null ? defaultEnabled : next);
+    await fetch("/api/primer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelId, enabled: next }),
+    });
+  };
+
+  const value = pin === null ? "__inherit__" : pin ? "on" : "off";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <select
+        disabled={!loaded || !primerLoaded}
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value;
+          choose(v === "__inherit__" ? null : v === "on");
+        }}
+        className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-2 py-1.5 text-[11px] focus:outline-none focus:border-neutral-700"
+      >
+        <option value="__inherit__">
+          Inherit global default ({defaultEnabled ? "on" : "off"})
+        </option>
+        <option value="on">On - agent learns the War Room model</option>
+        <option value="off">Off - raw agent, no War Room context</option>
+      </select>
+      <div className="text-[10px] text-neutral-600 leading-snug">
+        {primerLoaded ? (
+          <>
+            Currently <strong className={effective ? "text-emerald-400" : "text-neutral-400"}>{effective ? "on" : "off"}</strong>{" "}
+            for this channel. When on, your agent learns it&apos;s inside War Room and can log
+            decisions, post announcements, and add knowledge entries via tool use.
+          </>
+        ) : (
+          <span className="text-amber-400">
+            Primer file not bundled in this build. Drop one at{" "}
+            <code>presets/agent-primer/war-room.md</code>.
+          </span>
+        )}
+      </div>
     </div>
   );
 }

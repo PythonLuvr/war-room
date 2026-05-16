@@ -12,6 +12,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Markdown } from "@/components/markdown";
+import { EmptyState } from "./empty-state";
 
 type Entry = {
   id: number;
@@ -156,11 +157,17 @@ export function KnowledgeChannel({
       {filtered === null ? (
         <ListSkeleton />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-sm text-neutral-600">
-          {items && items.length > 0
-            ? "No entries match that search."
-            : "No entries yet. Click 'New entry' to add the first one."}
-        </div>
+        items && items.length > 0 ? (
+          <div className="text-center py-16 text-sm text-neutral-600">
+            No entries match that search.
+          </div>
+        ) : (
+          <EmptyState
+            mood="friendly"
+            title="No notes yet."
+            body={`Knowledge entries live per-channel. Use this surface for the kind of stuff you'd otherwise paste into a stale Notion doc: setup steps, links, recurring snippets, gotchas.`}
+          />
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-6xl">
           {filtered.map((e) => (

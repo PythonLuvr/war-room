@@ -20,7 +20,7 @@ const eslintConfig = defineConfig([
   // require() is the right module style. Disabling the no-require-imports
   // rule here keeps it active everywhere it actually matters.
   {
-    files: ["scripts/**/*.js", "electron/**/*.js"],
+    files: ["scripts/**/*.js", "electron/**/*.js", "tools/**/*.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
     },

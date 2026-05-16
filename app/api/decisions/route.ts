@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDecision, deleteDecision, listDecisions, setDecisionStatus } from "@/lib/db";
+import { createDecision, deleteDecision, getDecisionById, listDecisions, setDecisionStatus } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
+import { emitEvent } from "@/lib/sync/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
   logActivity("system", `Decision logged: ${decision.title}`, {
     detail: decision.summary.slice(0, 120),
   });
+  emitEvent("decision.created", decision as unknown as Record<string, unknown>);
   return NextResponse.json({ decision });
 }
 
@@ -44,6 +46,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "id + status required" }, { status: 400 });
   }
   setDecisionStatus(body.id, body.status);
+  const updated = getDecisionById(body.id);
+  if (updated) emitEvent("decision.updated", updated as unknown as Record<string, unknown>);
   return NextResponse.json({ ok: true });
 }
 
@@ -53,5 +57,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
   deleteDecision(body.id);
+  emitEvent("decision.deleted", { id: body.id });
   return NextResponse.json({ ok: true });
 }

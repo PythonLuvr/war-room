@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Activity } from "lucide-react";
 import { colorForPath } from "@/lib/workspace-color";
+import { EmptyState } from "./empty-state";
 
 type ActivityRow = {
   id: number;
@@ -49,9 +50,11 @@ export function ActivityChannel() {
       {items === null ? (
         <SkeletonRows />
       ) : items.length === 0 ? (
-        <div className="text-center py-12 text-sm text-neutral-600">
-          No activity yet. Send a chat message or refresh services.
-        </div>
+        <EmptyState
+          mood="sleepy"
+          title="Quiet so far."
+          body="Agent runs, approvals, and service checks stream here as they happen. Send a chat message in any channel to seed the feed."
+        />
       ) : (
         <div className="flex flex-col">
           {items.map((row) => {

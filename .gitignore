@@ -51,6 +51,7 @@ Thumbs.db
 # Local-only briefs / notes
 brief.md
 notes.txt
+/test-results
 
 # Playwright artifacts
 /test-results/
@@ -59,7 +60,8 @@ notes.txt
 /playwright/.cache/
 DEFERRED.md
 
-# Source-material WarBit variants stay local; curated set lives in
-# public/war-bit/ (mood map) and branding/warbit-story/ (storyboards).
+# Source-material WarBit variants
 branding/War_Bit (*.png
 branding/War_Bit_Story (*.png
+branding/WarBit_SocialMedia (*.png
+branding/WarBit_Visuals (*.png

@@ -3,11 +3,13 @@ import {
   ackAnnouncement,
   createAnnouncement,
   deleteAnnouncement,
+  getAnnouncementById,
   listAnnouncements,
   setAnnouncementStatus,
   unackAnnouncement,
 } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
+import { emitEvent } from "@/lib/sync/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
   logActivity("system", `Announcement: ${announcement.title}`, {
     detail: announcement.body.slice(0, 120),
   });
+  emitEvent("announcement.created", announcement as unknown as Record<string, unknown>);
   return NextResponse.json({ announcement });
 }
 
@@ -56,6 +59,8 @@ export async function PATCH(req: NextRequest) {
   }
   if (typeof body.status === "string") {
     setAnnouncementStatus(body.id, body.status);
+    const updated = getAnnouncementById(body.id);
+    if (updated) emitEvent("announcement.updated", updated as unknown as Record<string, unknown>);
   } else if (body.ack === false) {
     unackAnnouncement(body.id, ME);
   } else if (body.ack !== undefined) {
@@ -70,5 +75,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
   deleteAnnouncement(body.id);
+  emitEvent("announcement.deleted", { id: body.id });
   return NextResponse.json({ ok: true });
 }

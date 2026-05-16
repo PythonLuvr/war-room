@@ -16,6 +16,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { colorForAuthor } from "@/lib/workspace-color";
+import { EmptyState } from "./empty-state";
 
 type Decision = {
   id: number;
@@ -100,11 +101,17 @@ export function DecisionsChannel({ channelId }: { channelId: string }) {
       {visible === null ? (
         <ListSkeleton />
       ) : visible.length === 0 ? (
-        <div className="text-center py-16 text-sm text-neutral-600">
-          {items && items.length > 0 && !showArchived
-            ? "All decisions archived. Toggle 'Show archived' to view."
-            : "No decisions logged yet. The first one is the hardest."}
-        </div>
+        items && items.length > 0 && !showArchived ? (
+          <div className="text-center py-16 text-sm text-neutral-600">
+            All decisions archived. Toggle &lsquo;Show archived&rsquo; to view.
+          </div>
+        ) : (
+          <EmptyState
+            mood="friendly"
+            title="Nothing logged yet."
+            body="Decisions belong here so you can answer 'why did we go with X?' six weeks from now. Click 'Log decision' the next time the team picks a direction."
+          />
+        )
       ) : (
         <div className="flex flex-col gap-3 max-w-3xl">
           {visible.map((d) => (
