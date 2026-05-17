@@ -4,6 +4,154 @@ All notable changes to War Room are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-05-17
+
+### Changed
+- **Right sidebar reordered + rebuilt.** Humans now appears above
+  Agents (was the other way). The Agents section was rendering only
+  the primary agent via `find(activeId)` and silently dropping the
+  rest of the roster; now it iterates every `isConfigured` adapter
+  and renders one row each, with the primary marked by a small
+  green `primary` tag next to the pulse dot. The vestigial
+  `Pinned` placeholder section at the bottom of the sidebar is
+  removed (it never wired up; the top-bar Pin button is the real
+  surface, see below).
+- **Boardroom no longer auto-broadcasts.** The PreJoin screen used
+  to start a live camera preview and a live mic-level meter the
+  moment it mounted, which made opening the dashboard feel like
+  being recorded. Both are now explicit opt-in: the camera tile
+  starts as a CameraOff placeholder with a `Preview camera`
+  button, and the mic-level meter has a `Test mic / Stop test`
+  toggle. A new `Join with mic unmuted` checkbox sits alongside
+  `Join with camera on`, both default unchecked. The join button
+  reads `Join silently` when neither is checked, and the
+  underlying `MeetingContext.join()` now mutes the local mic on
+  publish when `startWithMic` is false. End result: opening the
+  dashboard never touches the mic or camera until the user
+  explicitly asks.
+
+### Added
+- **Pre-made General category on every fresh Personal server.**
+  Three starter channels (`announcements`, `decisions`,
+  `knowledge`) get seeded under a `General` group on cold-clone
+  installs. Idempotent via a `seed.general_v1` settings flag so
+  existing installs are left alone and re-running migrations
+  doesn't duplicate.
+- **Real pin-message functionality** end-to-end:
+  - New `pinned_messages` table (channel_id, role, content,
+    agent_id, pinned_by, pinned_at, original_created_at). Content
+    is copied at pin time so unpinning a deleted message still
+    works.
+  - `pinMessage` / `unpinMessage` / `listPinnedMessages` helpers
+    in `lib/db.ts`.
+  - `GET / POST / DELETE /api/pinned` route.
+  - Hover-only `Pin this message` button on every chat bubble
+    (top-right, group-hover). One click pins; emits a
+    `war-room:pinned-changed` custom event.
+  - Top-bar Pin icon in the channel header now opens a popover
+    listing every pinned message in the channel (role, content,
+    pin date, unpin link on hover). Auto-refreshes on the custom
+    event so pinning from a bubble shows up immediately in the
+    popover.
+
+## [0.11.0] - 2026-05-17
+
+### Changed
+- **Wizard's "projects" step rebuilt as add-as-you-go.** The previous
+  design asked the user to point at a single "projects folder"
+  whose direct subdirectories would each become a channel. That
+  worked for users with a clean container like `~/clients`; for
+  everyone else (most people), it produced either nothing useful or
+  a sidebar full of `Downloads`, `Pictures`, etc. Replaced with a
+  three-zone screen:
+  1. **Found on your machine** auto-detect list. Scans common roots
+     (`~/code`, `~/projects`, `~/clients`, `~/dev`, `~/Desktop`,
+     `~/Documents/code`, `~/Documents/GitHub`, etc.) and surfaces
+     any direct subdirectory containing a recognizable marker file
+     (`.git`, `package.json`, `pyproject.toml`, `Cargo.toml`,
+     `go.mod`, `Gemfile`, `pom.xml`, `build.gradle`,
+     `composer.json`, `Makefile`, `CMakeLists.txt`). Pre-checked.
+  2. **Added manually** zone for anything the user picked via the
+     folder picker that wasn't auto-detected, with a small remove
+     button.
+  3. **Add another folder...** button that opens the existing
+     native folder picker for projects in non-standard locations
+     (D:\, OneDrive, anything the auto-detect missed).
+- On wizard finish, each picked project is created as a channel
+  (`kind: "chat"`, `groupLabel: "Projects"`, `project_path` set) in
+  the personal server. Duplicate-slug errors from re-runs are
+  silently skipped.
+- Zero projects is allowed: the bottom hint reads "no projects
+  added yet. Continue with zero and add them later from the
+  sidebar." Wizard never blocks on this step.
+- New endpoint `GET /api/onboarding/detect-projects` returns the
+  auto-detect results. Scans are one-level-deep, cheap, no caching.
+
+### Removed
+- The "Projects folder (absolute path)" single-field input is gone.
+  Old `onboarding.workspaceRoot` setting still writes (for any code
+  that might still want it) but no longer drives auto-discovery in
+  the wizard.
+- Workspace verification flow (`runCheck`, `CheckLine`, `CheckResult`
+  type) deleted. The new step doesn't need it because picked paths
+  are created as channels and confirmed by the user clicking the
+  checkbox / picker.
+
+## [0.10.0] - 2026-05-17
+
+### Changed
+- **Onboarding agent step rebuilt as a roster builder.** The old wall
+  of provider cards is now framed as "your roster" filling up: a
+  zone at the top shows added agents as chips, the provider cards
+  below let you wire each one (paste a key or point at a CLI),
+  filled-in adapters appear immediately as chips up top. When two
+  or more are in the roster, each chip carries a small `default`
+  radio so the user picks which one handles unaddressed messages.
+  Replaces the previous "fill fields and hope you notice the green
+  dot" interaction where selection was conflated with detection.
+- Wizard's `Continue` button on the agent step now hard-gates on
+  roster count >= 1. Disabled state shows a tooltip explaining
+  exactly what to do. Prevents users from walking into an empty
+  channel with no agent to talk to.
+- Standalone "Default backend" picker removed. The roster's
+  per-chip `default` radio is the single source of truth.
+
+### Reframed (the OpenWar repositioning)
+- **OpenWar framework and the War Room agent primer are now opt-in,
+  default off** on cold-clone installs. The old default-on assumed
+  every user wanted War Room's opinionated behavioral overlay
+  prepended to every agent reply. That's wrong for power users who
+  already have their own carefully-built system prompt; OpenWar
+  is a starter kit, not a universal layer.
+- Wizard agent step grows an "Optional behavior overlays" subsection
+  with two explicit checkboxes (both default unchecked):
+  - Use the OpenWar framework
+  - Teach my agents about War Room (the v0.9.0 primer)
+- Each checkbox has one paragraph of plain copy explaining what it
+  does and who it's for. Power users skip both and their existing
+  setup runs untouched. Newcomers without their own framework can
+  flip one or both on.
+- `seedDefaultFramework()` deleted. New installs no longer get
+  `default.framework = "openwar"` or `default.primer_enabled = "1"`
+  written automatically. Existing installs preserve whatever value
+  they already had (this is purely a cold-clone behavior change).
+- `resolvePrimerEnabled()` now defaults to false when the setting
+  is absent (was true). Aligned with the new opt-in posture.
+
+## [0.9.1] - 2026-05-17
+
+### Fixed
+- Dashboard sidebar had a hardcoded "Decisions / Announcements /
+  Playbook / Tools / References / Clients vault" link group pointing
+  at channel ids (`s6-decisions`, `s6-playbook`, etc.) that only
+  existed in the original developer's local database. On a cold-
+  clone install, every one of those buttons hit 404. Worse, the
+  labels themselves ("Playbook", "Clients vault") were opinionated
+  defaults that don't belong baked into a generic team workspace.
+  The whole hardcoded link section is removed; the regular channel
+  list in the sidebar already shows whatever channels actually
+  exist in the user's database.
+
 ## [0.9.0] - 2026-05-16
 
 ### Added

@@ -61,7 +61,14 @@ const PAIR_COLOR: Record<string, { ring: string; text: string }> = Object.fromEn
 
 type Tile =
   | { kind: "human"; identity: string; pair: string; name: string; isLocal: boolean }
-  | { kind: "agent"; identity: string; pair: string; name: string };
+  | {
+      kind: "agent";
+      identity: string;
+      pair: string;
+      name: string;
+      iconUrl: string | null;
+      accent: string | null;
+    };
 
 export function MeetingRoom({
   chatOpen,
@@ -103,9 +110,22 @@ function PreJoin() {
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [micLevel, setMicLevel] = useState(0);
   const [startWithCamera, setStartWithCamera] = useState(false);
+  const [startWithMic, setStartWithMic] = useState(false);
+  // Camera + mic previews are explicit opt-in: nothing turns on until
+  // the user clicks Preview. The previous version auto-started both
+  // the moment PreJoin mounted, which made opening the dashboard feel
+  // like being recorded. Seats render as placeholders by default; the
+  // user has to ask for the preview the same way they have to ask
+  // for the join.
+  const [previewingCamera, setPreviewingCamera] = useState(false);
+  const [testingMic, setTestingMic] = useState(false);
   const previewRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    // Enumerate devices without holding any tracks. Browsers require
+    // a one-time permission grant to expose device labels; we ask for
+    // both, immediately release, and never call getUserMedia again
+    // unless the user explicitly clicks Preview / Test.
     const init = async () => {
       try {
         const tmp = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -119,6 +139,7 @@ function PreJoin() {
   }, []);
 
   useEffect(() => {
+    if (!previewingCamera) return;
     let cancelled = false;
     let stream: MediaStream | null = null;
     (async () => {
@@ -137,14 +158,16 @@ function PreJoin() {
     return () => {
       cancelled = true;
       stream?.getTracks().forEach((t) => t.stop());
+      setPreviewStream(null);
     };
-  }, [meeting.videoDeviceId]);
+  }, [meeting.videoDeviceId, previewingCamera]);
 
   useEffect(() => {
     if (previewRef.current && previewStream) previewRef.current.srcObject = previewStream;
   }, [previewStream]);
 
   useEffect(() => {
+    if (!testingMic) return;
     let cancelled = false;
     let ctx: AudioContext | null = null;
     let stream: MediaStream | null = null;
@@ -180,17 +203,20 @@ function PreJoin() {
       stream?.getTracks().forEach((t) => t.stop());
       ctx?.close().catch(() => {});
     };
-  }, [meeting.audioDeviceId]);
+  }, [meeting.audioDeviceId, testingMic]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
       <div className="w-full max-w-2xl">
-        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Boardroom · pre-flight</div>
-        <h2 className="text-xl font-semibold text-neutral-100 mb-5">Ready to join the call?</h2>
+        <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Boardroom</div>
+        <h2 className="text-xl font-semibold text-neutral-100 mb-1">Join the call?</h2>
+        <p className="text-xs text-neutral-500 mb-5">
+          Nothing&apos;s on yet. Mic and camera stay off until you opt in below.
+        </p>
         <div className="flex flex-col md:flex-row gap-4 mb-5">
           <div className="md:w-64 shrink-0">
-            <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center">
-              {previewStream ? (
+            <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative">
+              {previewingCamera && previewStream ? (
                 <video
                   ref={previewRef}
                   autoPlay
@@ -200,7 +226,24 @@ function PreJoin() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <CameraOff className="w-8 h-8 text-neutral-700" />
+                <div className="flex flex-col items-center gap-2 text-neutral-600">
+                  <CameraOff className="w-8 h-8" />
+                  <button
+                    onClick={() => setPreviewingCamera(true)}
+                    className="text-[11px] text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                  >
+                    Preview camera
+                  </button>
+                </div>
+              )}
+              {previewingCamera && (
+                <button
+                  onClick={() => setPreviewingCamera(false)}
+                  title="Stop preview"
+                  className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 rounded p-1 text-neutral-300"
+                >
+                  <CameraOff className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
             <label className="flex items-center gap-2 mt-2 text-xs text-neutral-400 cursor-pointer">
@@ -212,17 +255,34 @@ function PreJoin() {
               />
               Join with camera on
             </label>
+            <label className="flex items-center gap-2 mt-1 text-xs text-neutral-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={startWithMic}
+                onChange={(e) => setStartWithMic(e.target.checked)}
+                className="accent-amber-500"
+              />
+              Join with mic unmuted
+            </label>
           </div>
           <div className="flex-1 space-y-3">
             <DevicePicker icon={<Camera className="w-3.5 h-3.5" />} label="Camera" value={meeting.videoDeviceId} options={cameras} onChange={meeting.setVideoDeviceId} />
             <DevicePicker icon={<Mic className="w-3.5 h-3.5" />} label="Microphone" value={meeting.audioDeviceId} options={mics} onChange={meeting.setAudioDeviceId} />
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1.5 flex items-center gap-1">
-                <Volume2 className="w-3 h-3" />
-                Mic level
+              <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Volume2 className="w-3 h-3" />
+                  Mic level
+                </span>
+                <button
+                  onClick={() => setTestingMic((v) => !v)}
+                  className="text-[10px] text-amber-300 hover:text-amber-200 underline underline-offset-2 normal-case tracking-normal"
+                >
+                  {testingMic ? "Stop test" : "Test mic"}
+                </button>
               </div>
               <div className="h-2 bg-neutral-900 border border-neutral-800 rounded overflow-hidden">
-                <div className="h-full bg-emerald-500/70 transition-[width] duration-75" style={{ width: `${Math.round(micLevel * 100)}%` }} />
+                <div className="h-full bg-emerald-500/70 transition-[width] duration-75" style={{ width: `${Math.round((testingMic ? micLevel : 0) * 100)}%` }} />
               </div>
             </div>
           </div>
@@ -249,12 +309,17 @@ function PreJoin() {
                 audioDevice: meeting.audioDeviceId,
                 videoDevice: meeting.videoDeviceId,
                 startWithCamera,
+                startWithMic,
               })
             }
             className="flex items-center gap-1.5 px-5 h-12 text-sm font-medium rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40"
           >
             {meeting.connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-            {meeting.connecting ? "Connecting…" : "Join meeting"}
+            {meeting.connecting
+              ? "Connecting..."
+              : !startWithMic && !startWithCamera
+                ? "Join silently"
+                : "Join meeting"}
           </button>
         </div>
       </div>
@@ -299,12 +364,29 @@ function DevicePicker({
 
 // ─── Stage / Grid ────────────────────────────────────────────────────────────
 
+type ConfiguredAdapter = {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+  accent: string | null;
+  isConfigured: boolean;
+};
+
 function MeetingStage() {
   const meeting = useMeeting();
   const identityVersion = useIdentityVersion();
+  const [adapters, setAdapters] = useState<ConfiguredAdapter[]>([]);
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((d: { adapters: ConfiguredAdapter[] }) => {
+        setAdapters((d.adapters ?? []).filter((a) => a.isConfigured));
+      })
+      .catch(() => {});
+  }, []);
 
   const tiles = useMemo<Tile[]>(() => {
-    const AGENTS = buildAgents();
     const HUMAN_LABEL = buildHumanLabels();
     const out: Tile[] = [];
     out.push({ kind: "human", identity: meeting.localIdentity, pair: meeting.localIdentity, name: meeting.localName, isLocal: true });
@@ -313,13 +395,23 @@ function MeetingStage() {
       const pair = id in HUMAN_LABEL ? id : meeting.localIdentity;
       out.push({ kind: "human", identity: id, pair, name: HUMAN_LABEL[pair] ?? id, isLocal: false });
     }
-    for (const a of AGENTS) {
-      out.push({ kind: "agent", identity: a.id, pair: a.pair, name: a.name });
+    // Every configured adapter gets its own seat. Pair = adapter id so
+    // the palette stays stable per adapter; the actual color comes
+    // from accent (brand color or user override) below.
+    for (const a of adapters) {
+      out.push({
+        kind: "agent",
+        identity: a.id,
+        pair: a.id,
+        name: a.name,
+        iconUrl: a.iconUrl,
+        accent: a.accent,
+      });
     }
     return out;
     // identityVersion bumps every time the user renames themselves or
-    // their agent — re-runs this memo so tile labels stay current.
-  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans, identityVersion]);
+    // their agent - re-runs this memo so tile labels stay current.
+  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans, identityVersion, adapters]);
 
   return meeting.screenShare ? (
     <StageView share={meeting.screenShare} tiles={tiles} />
@@ -380,9 +472,21 @@ function ScreenShareView({ track }: { track: RemoteTrack }) {
 
 function ParticipantTile({ tile, compact }: { tile: Tile; compact?: boolean }) {
   const meeting = useMeeting();
-  const palette = PAIR_COLOR[tile.pair] ?? PAIR_COLOR.ej;
   const isAgent = tile.kind === "agent";
   const isLocal = tile.kind === "human" && (tile as Extract<Tile, { kind: "human" }>).isLocal;
+  // Agents use their brand accent (or user-configured override) for
+  // the seat ring and label color, falling back to the per-pair
+  // palette for humans (and for legacy adapters without a brand color).
+  const accent =
+    isAgent && (tile as Extract<Tile, { kind: "agent" }>).accent
+      ? (tile as Extract<Tile, { kind: "agent" }>).accent
+      : null;
+  const palette = accent && accent in COLOR_TABLE
+    ? COLOR_TABLE[accent as keyof typeof COLOR_TABLE]
+    : (PAIR_COLOR[tile.pair] ?? PAIR_COLOR.ej);
+  const agentIconUrl = isAgent
+    ? (tile as Extract<Tile, { kind: "agent" }>).iconUrl
+    : null;
   const track = meeting.videoTracks.get(tile.identity);
   const speaking = meeting.activeSpeakers.has(tile.identity);
   const quality = meeting.quality.get(tile.identity) ?? null;
@@ -413,7 +517,12 @@ function ParticipantTile({ tile, compact }: { tile: Tile; compact?: boolean }) {
           {isAgent ? (
             <div className="flex flex-col items-center gap-2">
               <div className={`w-14 h-14 rounded-full border-2 ${palette.ring.replace("ring-", "border-").replace("/60", "/40")} flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900`}>
-                <Sparkles className={`w-6 h-6 ${palette.text}`} />
+                {agentIconUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={agentIconUrl} alt="" className={`w-7 h-7 ${palette.text}`} />
+                ) : (
+                  <Sparkles className={`w-6 h-6 ${palette.text}`} />
+                )}
               </div>
               <span className={`text-[10px] uppercase tracking-wider ${palette.text} flex items-center gap-1`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />

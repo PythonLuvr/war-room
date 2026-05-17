@@ -12,7 +12,7 @@ function geminiBin(): string {
 
 export const geminiCli: AgentAdapter = {
   id: "gemini-cli",
-  iconUrl: "/agent-logos/gemini.svg",
+  iconUrl: "/agent-logos/gemini.png",
   name: "Google Gemini (CLI)",
   kind: "cli",
   capabilities: {

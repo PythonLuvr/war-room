@@ -18,7 +18,7 @@ function model(): string {
 
 export const geminiApi: AgentAdapter = {
   id: "gemini-api",
-  iconUrl: "/agent-logos/gemini.svg",
+  iconUrl: "/agent-logos/gemini.png",
   name: "Google Gemini (API · BYOK)",
   kind: "api",
   capabilities: {

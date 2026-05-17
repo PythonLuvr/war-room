@@ -14,7 +14,7 @@ function openclawBin(): string {
 
 export const openclawCli: AgentAdapter = {
   id: "openclaw-cli",
-  iconUrl: "/agent-logos/openclaw.svg",
+  iconUrl: "/agent-logos/openclaw.png",
   name: "OpenClaw (CLI)",
   kind: "cli",
   capabilities: {

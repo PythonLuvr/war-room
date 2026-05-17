@@ -28,11 +28,6 @@ type WizardData = {
   syncUrl: string;
 };
 
-type CheckResult = {
-  claude?: { ok: boolean; version?: string; error?: string };
-  workspace?: { ok: boolean; error?: string };
-};
-
 const PRESETS: Array<{ id: Identity; name: string; hint: string; color: string }> = [
   {
     id: "primary",
@@ -60,10 +55,10 @@ export function OnboardingWizard() {
     syncOptIn: false,
     syncUrl: "",
   });
-  const [check, setCheck] = useState<CheckResult>({});
-  const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [rosterCount, setRosterCount] = useState(0);
+  const [pickedProjects, setPickedProjects] = useState<Array<{ path: string; name: string }>>([]);
 
   const load = (force: boolean) => {
     fetch("/api/onboarding")
@@ -98,22 +93,6 @@ export function OnboardingWizard() {
     setData((cur) => ({ ...cur, identity: id }));
   };
 
-  const runCheck = async () => {
-    setChecking(true);
-    try {
-      const r = await fetch("/api/onboarding/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claudeBin: data.claudeBin, workspaceRoot: data.workspaceRoot }),
-      });
-      setCheck(await r.json());
-    } catch (e) {
-      setCheck({ claude: { ok: false, error: e instanceof Error ? e.message : String(e) } });
-    } finally {
-      setChecking(false);
-    }
-  };
-
   const finish = async () => {
     setSaving(true);
     try {
@@ -122,6 +101,24 @@ export function OnboardingWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, completed: true }),
       });
+      // Create one channel per picked project under the personal server.
+      // Best-effort: a duplicate-slug error gets surfaced as a 409 by the
+      // endpoint and silently skipped so the wizard finish never fails on
+      // a re-run of the wizard where the user re-picks the same folder.
+      for (const p of pickedProjects) {
+        try {
+          await fetch("/api/channels/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              target: "channel",
+              name: p.name,
+              groupLabel: "Projects",
+              projectPath: p.path,
+            }),
+          });
+        } catch {}
+      }
       setShow(false);
       // Tell the rest of the app the local identity may have changed so
       // chat/boardroom/team-presence subtrees re-render with the new name.
@@ -259,55 +256,14 @@ export function OnboardingWizard() {
             </div>
           )}
 
-          {step === 2 && <AgentPickStep />}
+          {step === 2 && <AgentPickStep onRosterChange={setRosterCount} />}
 
           {step === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Where do your project folders live?</h3>
-              <p className="text-sm text-neutral-400">
-                War Room scans this folder and lists each subdirectory as a channel in your
-                sidebar. Doesn&apos;t matter if those are clients, personal builds, side projects,
-                or something else. Anything in here becomes a channel your agent can work in.
-              </p>
-              <p className="text-xs text-neutral-500">
-                Default is <code className="text-neutral-300">~/clients</code> — change it to
-                whatever fits your setup. You can always add more roots later under{" "}
-                <strong className="text-neutral-400">Settings</strong>.
-              </p>
-              <div>
-                <Label>Projects folder (absolute path)</Label>
-                <div className="flex items-stretch gap-2">
-                  <input
-                    value={data.workspaceRoot}
-                    onChange={(e) => {
-                      setData((c) => ({ ...c, workspaceRoot: e.target.value }));
-                      setCheck((c) => ({ ...c, workspace: undefined }));
-                    }}
-                    placeholder="C:\Users\you\projects"
-                    className="flex-1 bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-700"
-                  />
-                  <button
-                    onClick={() => setPickerOpen(true)}
-                    title="Browse folders"
-                    className="px-3 rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 flex items-center gap-1.5 text-sm"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    Browse
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={runCheck}
-                disabled={checking || !data.workspaceRoot.trim()}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40"
-              >
-                {checking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderOpen className="w-3.5 h-3.5" />}
-                Verify folder
-              </button>
-              {check.workspace && (
-                <CheckLine ok={check.workspace.ok} okText="Folder exists" errText={check.workspace.error ?? "missing"} />
-              )}
-            </div>
+            <ProjectsStep
+              picked={pickedProjects}
+              onChange={setPickedProjects}
+              onPickAnother={() => setPickerOpen(true)}
+            />
           )}
 
           {step === 4 && (
@@ -363,13 +319,24 @@ export function OnboardingWizard() {
             esc to skip · settings remembered
           </div>
           {step < steps.length - 1 ? (
-            <button
-              onClick={() => setStep((s) => s + 1)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30"
-            >
-              Continue
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            (() => {
+              // Step 2 (agent setup) requires at least one agent in the
+              // roster. Other steps have no hard gate. Disabled state
+              // shows a tooltip via the title attr so the user knows
+              // exactly what they need to do.
+              const gated = step === 2 && rosterCount === 0;
+              return (
+                <button
+                  onClick={() => setStep((s) => s + 1)}
+                  disabled={gated}
+                  title={gated ? "Add at least one agent to your roster to continue" : undefined}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Continue
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              );
+            })()
           ) : (
             <button
               onClick={finish}
@@ -384,15 +351,214 @@ export function OnboardingWizard() {
       </div>
       {pickerOpen && (
         <FolderPicker
-          initialPath={data.workspaceRoot || undefined}
+          initialPath={undefined}
           onClose={() => setPickerOpen(false)}
           onPick={(p) => {
-            setData((c) => ({ ...c, workspaceRoot: p }));
-            setCheck((c) => ({ ...c, workspace: undefined }));
+            const name = p.split(/[\\/]+/).filter(Boolean).pop() ?? p;
+            setPickedProjects((cur) =>
+              cur.some((x) => x.path === p) ? cur : [...cur, { path: p, name }],
+            );
             setPickerOpen(false);
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Projects step ────────────────────────────────────────────────────────
+//
+// Replaces the old "pick one root folder" step. The previous design
+// assumed every user had a clean container like ~/clients with only
+// project folders in it; in practice most users have projects
+// scattered across Desktop, Documents, D:\, etc., and pointing at
+// ~/ would create one channel per home-dir folder (Pictures, etc.).
+//
+// New model: auto-detect project-shaped folders in common locations,
+// pre-check them, let the user uncheck or add more, persist as N
+// user_channels rows on wizard finish.
+
+type DetectedProject = {
+  name: string;
+  path: string;
+  markers: string[];
+};
+
+function ProjectsStep({
+  picked,
+  onChange,
+  onPickAnother,
+}: {
+  picked: Array<{ path: string; name: string }>;
+  onChange: (next: Array<{ path: string; name: string }>) => void;
+  onPickAnother: () => void;
+}) {
+  const [detected, setDetected] = useState<DetectedProject[] | null>(null);
+
+  // One-shot detect on mount. The probe is cheap (one readdir per
+  // common root) so we don't bother caching across step revisits.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/onboarding/detect-projects")
+      .then((r) => r.json())
+      .then((d: { detected: DetectedProject[] }) => {
+        if (cancelled) return;
+        setDetected(d.detected ?? []);
+        // Pre-check every detected project the first time we see them
+        // (only if picked is empty so revisiting doesn't clobber the
+        // user's manual changes).
+        if (picked.length === 0 && d.detected?.length > 0) {
+          onChange(d.detected.map((x) => ({ path: x.path, name: x.name })));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDetected([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isPicked = (p: string) => picked.some((x) => x.path === p);
+
+  const toggle = (proj: { path: string; name: string }) => {
+    if (isPicked(proj.path)) {
+      onChange(picked.filter((x) => x.path !== proj.path));
+    } else {
+      onChange([...picked, proj]);
+    }
+  };
+
+  const removeManual = (p: string) => onChange(picked.filter((x) => x.path !== p));
+
+  // Manual adds = picked items whose path doesn't appear in detected.
+  const detectedPaths = new Set((detected ?? []).map((d) => d.path));
+  const manualPicks = picked.filter((p) => !detectedPaths.has(p.path));
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold">Where do your projects live?</h3>
+      <p className="text-sm text-neutral-400">
+        War Room turns each project folder into a chat channel. Add the ones you&apos;re actively
+        working in. You can always add more later from the sidebar.
+      </p>
+
+      <div>
+        <Label>Found on your machine{detected ? ` (${detected.length})` : ""}</Label>
+        {detected === null ? (
+          <div className="text-xs text-neutral-600 italic px-1 py-3">
+            Scanning common locations…
+          </div>
+        ) : detected.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-900/20 p-4 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/war-bit/friendly.png"
+              alt=""
+              width={48}
+              height={48}
+              className="w-10 h-10 [image-rendering:pixelated] shrink-0 opacity-80"
+            />
+            <div className="text-xs text-neutral-400">
+              No project-looking folders found in the usual spots ( <code>~/code</code>,{" "}
+              <code>~/projects</code>, <code>~/Desktop</code>, etc.). Add one below.
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 divide-y divide-neutral-900">
+            {detected.map((proj) => {
+              const on = isPicked(proj.path);
+              return (
+                <label
+                  key={proj.path}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-neutral-900/50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => toggle({ path: proj.path, name: proj.name })}
+                    className="w-4 h-4 accent-amber-500"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-neutral-100 truncate">
+                      {proj.name}
+                    </div>
+                    <div className="text-[10px] text-neutral-500 font-mono truncate">
+                      {proj.path}
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-neutral-600 shrink-0 flex flex-wrap gap-1">
+                    {proj.markers.slice(0, 3).map((m) => (
+                      <span
+                        key={m}
+                        className="px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-800"
+                      >
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {manualPicks.length > 0 && (
+        <div>
+          <Label>Added manually ({manualPicks.length})</Label>
+          <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 divide-y divide-neutral-900">
+            {manualPicks.map((p) => (
+              <div
+                key={p.path}
+                className="flex items-center gap-3 px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-neutral-100 truncate">{p.name}</div>
+                  <div className="text-[10px] text-neutral-500 font-mono truncate">{p.path}</div>
+                </div>
+                <button
+                  onClick={() => removeManual(p.path)}
+                  title="Remove"
+                  className="text-neutral-500 hover:text-red-300 p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <button
+          onClick={onPickAnother}
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 text-neutral-300"
+        >
+          <FolderOpen className="w-4 h-4" />
+          Add another folder...
+        </button>
+        <div className="text-[10px] text-neutral-600 mt-1 leading-snug">
+          For projects in places we didn&apos;t scan: a non-default drive, OneDrive, an unusual
+          layout. As many as you want.
+        </div>
+      </div>
+
+      <div className="border-t border-neutral-900 pt-3 text-[11px] text-neutral-500">
+        {picked.length === 0 ? (
+          <span>
+            No projects added yet. You can continue with zero and add them later from the
+            sidebar&apos;s <strong className="text-neutral-400">+</strong> button.
+          </span>
+        ) : (
+          <span>
+            <strong className="text-neutral-300">{picked.length}</strong>{" "}
+            project{picked.length === 1 ? "" : "s"} will be added as channel
+            {picked.length === 1 ? "" : "s"} under <strong className="text-neutral-300">Projects</strong>.
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -532,12 +698,12 @@ const CUSTOM_CARD: ProviderCard = {
   ],
 };
 
-function AgentPickStep() {
+function AgentPickStep({ onRosterChange }: { onRosterChange: (count: number) => void }) {
   const [adapters, setAdapters] = useState<AgentMeta[]>([]);
   const [activeId, setActiveId] = useState<string>("claude-cli");
   const [settings, setSettings] = useState<Record<string, string>>({});
-  const [frameworkList, setFrameworkList] = useState<Array<{ id: string; name: string; description: string }>>([]);
-  const [defaultFramework, setDefaultFramework] = useState<string>("openwar");
+  const [frameworkEnabled, setFrameworkEnabled] = useState<boolean>(false);
+  const [primerEnabled, setPrimerEnabled] = useState<boolean>(false);
 
   const refresh = async () => {
     try {
@@ -556,33 +722,31 @@ function AgentPickStep() {
   };
 
   useEffect(() => {
-    // refresh() drives setState through fetch callbacks; the rule's
-    // inter-procedural analysis flags the call site even though setState
-    // only happens inside the async chain.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
+    // Read current framework + primer state. Wizard defaults both to OFF
+    // for new installs (respecting users who already have their own
+    // system prompt / framework); the checkboxes are opt-in.
     fetch("/api/frameworks")
       .then((r) => r.json())
-      .then((d: { frameworks: Array<{ id: string; name: string; description: string }>; defaultId: string | null }) => {
-        setFrameworkList(d.frameworks ?? []);
-        // Default OpenWar as the new-install default if nothing else is set
-        // server-side. Server returns null when unset; user can opt out via
-        // the picker without leaving the wizard.
-        if (d.defaultId) setDefaultFramework(d.defaultId);
+      .then((d: { defaultId: string | null }) => {
+        setFrameworkEnabled(!!d.defaultId && d.defaultId !== "none");
+      })
+      .catch(() => {});
+    fetch("/api/primer")
+      .then((r) => r.json())
+      .then((d: { defaultEnabled: boolean }) => {
+        setPrimerEnabled(!!d.defaultEnabled);
       })
       .catch(() => {});
   }, []);
 
-  const persistDefaultFramework = async (id: string) => {
-    setDefaultFramework(id);
-    try {
-      await fetch("/api/frameworks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultId: id }),
-      });
-    } catch {}
-  };
+  const configured = adapters.filter((a) => a.isConfigured);
+
+  // Report roster size up so the wizard can gate Continue on >= 1.
+  useEffect(() => {
+    onRosterChange(configured.length);
+  }, [configured.length, onRosterChange]);
 
   const saveField = async (key: string, value: string) => {
     setSettings((cur) => ({ ...cur, [key]: value }));
@@ -592,7 +756,6 @@ function AgentPickStep() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [key]: value }),
       });
-      // Refresh so isConfigured + activeId reflect the new state.
       await refresh();
     } catch {}
   };
@@ -608,19 +771,44 @@ function AgentPickStep() {
     } catch {}
   };
 
+  const setFrameworkOpt = async (on: boolean) => {
+    setFrameworkEnabled(on);
+    try {
+      await fetch("/api/frameworks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultId: on ? "openwar" : "none" }),
+      });
+    } catch {}
+  };
+
+  const setPrimerOpt = async (on: boolean) => {
+    setPrimerEnabled(on);
+    try {
+      await fetch("/api/primer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultEnabled: on }),
+      });
+    } catch {}
+  };
+
   const byId = new Map(adapters.map((a) => [a.id, a] as const));
-  const configured = adapters.filter((a) => a.isConfigured);
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Set up your AI agents</h3>
+      <h3 className="text-xl font-semibold">Wire up your agents</h3>
       <p className="text-sm text-neutral-400">
-        Configure as many providers as you want — paste API keys, set binary paths, all in one
-        place. Each filled-in adapter becomes a seated agent in the boardroom and is reachable
-        via <code className="text-neutral-300">@mention</code> in any chat. The{" "}
-        <strong className="text-neutral-300">Default backend</strong> selector at the bottom
-        picks which one handles unaddressed messages.
+        War Room runs like a Discord server where every agent you wire up lives in your channels.
+        Add as many as you want. They&apos;ll all show up as seats in the boardroom and you can{" "}
+        <code className="text-neutral-300">@mention</code> any of them in chat.
       </p>
+
+      <Roster
+        configured={configured}
+        activeId={activeId}
+        onPickPrimary={pickPrimary}
+      />
 
       <div className="space-y-3">
         {PROVIDER_CARDS.map((card) => (
@@ -640,56 +828,156 @@ function AgentPickStep() {
         />
       </div>
 
-      <div className="pt-2 border-t border-neutral-900 space-y-3">
-        <div>
-          <Label>Agent framework (recommended)</Label>
-          <select
-            value={defaultFramework}
-            onChange={(e) => persistDefaultFramework(e.target.value)}
-            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
-          >
-            {frameworkList.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name} — {f.description.split(".")[0]}
-              </option>
-            ))}
-            <option value="none">None — raw model behavior</option>
-          </select>
-          <div className="text-[10px] text-neutral-600 mt-1">
-            A system preamble that wraps every agent reply: confirms briefs before acting, breaks
-            work into phases, asks before destructive actions, talks like a senior peer. New users
-            should keep <strong>OpenWar</strong> on. Power users with their own framework should
-            pick <strong>None</strong>.
-          </div>
-        </div>
+      <BehaviorOptIns
+        frameworkEnabled={frameworkEnabled}
+        primerEnabled={primerEnabled}
+        onFramework={setFrameworkOpt}
+        onPrimer={setPrimerOpt}
+      />
+    </div>
+  );
+}
 
-        <div>
-        <Label>Default backend</Label>
-        {configured.length === 0 ? (
-          <div className="text-xs text-neutral-600 italic mt-1">
-            Configure at least one provider above to pick a default. Until then, mentions in chat
-            still work — there&apos;s just no fallback for unaddressed messages.
-          </div>
-        ) : (
-          <select
-            value={activeId}
-            onChange={(e) => pickPrimary(e.target.value)}
-            className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
-          >
-            {configured.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} {a.kind === "cli" ? "(CLI)" : "(API)"}
-              </option>
-            ))}
-          </select>
-        )}
-        <div className="text-[10px] text-neutral-600 mt-1.5">
-          You can change any of this later in <strong>Settings → Agent</strong>, or per-channel
-          via the AI chip in any chat header.
-        </div>
+// Roster zone at the top of the agent step. Empty until the user fills
+// in at least one adapter's fields, then fills with chips. The
+// "Default" radio only appears when 2+ agents are wired so the
+// choice is meaningful.
+function Roster({
+  configured,
+  activeId,
+  onPickPrimary,
+}: {
+  configured: AgentMeta[];
+  activeId: string;
+  onPickPrimary: (id: string) => void;
+}) {
+  if (configured.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-neutral-800 bg-neutral-900/20 p-4 flex items-center gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/war-bit/friendly.png"
+          alt=""
+          width={64}
+          height={64}
+          className="w-12 h-12 [image-rendering:pixelated] shrink-0 opacity-80"
+        />
+        <div className="text-sm text-neutral-400">
+          <div className="font-semibold text-neutral-200 mb-0.5">Your roster is empty.</div>
+          Wire up at least one agent below to continue. Paste an API key or point at a CLI
+          binary; anything you fill in shows up here.
         </div>
       </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+      <div className="text-[10px] uppercase tracking-wider text-emerald-300/80 font-semibold mb-2">
+        Your roster ({configured.length})
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {configured.map((a) => {
+          const isDefault = a.id === activeId;
+          return (
+            <div
+              key={a.id}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-xs ${
+                isDefault
+                  ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-100"
+                  : "border-neutral-800 bg-neutral-900/60 text-neutral-300"
+              }`}
+            >
+              <span className="font-semibold">{a.name}</span>
+              <span className="text-[9px] uppercase tracking-wider opacity-60">{a.kind}</span>
+              {configured.length >= 2 && (
+                <label className="flex items-center gap-1 ml-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="default-agent"
+                    checked={isDefault}
+                    onChange={() => onPickPrimary(a.id)}
+                    className="w-3 h-3 accent-emerald-500"
+                  />
+                  <span className="text-[10px] opacity-80">default</span>
+                </label>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {configured.length === 1 && (
+        <div className="text-[10px] text-neutral-500 mt-2">
+          Add more below to give yourself a multi-agent roster, or continue with just this one.
+        </div>
+      )}
     </div>
+  );
+}
+
+// The two opt-in behavioral overlays. Both default OFF on new installs
+// because they're opinionated layers some users would rather write
+// themselves. OpenWar is a starter framework for people who don't
+// already have their own system prompt. The primer teaches the agent
+// about War Room's surfaces so it can log decisions / post
+// announcements / etc. on the user's behalf.
+function BehaviorOptIns({
+  frameworkEnabled,
+  primerEnabled,
+  onFramework,
+  onPrimer,
+}: {
+  frameworkEnabled: boolean;
+  primerEnabled: boolean;
+  onFramework: (on: boolean) => void;
+  onPrimer: (on: boolean) => void;
+}) {
+  return (
+    <div className="pt-2 border-t border-neutral-900 space-y-3">
+      <Label>Optional behavior overlays</Label>
+      <CheckboxOption
+        checked={frameworkEnabled}
+        onChange={onFramework}
+        title="Use the OpenWar framework"
+        body="Starter system prompt for users who don't already have one. Adds phase gating, voice rules, and confirmation-before-execution behavior on every agent reply. Skip if you've already built your own framework."
+      />
+      <CheckboxOption
+        checked={primerEnabled}
+        onChange={onPrimer}
+        title="Teach my agents about War Room"
+        body="Prepends a short brief explaining the channel / decision / announcement / knowledge model so agents can log decisions, post announcements, and add knowledge entries on your behalf via tool use. Skip if you'd rather your agents stay framework-neutral."
+      />
+      <div className="text-[10px] text-neutral-600 leading-snug">
+        Both off by default. Flip them on per-channel anytime from the AI chip in any chat header,
+        or globally from <strong>Settings → Agent</strong>.
+      </div>
+    </div>
+  );
+}
+
+function CheckboxOption({
+  checked,
+  onChange,
+  title,
+  body,
+}: {
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  title: string;
+  body: string;
+}) {
+  return (
+    <label className="flex items-start gap-3 p-3 rounded-md border border-neutral-800 bg-neutral-900/30 hover:border-neutral-700 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="w-4 h-4 mt-0.5 accent-amber-500 shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-neutral-100 mb-0.5">{title}</div>
+        <div className="text-[11px] text-neutral-500 leading-relaxed">{body}</div>
+      </div>
+    </label>
   );
 }
 
@@ -846,17 +1134,3 @@ function ProviderField({
   );
 }
 
-function CheckLine({ ok, okText, errText }: { ok: boolean; okText: string; errText: string }) {
-  return (
-    <div
-      className={`text-xs flex items-start gap-2 px-3 py-2 rounded border ${
-        ok
-          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-          : "border-red-500/30 bg-red-500/10 text-red-200"
-      }`}
-    >
-      {ok ? <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : <X className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
-      <span className="break-all">{ok ? okText : errText}</span>
-    </div>
-  );
-}

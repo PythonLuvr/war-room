@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   ChevronRight,
@@ -12,11 +12,6 @@ import {
   FileText,
   LayoutDashboard,
   Home as HomeIcon,
-  Gavel,
-  Megaphone,
-  BookOpen,
-  Wrench,
-  Folder,
   Briefcase,
 } from "lucide-react";
 import { useState } from "react";
@@ -39,13 +34,6 @@ type Widget = {
   accent: string;
 };
 
-type LinkRow = {
-  href: string;
-  label: string;
-  Icon: React.ComponentType<{ className?: string }>;
-  accent: string;
-};
-
 // Sidebar widgets scroll the dashboard to that section. Order matches dashboard layout.
 const WIDGETS: Widget[] = [
   { id: "home", label: "Home", Icon: HomeIcon, accent: "text-amber-300" },
@@ -57,23 +45,9 @@ const WIDGETS: Widget[] = [
   { id: "agent-flow", label: "Agent flow", Icon: Bot, accent: "text-amber-300" },
 ];
 
-// Surfaces that route to existing channel pages (decisions, knowledge libraries, etc.)
-const LINKS: LinkRow[] = [
-  { href: "/c/user/s6-decisions", label: "Decisions", Icon: Gavel, accent: "text-violet-300" },
-  { href: "/c/user/s6-announcements", label: "Announcements", Icon: Megaphone, accent: "text-amber-300" },
-  { href: "/c/user/s6-playbook", label: "Playbook", Icon: BookOpen, accent: "text-emerald-300" },
-  { href: "/c/user/s6-tools", label: "Tools", Icon: Wrench, accent: "text-emerald-300" },
-  { href: "/c/user/s6-references", label: "References", Icon: Folder, accent: "text-emerald-300" },
-  { href: "/c/user/s6-clients-vault", label: "Clients vault", Icon: Folder, accent: "text-emerald-300" },
-];
-
 export function DashboardWidgets() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
-  const search = useSearchParams();
-  // search?.get("panel") is reserved for future "highlight active panel"
-  // wiring; keeping the import here so the eventual addition is one-line.
-  void search;
   const onHome = pathname === "/c/home";
 
   return (
@@ -94,7 +68,7 @@ export function DashboardWidgets() {
             const href = isHome ? "/c/home" : `/c/home#${w.id}`;
             const Icon = w.Icon;
             const onClick = (e: React.MouseEvent) => {
-              if (!onHome) return; // off /c/home — let the link navigate normally
+              if (!onHome) return; // Off /c/home; let the link navigate normally.
               const targetId = isHome ? "overview" : w.id;
               const el = document.getElementById(targetId);
               if (el) {
@@ -111,27 +85,6 @@ export function DashboardWidgets() {
               >
                 <Icon className={`w-3.5 h-3.5 shrink-0 ${w.accent}`} />
                 <span className="truncate flex-1">{w.label}</span>
-              </Link>
-            );
-          })}
-
-          {/* Routes to existing channel-page surfaces (decisions, knowledge wikis, etc.) */}
-          <div className="my-2 border-t border-neutral-900/80" />
-          {LINKS.map((l) => {
-            const isActive = pathname === l.href;
-            const Icon = l.Icon;
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`mx-2 px-2 py-1 rounded-md flex items-center gap-2 text-sm transition-colors ${
-                  isActive
-                    ? "bg-white/[0.08] text-neutral-50"
-                    : "text-neutral-400 hover:bg-white/[0.04] hover:text-neutral-200"
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${l.accent}`} />
-                <span className="truncate flex-1">{l.label}</span>
               </Link>
             );
           })}

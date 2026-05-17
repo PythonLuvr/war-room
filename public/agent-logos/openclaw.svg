@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <!-- OpenClaw — three-claw mark -->
-  <path d="M5 21 C 5 14, 7 10, 9 6"/>
-  <path d="M12 21 C 12 13, 12 10, 12 4"/>
-  <path d="M19 21 C 19 14, 17 10, 15 6"/>
-  <circle cx="9" cy="5" r="1.2" fill="currentColor"/>
-  <circle cx="12" cy="3" r="1.2" fill="currentColor"/>
-  <circle cx="15" cy="5" r="1.2" fill="currentColor"/>
-</svg>

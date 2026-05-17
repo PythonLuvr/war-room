@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const wantContent = req.nextUrl.searchParams.get("content") === "1";
   const primerLoaded = readAgentPrimer() !== null;
   const defaultRaw = getSetting("default.primer_enabled");
-  const defaultEnabled = defaultRaw === "0" ? false : true;
+  const defaultEnabled = defaultRaw === "1";
   const payload: Record<string, unknown> = {
     defaultEnabled,
     primerLoaded,

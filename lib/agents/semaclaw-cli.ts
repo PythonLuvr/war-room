@@ -15,7 +15,7 @@ function semaclawBin(): string {
 
 export const semaclawCli: AgentAdapter = {
   id: "semaclaw-cli",
-  iconUrl: "/agent-logos/semaclaw.svg",
+  iconUrl: "/agent-logos/semaclaw.png",
   name: "SemaClaw (CLI)",
   kind: "cli",
   capabilities: {

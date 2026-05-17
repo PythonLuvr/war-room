@@ -226,6 +226,26 @@ export function migrate(d: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_knowledge_channel ON knowledge_entries(channel_id, updated_at DESC);
 
+    CREATE TABLE IF NOT EXISTS agent_profiles (
+      adapter_id TEXT PRIMARY KEY,
+      display_name TEXT,
+      icon_url TEXT,
+      accent TEXT,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pinned_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      channel_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      agent_id TEXT,
+      pinned_by TEXT NOT NULL,
+      pinned_at INTEGER NOT NULL,
+      original_created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_pinned_channel ON pinned_messages(channel_id, pinned_at DESC);
+
     CREATE TABLE IF NOT EXISTS channel_files (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       channel_id TEXT NOT NULL,
@@ -333,7 +353,6 @@ export function migrate(d: Database.Database) {
   migrateAddColumn(d, "user_servers", "is_personal", "INTEGER NOT NULL DEFAULT 0");
 
   seedDefaultServers(d);
-  seedDefaultFramework(d);
 
   // Boot the sync client opportunistically. Dynamic import sidesteps
   // the cycle (client → applier → db → client). If WAR_ROOM_SYNC_URL
@@ -346,27 +365,13 @@ export function migrate(d: Database.Database) {
 
 const SHARED_SERVER_NAME = "The War Room";
 
-function seedDefaultFramework(d: Database.Database) {
-  // Cold-clone DBs get OpenWar set as the global default agent framework.
-  // Existing installs keep whatever they had (this only inserts when the
-  // setting row doesn't exist). User can opt out via the wizard or the
-  // per-channel chip without leaving the app.
-  const existing = d
-    .prepare(`SELECT 1 FROM settings WHERE key = 'default.framework'`)
-    .get();
-  if (!existing) {
-    d.prepare(`INSERT INTO settings(key, value) VALUES('default.framework', 'openwar')`).run();
-  }
-  // Agent primer on by default for cold-clone installs. Same opt-in
-  // model as the framework: existing installs preserve whatever was
-  // set; only fresh DBs get the seed.
-  const primerExisting = d
-    .prepare(`SELECT 1 FROM settings WHERE key = 'default.primer_enabled'`)
-    .get();
-  if (!primerExisting) {
-    d.prepare(`INSERT INTO settings(key, value) VALUES('default.primer_enabled', '1')`).run();
-  }
-}
+// As of v0.10.0 there is no behavioral-overlay seeding. Earlier
+// versions seeded OpenWar + the agent primer on for cold-clone
+// installs, but those overlays are opinionated and break for users
+// who already have their own system prompt. The wizard's agent step
+// now surfaces both as explicit opt-in checkboxes (default off) so
+// power users with their own framework keep their setup untouched.
+// Existing installs preserve whatever value they already had.
 
 function seedDefaultServers(d: Database.Database) {
   const now = Date.now();
@@ -400,6 +405,7 @@ function seedDefaultServers(d: Database.Database) {
   const existingPersonal = d
     .prepare(`SELECT id FROM user_servers WHERE is_personal = 1 LIMIT 1`)
     .get() as { id: number } | undefined;
+  let personalId: number;
   if (!existingPersonal) {
     const legacy = d
       .prepare(
@@ -408,12 +414,43 @@ function seedDefaultServers(d: Database.Database) {
       .get(SHARED_SERVER_NAME) as { id: number } | undefined;
     if (legacy) {
       d.prepare(`UPDATE user_servers SET is_personal = 1 WHERE id = ?`).run(legacy.id);
+      personalId = legacy.id;
     } else {
-      d.prepare(
-        `INSERT INTO user_servers(name, icon, color, is_default, is_personal, position, created_at)
-         VALUES(?, ?, ?, 0, 1, ?, ?)`,
-      ).run("Personal", "✦", "amber", 0, now);
+      const res = d
+        .prepare(
+          `INSERT INTO user_servers(name, icon, color, is_default, is_personal, position, created_at)
+           VALUES(?, ?, ?, 0, 1, ?, ?)`,
+        )
+        .run("Personal", "✦", "amber", 0, now);
+      personalId = Number(res.lastInsertRowid);
     }
+  } else {
+    personalId = existingPersonal.id;
+  }
+
+  // 3. Seed the General category on the personal server with the three
+  //    team-collab surfaces that have their own UI. Skip on existing
+  //    installs (any seed that's already there means the user is past
+  //    cold-clone). For each slug we INSERT OR IGNORE so a partial
+  //    seed from a prior crash doesn't blow up next boot.
+  const seededRow = d
+    .prepare(`SELECT 1 FROM settings WHERE key = 'seed.general_v1'`)
+    .get();
+  if (!seededRow) {
+    const starters: Array<{ slug: string; name: string; kind: string }> = [
+      { slug: "general-announcements", name: "announcements", kind: "announcements" },
+      { slug: "general-decisions", name: "decisions", kind: "decisions" },
+      { slug: "general-knowledge", name: "knowledge", kind: "knowledge" },
+    ];
+    for (const s of starters) {
+      try {
+        d.prepare(
+          `INSERT OR IGNORE INTO user_channels(server_id, slug, name, group_label, kind, project_path, is_private, created_at)
+           VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+        ).run(personalId, s.slug, s.name, "General", s.kind, null, 0, now);
+      } catch {}
+    }
+    d.prepare(`INSERT INTO settings(key, value) VALUES('seed.general_v1', '1')`).run();
   }
 }
 
@@ -777,15 +814,16 @@ export function setChannelPrimerEnabled(channelId: string, enabled: boolean | nu
 }
 
 /** Resolve the effective primer setting for a channel:
- *  channel override (when not null) > global default > true. */
+ *  channel override (when not null) > global default > false (v0.10.0+).
+ *  Defaults off so cold-clone installs respect users who already have
+ *  their own system prompt; the wizard surfaces it as an opt-in. */
 export function resolvePrimerEnabled(channelId: string | undefined): boolean {
   if (channelId) {
     const pin = getChannelPrimerEnabled(channelId);
     if (pin !== null) return pin;
   }
   const fallback = getSetting("default.primer_enabled");
-  if (fallback === "0") return false;
-  return true;
+  return fallback === "1";
 }
 
 /** Pulls cross-agent history for a project — every message NOT generated by
@@ -1033,6 +1071,125 @@ export function unackAnnouncement(announcementId: number, userId: string) {
 
 export function setDecisionStatus(id: number, status: "open" | "archived" | "reversed") {
   db().prepare(`UPDATE decisions SET status = ? WHERE id = ?`).run(status, id);
+}
+
+// ─── Agent profile overrides ──────────────────────────────────────────────
+//
+// Adapters ship with a built-in name + iconUrl baked into the
+// adapter file. Users can override either (or set an accent color)
+// via Settings -> Agents. Anything left null falls back to the
+// adapter's built-in value. Stored as a separate table keyed by
+// adapter id, sparse on purpose: most users won't override most
+// adapters and we don't want to seed empty rows.
+
+export type AgentProfileRow = {
+  adapter_id: string;
+  display_name: string | null;
+  icon_url: string | null;
+  accent: string | null;
+  updated_at: number;
+};
+
+export function getAgentProfile(adapterId: string): AgentProfileRow | undefined {
+  return db()
+    .prepare(`SELECT * FROM agent_profiles WHERE adapter_id = ?`)
+    .get(adapterId) as AgentProfileRow | undefined;
+}
+
+export function getAllAgentProfiles(): Map<string, AgentProfileRow> {
+  const rows = db().prepare(`SELECT * FROM agent_profiles`).all() as AgentProfileRow[];
+  return new Map(rows.map((r) => [r.adapter_id, r]));
+}
+
+export function setAgentProfile(
+  adapterId: string,
+  patch: { display_name?: string | null; icon_url?: string | null; accent?: string | null },
+) {
+  const now = Date.now();
+  const existing = getAgentProfile(adapterId);
+  const next = {
+    display_name:
+      patch.display_name === undefined
+        ? (existing?.display_name ?? null)
+        : patch.display_name,
+    icon_url:
+      patch.icon_url === undefined ? (existing?.icon_url ?? null) : patch.icon_url,
+    accent: patch.accent === undefined ? (existing?.accent ?? null) : patch.accent,
+  };
+  db()
+    .prepare(
+      `INSERT INTO agent_profiles(adapter_id, display_name, icon_url, accent, updated_at)
+       VALUES(?, ?, ?, ?, ?)
+       ON CONFLICT(adapter_id) DO UPDATE SET
+         display_name = excluded.display_name,
+         icon_url = excluded.icon_url,
+         accent = excluded.accent,
+         updated_at = excluded.updated_at`,
+    )
+    .run(adapterId, next.display_name, next.icon_url, next.accent, now);
+}
+
+export function deleteAgentProfile(adapterId: string) {
+  db().prepare(`DELETE FROM agent_profiles WHERE adapter_id = ?`).run(adapterId);
+}
+
+// ─── Pinned messages ──────────────────────────────────────────────────────
+//
+// Pinning copies the message content into pinned_messages at pin time.
+// Pros: stable, immune to message deletion, dead simple. Cons:
+// doesn't sync future edits (matters less for chat than for, say,
+// knowledge entries; pins are meant to capture the message as it was
+// when someone thought it was worth pinning).
+
+export type PinnedMessageRow = {
+  id: number;
+  channel_id: string;
+  role: string;
+  content: string;
+  agent_id: string | null;
+  pinned_by: string;
+  pinned_at: number;
+  original_created_at: number;
+};
+
+export function pinMessage(input: {
+  channelId: string;
+  role: string;
+  content: string;
+  agentId?: string | null;
+  pinnedBy: string;
+  originalCreatedAt: number;
+}): PinnedMessageRow {
+  const now = Date.now();
+  const res = db()
+    .prepare(
+      `INSERT INTO pinned_messages(channel_id, role, content, agent_id, pinned_by, pinned_at, original_created_at)
+       VALUES(?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      input.channelId,
+      input.role,
+      input.content,
+      input.agentId ?? null,
+      input.pinnedBy,
+      now,
+      input.originalCreatedAt,
+    );
+  return db()
+    .prepare(`SELECT * FROM pinned_messages WHERE id = ?`)
+    .get(Number(res.lastInsertRowid)) as PinnedMessageRow;
+}
+
+export function unpinMessage(id: number) {
+  db().prepare(`DELETE FROM pinned_messages WHERE id = ?`).run(id);
+}
+
+export function listPinnedMessages(channelId: string, limit = 100): PinnedMessageRow[] {
+  return db()
+    .prepare(
+      `SELECT * FROM pinned_messages WHERE channel_id = ? ORDER BY pinned_at DESC LIMIT ?`,
+    )
+    .all(channelId, limit) as PinnedMessageRow[];
 }
 
 export function getDecisionById(id: number): DecisionRow | undefined {

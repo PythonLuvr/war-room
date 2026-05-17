@@ -3,21 +3,22 @@
 import type { Channel } from "@/lib/channels";
 import { PulseDot } from "./pulse-dot";
 import { useEffect, useState } from "react";
-import { Pin, Calendar, FileText, FolderOpen, Bot, User } from "lucide-react";
+import { Calendar, FileText, FolderOpen, Bot, User } from "lucide-react";
 import { agentLabelFor, localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
 
 const LOCAL = localMember();
 
-type AgentInfo = {
-  activeId: string;
+type AdapterMeta = {
+  id: string;
   name: string;
   isConfigured: boolean;
   iconUrl: string | null;
-} | null;
+};
 
 export function RightPanel({ channel }: { channel: Channel | null }) {
-  const [agent, setAgent] = useState<AgentInfo>(null);
+  const [adapters, setAdapters] = useState<AdapterMeta[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
   // Re-render when the user updates their display name via the wizard so
   // the Agents + Humans rows pick up the new label.
   useIdentityVersion();
@@ -25,24 +26,14 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
   useEffect(() => {
     fetch("/api/agents")
       .then((r) => r.json())
-      .then((d: {
-        activeId: string;
-        adapters: Array<{ id: string; name: string; isConfigured: boolean; iconUrl: string | null }>;
-      }) => {
-        const active = d.adapters.find((a) => a.id === d.activeId);
-        setAgent(
-          active
-            ? {
-                activeId: d.activeId,
-                name: active.name,
-                isConfigured: active.isConfigured,
-                iconUrl: active.iconUrl,
-              }
-            : null,
-        );
+      .then((d: { activeId: string; adapters: AdapterMeta[] }) => {
+        setAdapters(d.adapters ?? []);
+        setActiveId(d.activeId ?? "");
       })
       .catch(() => {});
   }, []);
+
+  const configured = adapters.filter((a) => a.isConfigured);
 
   if (!channel) return null;
   return (
@@ -72,35 +63,35 @@ export function RightPanel({ channel }: { channel: Channel | null }) {
         )}
       </Section>
 
-      <Section title={agent?.isConfigured ? "Agents — 1" : "Agents"} icon={<Bot className="w-3 h-3" />}>
-        {agent?.isConfigured ? (
-          <MemberRow
-            name={agentLabelFor(LOCAL)}
-            role={agent.name.toLowerCase()}
-            tone="ok"
-            kind="agent"
-            iconUrl={agent.iconUrl}
-          />
-        ) : (
+      <Section title={`Humans - ${1}`} icon={<User className="w-3 h-3" />}>
+        <MemberRow name={LOCAL.name} role="you" tone="ok" kind="human" />
+      </Section>
+
+      <Section
+        title={configured.length > 0 ? `Agents - ${configured.length}` : "Agents"}
+        icon={<Bot className="w-3 h-3" />}
+      >
+        {configured.length === 0 ? (
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("war-room:open-settings", { detail: { tab: "agent" } }))}
             className="text-xs text-neutral-500 italic hover:text-neutral-300 text-left flex items-center gap-1.5 w-full"
           >
             <Bot className="w-3 h-3" />
-            <span>No agent configured. Click to set up.</span>
+            <span>No agents in roster. Click to set up.</span>
           </button>
+        ) : (
+          configured.map((a) => (
+            <MemberRow
+              key={a.id}
+              name={a.id === activeId ? agentLabelFor(LOCAL) : a.name}
+              role={a.name.toLowerCase()}
+              tone="ok"
+              kind="agent"
+              iconUrl={a.iconUrl}
+              tag={a.id === activeId ? "primary" : undefined}
+            />
+          ))
         )}
-      </Section>
-
-      <Section title="Humans — 1" icon={<User className="w-3 h-3" />}>
-        <MemberRow name={LOCAL.name} role="you" tone="ok" kind="human" />
-      </Section>
-
-      <Section title="Pinned">
-        <div className="text-xs text-neutral-600 flex items-center gap-2 italic">
-          <Pin className="w-3 h-3" />
-          Nothing pinned yet
-        </div>
       </Section>
     </aside>
   );
@@ -152,12 +143,15 @@ function MemberRow({
   tone,
   kind,
   iconUrl,
+  tag,
 }: {
   name: string;
   role: string;
   tone: "ok" | "warn" | "idle";
   kind: "agent" | "human";
   iconUrl?: string | null;
+  /** Optional small marker shown to the right of the name, e.g. "primary". */
+  tag?: string;
 }) {
   const avatarClass =
     kind === "agent"
@@ -182,9 +176,9 @@ function MemberRow({
         <div className={`text-sm truncate ${nameClass}`}>{name}</div>
         <div className="text-[10px] text-neutral-600 uppercase tracking-wider">{role}</div>
       </div>
-      {kind === "agent" && (
-        <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 mr-1">
-          app
+      {tag && (
+        <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 mr-1">
+          {tag}
         </span>
       )}
       <PulseDot tone={tone} size={6} />

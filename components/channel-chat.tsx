@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
-import { Send, Square, Slash, Sparkles } from "lucide-react";
+import { Send, Square, Slash, Sparkles, Pin as PinIcon } from "lucide-react";
 import { agentLabelFor, localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
 
@@ -18,7 +18,7 @@ type HistoryMessage = {
   created_at: number;
 };
 
-type AdapterMeta = { id: string; name: string; iconUrl: string | null };
+type AdapterMeta = { id: string; name: string; iconUrl: string | null; accent?: string | null };
 
 type ChatItem =
   | { kind: "user"; text: string; id: string; ts: number }
@@ -90,7 +90,7 @@ export function ChannelChat({
   projectPath,
   description,
 }: {
-  channelId?: string;
+  channelId: string;
   channelName: string;
   projectPath: string;
   description?: string;
@@ -305,6 +305,7 @@ export function ChannelChat({
                 item={it}
                 prev={items[i - 1]}
                 adapterMap={adapterMap}
+                channelId={channelId}
               />
             ))}
           </div>
@@ -393,10 +394,12 @@ function ChatMessage({
   item,
   prev,
   adapterMap,
+  channelId,
 }: {
   item: ChatItem;
   prev?: ChatItem;
   adapterMap: Map<string, AdapterMeta>;
+  channelId: string;
 }) {
   if (item.kind === "system") {
     return (
@@ -430,8 +433,26 @@ function ChatMessage({
   const adapter = agentId ? adapterMap.get(agentId) : null;
   const agentName = adapter?.name ?? agentId ?? "Agent";
 
+  const pinThis = async () => {
+    const content =
+      item.kind === "user" ? item.text : item.kind === "assistant" ? item.text : "";
+    if (!content) return;
+    await fetch("/api/pinned", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId,
+        role: item.kind,
+        content,
+        agentId,
+        originalCreatedAt: item.ts,
+      }),
+    });
+    window.dispatchEvent(new CustomEvent("war-room:pinned-changed", { detail: { channelId } }));
+  };
+
   return (
-    <div className={`flex gap-3 ${sameAuthor ? "mt-0.5" : "mt-4"} group hover:bg-neutral-900/30 rounded -mx-2 px-2 py-0.5`}>
+    <div className={`relative flex gap-3 ${sameAuthor ? "mt-0.5" : "mt-4"} group hover:bg-neutral-900/30 rounded -mx-2 px-2 py-0.5`}>
       <div className="w-9 shrink-0">
         {!sameAuthor && (
           <div
@@ -486,6 +507,13 @@ function ChatMessage({
           <span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-400/70 animate-pulse align-middle rounded-sm" />
         )}
       </div>
+      <button
+        onClick={pinThis}
+        title="Pin this message"
+        className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1 right-2 p-1.5 rounded text-neutral-500 hover:text-amber-300 hover:bg-neutral-900/60"
+      >
+        <PinIcon className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }

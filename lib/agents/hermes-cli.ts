@@ -16,7 +16,7 @@ function hermesBin(): string {
 
 export const hermesCli: AgentAdapter = {
   id: "hermes-cli",
-  iconUrl: "/agent-logos/hermes.svg",
+  iconUrl: "/agent-logos/hermes.png",
   name: "Hermes (CLI)",
   kind: "cli",
   capabilities: {

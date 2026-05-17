@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSetting, setSetting } from "@/lib/db";
+import { getAllAgentProfiles, getSetting, setSetting } from "@/lib/db";
 import { ALL_ADAPTERS, activeAdapterId } from "@/lib/agents";
+import { brandAccentFor } from "@/lib/agents/brand-colors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,17 +54,30 @@ export async function GET() {
     const raw = getSetting(k);
     settings[k] = SECRET_KEYS.has(k) ? maskSecret(raw) : raw;
   }
+  const profiles = getAllAgentProfiles();
   return NextResponse.json({
     activeId: activeAdapterId(),
     settings,
-    adapters: ALL_ADAPTERS.map((a) => ({
-      id: a.id,
-      name: a.name,
-      kind: a.kind,
-      capabilities: a.capabilities,
-      isConfigured: a.isConfigured(),
-      iconUrl: a.iconUrl ?? null,
-    })),
+    adapters: ALL_ADAPTERS.map((a) => {
+      const p = profiles.get(a.id);
+      const defaultAccent = brandAccentFor(a.id);
+      return {
+        id: a.id,
+        // Built-in name + icon + accent are always returned as defaults
+        // so the UI can show "[built-in] when no override is set" and
+        // let the user revert with one click. Effective values are the
+        // merged result.
+        defaultName: a.name,
+        defaultIconUrl: a.iconUrl ?? null,
+        defaultAccent,
+        name: p?.display_name?.trim() || a.name,
+        iconUrl: p?.icon_url ?? a.iconUrl ?? null,
+        accent: p?.accent ?? defaultAccent,
+        kind: a.kind,
+        capabilities: a.capabilities,
+        isConfigured: a.isConfigured(),
+      };
+    }),
   });
 }
 

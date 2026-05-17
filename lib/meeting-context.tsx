@@ -55,6 +55,10 @@ type JoinOpts = {
   audioDevice?: string;
   videoDevice?: string;
   startWithCamera: boolean;
+  /** Default false. When false, mic is published but immediately muted
+   *  on join so the user lands in the room "ready to unmute" rather
+   *  than "broadcasting." Aligns with the Discord pattern. */
+  startWithMic: boolean;
 };
 
 type MeetingCtx = {
@@ -274,6 +278,13 @@ export function MeetingProvider({ children }: { children: React.ReactNode }) {
           await room.localParticipant.publishTrack(t);
         }
         if (opts.startWithCamera) setCameraOn(true);
+        if (!opts.startWithMic) {
+          // Mic published but muted. Lets the user land in the room
+          // already-ready without broadcasting until they tap the
+          // mic icon.
+          setMuted(true);
+          room.localParticipant.setMicrophoneEnabled(false).catch(() => {});
+        }
 
         setPhase("in-meeting");
       } catch (e) {

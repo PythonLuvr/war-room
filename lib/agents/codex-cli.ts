@@ -14,7 +14,7 @@ function codexBin(): string {
 
 export const codexCli: AgentAdapter = {
   id: "codex-cli",
-  iconUrl: "/agent-logos/openai.svg",
+  iconUrl: "/agent-logos/openai.jpg",
   name: "OpenAI Codex (CLI)",
   kind: "cli",
   capabilities: {

@@ -18,7 +18,7 @@ function claudeBin(): string {
 
 export const claudeCli: AgentAdapter = {
   id: "claude-cli",
-  iconUrl: "/agent-logos/claude.svg",
+  iconUrl: "/agent-logos/claude.png",
   name: "Claude Code (CLI)",
   kind: "cli",
   capabilities: {

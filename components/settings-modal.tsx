@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Bot,
+  ChevronDown,
   Cloud,
   Info,
   Settings as SettingsIcon,
@@ -185,6 +186,11 @@ function KV({ k, v }: { k: string; v: string | null | undefined }) {
 type AdapterMeta = {
   id: string;
   name: string;
+  defaultName?: string;
+  defaultIconUrl?: string | null;
+  defaultAccent?: string | null;
+  iconUrl?: string | null;
+  accent?: string | null;
   kind: "cli" | "api";
   capabilities: { toolUse: boolean; memory: boolean; fileAccess: boolean; notes?: string };
   isConfigured: boolean;
@@ -288,8 +294,29 @@ function AgentTab() {
     );
   };
 
+  const refreshAdapters = async () => {
+    const r = await fetch("/api/agents");
+    const fresh = (await r.json()) as AgentSettings;
+    setData(fresh);
+  };
+
+  const configuredForProfiles = data.adapters.filter((a) => a.isConfigured);
+
   return (
     <div className="space-y-6">
+      {configuredForProfiles.length > 0 && (
+        <Section
+          title="Agent profiles"
+          description="Each wired-up agent shows up across the app (chat bubbles, boardroom seats, sidebar rows) with its built-in name + brand logo + brand color by default. Override any of those per agent here. Click an agent to expand."
+        >
+          <div className="space-y-2">
+            {configuredForProfiles.map((a) => (
+              <ProfileEditor key={a.id} adapter={a} onSaved={refreshAdapters} />
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section title="Backend" description="Choose how War Room talks to an AI. CLI bridge runs the official binary in your project folder (full feature set). API mode hits the provider directly (chat only — no tools, no project files, no memory).">
         <div>
           <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">CLI bridge — full feature set</div>
@@ -370,6 +397,216 @@ function AgentTab() {
           {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
+    </div>
+  );
+}
+
+// Per-adapter profile editor. Collapsed by default so the Agent tab
+// doesn't become a wall of cards; click the chevron / row to expand.
+// Save writes to /api/agent-profiles; reset clears the row so the
+// agent falls back to its built-in name + logo + brand accent.
+const PRESET_ICONS = [
+  { url: "/agent-logos/claude.png", label: "Claude" },
+  { url: "/agent-logos/openai.jpg", label: "OpenAI" },
+  { url: "/agent-logos/gemini.png", label: "Gemini" },
+  { url: "/agent-logos/grok.svg", label: "Grok" },
+  { url: "/agent-logos/hermes.png", label: "Hermes" },
+  { url: "/agent-logos/openclaw.png", label: "OpenClaw" },
+  { url: "/agent-logos/semaclaw.png", label: "SemaClaw" },
+];
+
+const ACCENT_OPTIONS: Array<{ value: string; label: string; swatch: string }> = [
+  { value: "amber", label: "Amber", swatch: "bg-amber-500" },
+  { value: "sky", label: "Sky", swatch: "bg-sky-500" },
+  { value: "emerald", label: "Emerald", swatch: "bg-emerald-500" },
+  { value: "violet", label: "Violet", swatch: "bg-violet-500" },
+  { value: "fuchsia", label: "Fuchsia", swatch: "bg-fuchsia-500" },
+  { value: "rose", label: "Rose", swatch: "bg-rose-500" },
+];
+
+function ProfileEditor({
+  adapter,
+  onSaved,
+}: {
+  adapter: AdapterMeta;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [iconUrl, setIconUrl] = useState("");
+  const [accent, setAccent] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!open || loaded) return;
+    fetch(`/api/agent-profiles?adapterId=${encodeURIComponent(adapter.id)}`)
+      .then((r) => r.json())
+      .then((d: { profile: { display_name: string | null; icon_url: string | null; accent: string | null } | null }) => {
+        setName(d.profile?.display_name ?? "");
+        setIconUrl(d.profile?.icon_url ?? "");
+        setAccent(d.profile?.accent ?? "");
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [open, loaded, adapter.id]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/agent-profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adapterId: adapter.id,
+          displayName: name,
+          iconUrl,
+          accent,
+        }),
+      });
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reset = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/agent-profiles", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adapterId: adapter.id }),
+      });
+      setName("");
+      setIconUrl("");
+      setAccent("");
+      onSaved();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const effectiveAccent = accent || adapter.defaultAccent || "amber";
+  const effectiveIcon = iconUrl || adapter.defaultIconUrl || null;
+
+  return (
+    <div className="border border-neutral-800 rounded-lg bg-neutral-900/30 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-3 py-2 flex items-center gap-3 hover:bg-neutral-900/60"
+      >
+        <div className={`w-8 h-8 rounded-full border-2 border-${effectiveAccent}-500/40 bg-neutral-900 flex items-center justify-center shrink-0`}>
+          {effectiveIcon ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={effectiveIcon} alt="" className="w-5 h-5 object-contain" />
+          ) : (
+            <Bot className="w-4 h-4 text-neutral-500" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <div className="text-sm font-medium text-neutral-100 truncate">
+            {name || adapter.defaultName || adapter.name}
+          </div>
+          <div className="text-[10px] text-neutral-500 uppercase tracking-wider">
+            {adapter.id}
+          </div>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="border-t border-neutral-800 p-3 space-y-3">
+          {!loaded ? (
+            <div className="text-xs text-neutral-600 italic">Loading...</div>
+          ) : (
+            <>
+              <div>
+                <Label>Display name</Label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={adapter.defaultName || adapter.name}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-neutral-700"
+                />
+                <div className="text-[10px] text-neutral-600 mt-1">
+                  Leave blank to use the built-in name.
+                </div>
+              </div>
+              <div>
+                <Label>Logo</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <button
+                    onClick={() => setIconUrl("")}
+                    className={`relative w-10 h-10 rounded-full border-2 flex items-center justify-center bg-neutral-950 ${iconUrl === "" ? "border-amber-400" : "border-neutral-800"}`}
+                    title="Built-in"
+                  >
+                    {adapter.defaultIconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={adapter.defaultIconUrl} alt="" className="w-5 h-5 object-contain opacity-70" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-neutral-500" />
+                    )}
+                    <span className="absolute -bottom-3 left-0 right-0 text-[8px] text-neutral-500 text-center">built-in</span>
+                  </button>
+                  {PRESET_ICONS.map((p) => (
+                    <button
+                      key={p.url}
+                      onClick={() => setIconUrl(p.url)}
+                      title={p.label}
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center bg-neutral-950 ${iconUrl === p.url ? "border-amber-400" : "border-neutral-800 hover:border-neutral-700"}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.url} alt="" className="w-5 h-5 object-contain" />
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={iconUrl.startsWith("/agent-logos/") ? "" : iconUrl}
+                  onChange={(e) => setIconUrl(e.target.value)}
+                  placeholder="Or paste a URL (https://...)"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-700 mt-3"
+                />
+              </div>
+              <div>
+                <Label>Accent color</Label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAccent("")}
+                    className={`px-2 py-1.5 rounded border text-[11px] ${accent === "" ? "border-amber-400 text-amber-200" : "border-neutral-800 text-neutral-400 hover:border-neutral-700"}`}
+                    title="Built-in brand color"
+                  >
+                    built-in
+                  </button>
+                  {ACCENT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setAccent(opt.value)}
+                      title={opt.label}
+                      className={`w-7 h-7 rounded-full border-2 ${opt.swatch} ${accent === opt.value ? "border-white" : "border-transparent hover:border-neutral-700"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-neutral-900">
+                <button
+                  onClick={reset}
+                  disabled={saving}
+                  className="text-[11px] text-neutral-500 hover:text-red-300 disabled:opacity-40"
+                >
+                  Reset to built-in
+                </button>
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="px-3 py-1.5 text-xs rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 disabled:opacity-40"
+                >
+                  {saving ? "Saving..." : "Save profile"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -32,6 +32,7 @@ export function ChannelHeader({
   onToggleRight?: () => void;
 }) {
   const [filesOpen, setFilesOpen] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
   // Only show the agent chip on channels that actually fire chat. Pinning
   // an AI on a system surface (activity, services, approvals…) doesn't do
   // anything because those don't talk to the agent layer.
@@ -75,7 +76,14 @@ export function ChannelHeader({
         <IconBtn title="Files" onClick={() => setFilesOpen(true)}>
           <Paperclip className="w-4 h-4" />
         </IconBtn>
-        <IconBtn title="Pinned"><Pin className="w-4 h-4" /></IconBtn>
+        <div className="relative">
+          <IconBtn title="Pinned" onClick={() => setPinnedOpen((v) => !v)}>
+            <Pin className="w-4 h-4" />
+          </IconBtn>
+          {pinnedOpen && (
+            <PinnedPopover channelId={channel.id} onClose={() => setPinnedOpen(false)} />
+          )}
+        </div>
         <IconBtn title="Notifications"><Bell className="w-4 h-4" /></IconBtn>
         <IconBtn title="Members" onClick={onToggleRight}><Users className="w-4 h-4" /></IconBtn>
         <div className="relative ml-2">
@@ -95,6 +103,103 @@ export function ChannelHeader({
         />
       )}
     </div>
+  );
+}
+
+function PinnedPopover({
+  channelId,
+  onClose,
+}: {
+  channelId: string;
+  onClose: () => void;
+}) {
+  type Pinned = {
+    id: number;
+    channel_id: string;
+    role: string;
+    content: string;
+    agent_id: string | null;
+    pinned_by: string;
+    pinned_at: number;
+    original_created_at: number;
+  };
+  const [items, setItems] = useState<Pinned[] | null>(null);
+
+  const load = () => {
+    fetch(`/api/pinned?channelId=${encodeURIComponent(channelId)}`)
+      .then((r) => r.json())
+      .then((d: { items: Pinned[] }) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  };
+
+  useEffect(() => {
+    load();
+    const onChange = (e: Event) => {
+      const ce = e as CustomEvent<{ channelId?: string }>;
+      if (!ce.detail?.channelId || ce.detail.channelId === channelId) load();
+    };
+    window.addEventListener("war-room:pinned-changed", onChange);
+    return () => window.removeEventListener("war-room:pinned-changed", onChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId]);
+
+  const remove = async (id: number) => {
+    setItems((cur) => (cur ? cur.filter((x) => x.id !== id) : cur));
+    await fetch("/api/pinned", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="absolute right-0 top-full mt-1 z-40 w-96 max-h-[60vh] bg-[#0d0d0f] border border-neutral-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+        <div className="px-3 py-2 border-b border-neutral-800 flex items-center gap-2">
+          <Pin className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs font-semibold text-neutral-200">Pinned messages</span>
+          <span className="ml-auto text-[10px] text-neutral-600">
+            {items === null ? "..." : `${items.length}`}
+          </span>
+        </div>
+        <div className="overflow-y-auto flex-1">
+          {items === null ? (
+            <div className="p-4 text-xs text-neutral-600 italic">Loading...</div>
+          ) : items.length === 0 ? (
+            <div className="p-4 text-xs text-neutral-600 italic">
+              Nothing pinned yet. Hover any message and click the pin icon to save it here.
+            </div>
+          ) : (
+            items.map((p) => (
+              <div
+                key={p.id}
+                className="px-3 py-2.5 border-b border-neutral-900 last:border-b-0 hover:bg-neutral-900/40 group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-neutral-500">
+                    {p.role === "user" ? "you" : p.agent_id ?? "agent"}
+                  </span>
+                  <button
+                    onClick={() => remove(p.id)}
+                    className="opacity-0 group-hover:opacity-100 text-[10px] text-neutral-500 hover:text-red-300"
+                    title="Unpin"
+                  >
+                    unpin
+                  </button>
+                </div>
+                <div className="text-xs text-neutral-300 whitespace-pre-wrap line-clamp-6">
+                  {p.content}
+                </div>
+                <div className="text-[10px] text-neutral-600 mt-1">
+                  {new Date(p.pinned_at).toLocaleString()}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
