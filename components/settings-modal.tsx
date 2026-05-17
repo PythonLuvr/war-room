@@ -424,6 +424,14 @@ const ACCENT_OPTIONS: Array<{ value: string; label: string; swatch: string }> = 
   { value: "rose", label: "Rose", swatch: "bg-rose-500" },
 ];
 
+function ProfileLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1.5 font-medium">
+      {children}
+    </div>
+  );
+}
+
 function ProfileEditor({
   adapter,
   onSaved,
@@ -521,7 +529,7 @@ function ProfileEditor({
           ) : (
             <>
               <div>
-                <Label>Display name</Label>
+                <ProfileLabel>Display name</ProfileLabel>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -533,7 +541,7 @@ function ProfileEditor({
                 </div>
               </div>
               <div>
-                <Label>Logo</Label>
+                <ProfileLabel>Logo</ProfileLabel>
                 <div className="flex flex-wrap gap-2 mb-2">
                   <button
                     onClick={() => setIconUrl("")}
@@ -568,7 +576,7 @@ function ProfileEditor({
                 />
               </div>
               <div>
-                <Label>Accent color</Label>
+                <ProfileLabel>Accent color</ProfileLabel>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setAccent("")}

@@ -4,6 +4,47 @@ All notable changes to War Room are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-05-17
+
+### Added
+- **Boardroom seats now render the actual adapter brand mark per
+  agent** instead of a generic Sparkles icon. Every configured
+  adapter gets its own seat in the room (was previously one
+  agent-per-human via the static TEAM array). Seats pull the
+  iconUrl + accent color from `/api/agents`.
+- **Per-adapter brand color defaults** at
+  `lib/agents/brand-colors.ts`. Claude family = amber, OpenAI
+  family = emerald, Gemini family = sky, Grok = rose, Hermes =
+  violet, OpenClaw + SemaClaw = fuchsia. Used as the default
+  accent unless the user sets a profile override.
+- **Agent profiles system** for renaming agents + changing their
+  logo + changing their accent color:
+  - New `agent_profiles(adapter_id, display_name, icon_url,
+    accent, updated_at)` table.
+  - `getAgentProfile / getAllAgentProfiles / setAgentProfile /
+    deleteAgentProfile` helpers in `lib/db.ts`.
+  - `GET / POST / DELETE /api/agent-profiles` route.
+  - `/api/agents` GET now returns `defaultName`, `defaultIconUrl`,
+    `defaultAccent` alongside the merged effective `name`,
+    `iconUrl`, `accent` for every adapter so the UI can show
+    "[built-in]" labels and let the user revert with one click.
+  - Settings -> Agent now has an "Agent profiles" subsection at
+    the top with a collapsible card per configured adapter:
+    display-name field, logo gallery (built-in + bundled brand
+    marks + paste-a-URL fallback), accent color picker. Reset to
+    built-in deletes the override row.
+
+### Changed
+- Bundled agent logos at `public/agent-logos/` swapped from
+  hand-rolled SVG approximations to user-supplied brand images
+  (claude.png, openai.jpg, gemini.png, hermes.png, openclaw.png,
+  semaclaw.png). Adapter `iconUrl` paths repointed. The Grok logo
+  stays as the placeholder SVG since no replacement was supplied.
+- Chat bubbles now prefer the adapter's brand / user-configured
+  accent for color, falling back to the hash-based rotation only
+  when neither is available (covers legacy chat history where the
+  adapter id no longer exists).
+
 ## [0.12.0] - 2026-05-17
 
 ### Changed

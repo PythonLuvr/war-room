@@ -429,8 +429,15 @@ function ChatMessage({
         prev.agentId === item.agentId));
 
   const agentId = item.kind === "assistant" ? item.agentId : null;
-  const palette = AGENT_PALETTE[colorForAgent(agentId)];
   const adapter = agentId ? adapterMap.get(agentId) : null;
+  // Prefer the adapter's brand / user-configured accent. Fall back to
+  // the hash-based rotation only if neither is available (covers
+  // legacy chat history where the adapter id no longer exists).
+  const accentKey =
+    (adapter?.accent && adapter.accent in AGENT_PALETTE
+      ? (adapter.accent as AgentColor)
+      : null) ?? colorForAgent(agentId);
+  const palette = AGENT_PALETTE[accentKey];
   const agentName = adapter?.name ?? agentId ?? "Agent";
 
   const pinThis = async () => {
