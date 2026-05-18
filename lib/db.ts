@@ -97,7 +97,7 @@ function migrateClaudeSessionsAdapterId(d: Database.Database) {
 
 /** Runs every schema migration the app needs, plus the canonical seeds.
  *  Exported so tests can apply migrations to a fixture DB without booting
- *  the rest of the app. Safe to call repeatedly — every step is idempotent. */
+ *  the rest of the app. Safe to call repeatedly, every step is idempotent. */
 export function migrate(d: Database.Database) {
   d.exec(`
     -- Sessions are scoped per (project, adapter) so each agent maintains
@@ -226,6 +226,21 @@ export function migrate(d: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_knowledge_channel ON knowledge_entries(channel_id, updated_at DESC);
 
+    CREATE TABLE IF NOT EXISTS sidebar_roles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      color TEXT,
+      position INTEGER NOT NULL DEFAULT 100,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sidebar_role_assignments (
+      role_id INTEGER NOT NULL,
+      member_kind TEXT NOT NULL,
+      member_id TEXT NOT NULL,
+      PRIMARY KEY (member_kind, member_id)
+    );
+
     CREATE TABLE IF NOT EXISTS agent_profiles (
       adapter_id TEXT PRIMARY KEY,
       display_name TEXT,
@@ -321,7 +336,7 @@ export function migrate(d: Database.Database) {
   migrateAddColumn(d, "channel_overrides", "project_path", "TEXT");
   migrateAddColumn(d, "channel_overrides", "description", "TEXT");
   // Per-channel AI backend pin. NULL means "use whatever the global default
-  // is right now" — surfaces in the channel header agent chip.
+  // is right now", surfaces in the channel header agent chip.
   migrateAddColumn(d, "channel_overrides", "agent_backend", "TEXT");
   // Per-channel context mode for multi-agent threads:
   //   "isolated" (default, NULL): each agent sees only its own past turns
@@ -346,11 +361,15 @@ export function migrate(d: Database.Database) {
   migrateAddColumn(d, "channel_overrides", "primer_enabled", "INTEGER");
   migrateAddColumn(d, "decisions", "status", "TEXT NOT NULL DEFAULT 'open'");
   migrateAddColumn(d, "announcements", "status", "TEXT NOT NULL DEFAULT 'open'");
-  // is_personal marks the user's local "Personal" workspace — the server
+  // is_personal marks the user's local "Personal" workspace, the server
   // that auto-discovers workspaces + project folders and carries the
   // System category. Distinct from is_default, which now points at the
   // shared "The War Room" dashboard server.
   migrateAddColumn(d, "user_servers", "is_personal", "INTEGER NOT NULL DEFAULT 0");
+  // Optional uploaded / pasted image URL for the workspace icon. NULL
+  // = render the existing letter glyph + color fallback. Any value
+  // takes precedence over icon + color in the avatar renderers.
+  migrateAddColumn(d, "user_servers", "icon_url", "TEXT");
 
   seedDefaultServers(d);
 
@@ -360,6 +379,14 @@ export function migrate(d: Database.Database) {
   // side effects, so this is safe for cold-clone installs.
   import("./sync/client")
     .then((m) => m.ensureSyncClient())
+    .catch(() => {});
+
+  // Auto-resume hosting if this teammate had it on when they last
+  // quit. Opt-out via Stop Hosting in Settings -> Sync. Failures
+  // surface in the Settings panel's adapter status, they never
+  // block app boot.
+  import("./sync/tunnel-manager")
+    .then((m) => m.maybeAutoResumeHosting())
     .catch(() => {});
 }
 
@@ -377,7 +404,7 @@ function seedDefaultServers(d: Database.Database) {
   const now = Date.now();
 
   // 1. Make sure the canonical shared War Room dashboard server exists.
-  //    It carries no auto-discovered project channels — the dashboard widgets
+  //    It carries no auto-discovered project channels, the dashboard widgets
   //    aggregate state from across all servers.
   const warRoom = d
     .prepare(`SELECT id FROM user_servers WHERE name = ?`)
@@ -387,7 +414,7 @@ function seedDefaultServers(d: Database.Database) {
       `INSERT INTO user_servers(name, icon, color, is_default, is_personal, position, created_at)
        VALUES(?, ?, ?, 1, 0, ?, ?)`,
     ).run(SHARED_SERVER_NAME, "⚔", "violet", -100, now);
-    // Whatever else used to be the default loses that flag — landing
+    // Whatever else used to be the default loses that flag, landing
     // routes through War Room from now on.
     d.prepare(`UPDATE user_servers SET is_default = 0 WHERE name != ?`).run(SHARED_SERVER_NAME);
   } else {
@@ -459,6 +486,7 @@ export type UserServerRow = {
   name: string;
   icon: string;
   color: string;
+  icon_url: string | null;
   is_default: number;
   is_personal: number;
   position: number;
@@ -485,10 +513,10 @@ export function createUserServer(input: { name: string; icon?: string; color?: s
 
 export function updateUserServer(
   id: number,
-  patch: { name?: string; icon?: string; color?: string },
+  patch: { name?: string; icon?: string; color?: string; icon_url?: string | null },
 ) {
   const fields: string[] = [];
-  const values: (string | number)[] = [];
+  const values: (string | number | null)[] = [];
   if (patch.name !== undefined) {
     fields.push("name = ?");
     values.push(patch.name);
@@ -500,6 +528,10 @@ export function updateUserServer(
   if (patch.color !== undefined) {
     fields.push("color = ?");
     values.push(patch.color);
+  }
+  if (patch.icon_url !== undefined) {
+    fields.push("icon_url = ?");
+    values.push(patch.icon_url);
   }
   if (fields.length === 0) return;
   values.push(id);
@@ -518,7 +550,7 @@ export function getPersonalServer(): UserServerRow | undefined {
 export function deleteUserServer(id: number) {
   const d = db();
   // The two seeded canonicals (shared War Room + Personal workspace) are
-  // load-bearing — landing routes, system surfaces, and project discovery
+  // load-bearing, landing routes, system surfaces, and project discovery
   // all assume they exist. Custom servers users create are fine to remove.
   const row = d
     .prepare(`SELECT is_default, is_personal FROM user_servers WHERE id = ?`)
@@ -567,7 +599,7 @@ export function listUserChannels(
   return db().prepare(`SELECT * FROM user_channels ${where} ORDER BY name`).all(serverId) as UserChannelRow[];
 }
 
-// All channels across all servers — for the universal route resolver, includes hidden
+// All channels across all servers, for the universal route resolver, includes hidden
 export function listAllUserChannels(): UserChannelRow[] {
   return db()
     .prepare(`SELECT * FROM user_channels ORDER BY server_id, name`)
@@ -826,8 +858,8 @@ export function resolvePrimerEnabled(channelId: string | undefined): boolean {
   return fallback === "1";
 }
 
-/** Pulls cross-agent history for a project — every message NOT generated by
- *  `excludeAdapterId` — newest-last, capped by both budgets. Used by the
+/** Pulls cross-agent history for a project, every message NOT generated by
+ *  `excludeAdapterId`, newest-last, capped by both budgets. Used by the
  *  agents wrapper to inject "what other agents said" before each call when
  *  a channel is in shared-context mode. */
 export function getCrossAgentContext(
@@ -1071,6 +1103,110 @@ export function unackAnnouncement(announcementId: number, userId: string) {
 
 export function setDecisionStatus(id: number, status: "open" | "archived" | "reversed") {
   db().prepare(`UPDATE decisions SET status = ? WHERE id = ?`).run(status, id);
+}
+
+// ─── Sidebar roles ────────────────────────────────────────────────────────
+//
+// Discord-style visual grouping for the right sidebar. Each role
+// has a name, optional accent color, and a position. Members (agents
+// + humans) get assigned to at most one role at a time. Unassigned
+// members fall into a default "Members" catch-all rendered by the
+// sidebar itself.
+//
+// Purely visual. Nothing about agent behavior, channel routing, or
+// permissions changes based on role.
+
+export type SidebarRoleRow = {
+  id: number;
+  name: string;
+  color: string | null;
+  position: number;
+  created_at: number;
+};
+
+export type SidebarRoleAssignmentRow = {
+  role_id: number;
+  member_kind: string; // "agent" | "human"
+  member_id: string;
+};
+
+export function listSidebarRoles(): SidebarRoleRow[] {
+  return db()
+    .prepare(`SELECT * FROM sidebar_roles ORDER BY position ASC, created_at ASC`)
+    .all() as SidebarRoleRow[];
+}
+
+export function createSidebarRole(input: {
+  name: string;
+  color?: string | null;
+  position?: number;
+}): SidebarRoleRow {
+  const now = Date.now();
+  const r = db()
+    .prepare(
+      `INSERT INTO sidebar_roles(name, color, position, created_at) VALUES(?, ?, ?, ?)`,
+    )
+    .run(input.name, input.color ?? null, input.position ?? 100, now);
+  return db()
+    .prepare(`SELECT * FROM sidebar_roles WHERE id = ?`)
+    .get(Number(r.lastInsertRowid)) as SidebarRoleRow;
+}
+
+export function updateSidebarRole(
+  id: number,
+  patch: { name?: string; color?: string | null; position?: number },
+) {
+  const fields: string[] = [];
+  const values: (string | number | null)[] = [];
+  if (patch.name !== undefined) {
+    fields.push("name = ?");
+    values.push(patch.name);
+  }
+  if (patch.color !== undefined) {
+    fields.push("color = ?");
+    values.push(patch.color);
+  }
+  if (patch.position !== undefined) {
+    fields.push("position = ?");
+    values.push(patch.position);
+  }
+  if (fields.length === 0) return;
+  values.push(id);
+  db().prepare(`UPDATE sidebar_roles SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+}
+
+export function deleteSidebarRole(id: number) {
+  const d = db();
+  d.prepare(`DELETE FROM sidebar_role_assignments WHERE role_id = ?`).run(id);
+  d.prepare(`DELETE FROM sidebar_roles WHERE id = ?`).run(id);
+}
+
+export function listSidebarAssignments(): SidebarRoleAssignmentRow[] {
+  return db()
+    .prepare(`SELECT * FROM sidebar_role_assignments`)
+    .all() as SidebarRoleAssignmentRow[];
+}
+
+export function setSidebarAssignment(
+  memberKind: "agent" | "human",
+  memberId: string,
+  roleId: number | null,
+) {
+  if (roleId === null) {
+    db()
+      .prepare(
+        `DELETE FROM sidebar_role_assignments WHERE member_kind = ? AND member_id = ?`,
+      )
+      .run(memberKind, memberId);
+    return;
+  }
+  db()
+    .prepare(
+      `INSERT INTO sidebar_role_assignments(role_id, member_kind, member_id)
+       VALUES(?, ?, ?)
+       ON CONFLICT(member_kind, member_id) DO UPDATE SET role_id = excluded.role_id`,
+    )
+    .run(roleId, memberKind, memberId);
 }
 
 // ─── Agent profile overrides ──────────────────────────────────────────────

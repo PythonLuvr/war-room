@@ -4,6 +4,7 @@ import {
   createUserGroup,
   deleteUserChannel,
   deleteUserGroup,
+  listAllUserChannels,
   listUserGroups,
   setChannelOverrideDescription,
   setChannelOverridePath,
@@ -11,6 +12,12 @@ import {
   setChannelPrivate,
   updateUserChannel,
 } from "@/lib/db";
+import {
+  emitChannelDelete,
+  emitChannelUpsert,
+  emitGroupDelete,
+  emitGroupUpsert,
+} from "@/lib/sync/emitters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,6 +49,7 @@ export async function POST(req: NextRequest) {
     }
     try {
       const g = createUserGroup(body.name.trim(), serverId);
+      emitGroupUpsert({ ...g, server_id: serverId });
       return NextResponse.json({ group: g });
     } catch (e) {
       return NextResponse.json(
@@ -74,6 +82,8 @@ export async function POST(req: NextRequest) {
       if (body.description?.trim()) {
         updateUserChannel(slug, { description: body.description.trim() });
       }
+      const fresh = listAllUserChannels().find((x) => x.slug === slug) ?? c;
+      emitChannelUpsert(fresh);
       return NextResponse.json({ channel: c });
     } catch (e) {
       return NextResponse.json(
@@ -95,10 +105,12 @@ export async function DELETE(req: NextRequest) {
   };
   if (body.target === "channel" && body.slug) {
     deleteUserChannel(body.slug);
+    emitChannelDelete(body.slug);
     return NextResponse.json({ ok: true });
   }
   if (body.target === "group" && body.label) {
     deleteUserGroup(body.label, body.serverId ?? 1);
+    emitGroupDelete(body.serverId ?? 1, body.label);
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -135,6 +147,8 @@ export async function PATCH(req: NextRequest) {
         description: body.description === undefined ? undefined : body.description || null,
       });
     }
+    const fresh = listAllUserChannels().find((c) => c.slug === slug);
+    if (fresh) emitChannelUpsert(fresh);
   } else {
     if (typeof body.isPrivate === "boolean") {
       setChannelOverridePrivate(channelId, body.isPrivate);

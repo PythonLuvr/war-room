@@ -1,7 +1,7 @@
 "use client";
 
 // Root-level meeting state. The LiveKit Room and all media tracks live here so
-// they survive route changes — that's what lets the call collapse into a
+// they survive route changes, that's what lets the call collapse into a
 // floating mini-window when the user navigates away from /c/home, instead of
 // the call ending when the Boardroom panel unmounts.
 

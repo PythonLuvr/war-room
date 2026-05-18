@@ -1,4 +1,4 @@
-// War Room — Electron main process.
+// War Room, Electron main process.
 //
 // Two windows:
 //   - Main window: the dashboard. Boots the bundled Next.js server in prod
@@ -175,12 +175,12 @@ async function createMainWindow() {
         );
         mainWindow.show();
       } catch {
-        // window died during the fallback — nothing to do, app will close
+        // window died during the fallback, nothing to do, app will close
       }
     }
   }
 
-  // Allow F12 / Ctrl+Shift+I to toggle DevTools even in production builds —
+  // Allow F12 / Ctrl+Shift+I to toggle DevTools even in production builds , 
   // we don't ship a menu bar, so without this users have no diagnostic path
   // when something goes wrong.
   mainWindow.webContents.on("before-input-event", (event, input) => {

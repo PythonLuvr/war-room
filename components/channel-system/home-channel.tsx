@@ -215,7 +215,7 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-// Static widths — Math.random in render breaks React purity. The shimmer
+// Static widths, Math.random in render breaks React purity. The shimmer
 // is what readers register; varying widths just need to look "varied
 // enough" to avoid monotony.
 const SKELETON_TOP = [62, 48, 70, 55, 44, 68, 50];

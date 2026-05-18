@@ -4,11 +4,20 @@ War Room is local-first. Without sync, every install talks only to
 the agent and SQLite database on its own machine. That's the cold-
 clone default and it's fine for solo use.
 
-If you want decisions, announcements, and knowledge entries to
-appear on your teammate's machine the moment you create them on
-yours, point your War Room installs at a **sync server you control**.
-War Room never connects to a server the project hosts. Bring your
-own VPS, home server, or LAN box.
+If you want a shared workspace - the same channels, decisions, and
+knowledge entries appearing on every teammate's machine in real
+time - you have two options:
+
+1. **Host from your own machine** (v0.16.0+). Settings -> Sync ->
+   "Host this workspace from this machine." Pick one of four
+   hosting modes (Cloudflare Quick Tunnel, Cloudflare Named Tunnel,
+   Tailscale, or Manual VPS), copy the invite, paste it in Slack.
+   See `docs/sync-hosting.md` for the walkthrough.
+2. **Run the reference server on a VPS** (v0.15.0 path, still
+   supported). Detailed below.
+
+War Room never connects to a server the project hosts. Self-hosted
+only.
 
 ## Architecture
 
@@ -29,21 +38,33 @@ Protocol details in [`lib/sync/protocol.ts`](lib/sync/protocol.ts).
 
 ## What syncs
 
-| Table         | Why                                                  |
-|---------------|------------------------------------------------------|
-| `decisions`         | Team needs the same history of "what we decided"     |
-| `announcements`     | Broadcasts are pointless if only one person sees them |
-| `knowledge_entries` | Per-channel docs are most useful when shared          |
+| Table                | Why                                                       |
+|----------------------|-----------------------------------------------------------|
+| `decisions`          | Team needs the same history of "what we decided"          |
+| `announcements`      | Broadcasts are pointless if only one person sees them     |
+| `knowledge_entries`  | Per-channel docs are most useful when shared              |
+| `user_servers`       | Workspaces appear on every teammate's rail                |
+| `user_groups`        | Sidebar group labels stay aligned across machines         |
+| `user_channels`      | Create a channel once, everyone sees it                   |
+| `sidebar_roles`      | Role colors / labels apply for everyone                   |
+| `sidebar_role_assignments` | Member-to-role mapping stays in sync                |
+| `agent_profiles`     | Renamed / re-iconed agents look the same on every machine |
+
+Workspace-structure events use **natural keys** (server name, channel
+slug, group label, role name, adapter id) over the wire, not the
+local INTEGER primary key. Two clients can both create the "design"
+group locally and a sync event will collapse them into one shared
+group instead of clobbering each other's autoincrement ids.
 
 ## What does NOT sync
 
 | Surface              | Why not                                                    |
 |----------------------|------------------------------------------------------------|
-| Chat messages        | Per-user history. Large volume. Not interesting cross-team. |
+| Chat messages        | Per-user Claude history. Large volume. Team-chat needs a different schema (planned). |
 | Claude sessions      | Machine-local Claude state. Not portable.                   |
 | Activity feed        | Auto-derived from other events. Will rebuild itself.        |
-| Channels / servers   | v0.8.1+. Has migration semantics that need more design.     |
 | Settings             | Per-user preferences. Don't bleed across people.            |
+| Uploaded files       | File bytes live on the machine that uploaded them. URLs sync via the row they belong to, content does not (yet). |
 
 ## Setup
 

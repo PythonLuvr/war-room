@@ -59,6 +59,13 @@ export const DATA_DIR =
 export const STATIC_WORKSPACES: Array<{ path: string; name: string }> =
   parseJsonEnv(process.env.WAR_ROOM_WORKSPACES, []);
 
+// ─── Local user identity ─────────────────────────────────────────────────────
+// The handle every server-side write attributes to. Defaults to a generic
+// "local" so a fresh clone produces a working single-user cockpit without
+// any operator-specific handle leaking into committed rows. Forks set
+// their own value via WAR_ROOM_LOCAL_USER.
+export const LOCAL_USER = process.env.WAR_ROOM_LOCAL_USER ?? "local";
+
 // ─── Extra .env files to merge at boot ───────────────────────────────────────
 // User can point at additional .env files (e.g. shared team-wide secrets).
 // Defaults to just the per-user ~/.war-room/.env if present.

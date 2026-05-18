@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createDecision, deleteDecision, getDecisionById, listDecisions, setDecisionStatus } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { emitEvent } from "@/lib/sync/client";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     title: body.title.trim(),
     summary: body.summary.trim(),
     links: body.links,
-    author: body.author?.trim() || "ej",
+    author: body.author?.trim() || getRequester(),
   });
   logActivity("system", `Decision logged: ${decision.title}`, {
     detail: decision.summary.slice(0, 120),

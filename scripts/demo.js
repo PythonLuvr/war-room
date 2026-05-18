@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// War Room — demo mode launcher.
+// War Room, demo mode launcher.
 //
 // Boots a fresh dev server pointed at an isolated demo data dir
 // (~/.war-room-demo/), seeds it with synthetic data via /api/demo-seed,
@@ -36,7 +36,7 @@ function ensureSystemNodeBuild() {
     { cwd: REPO },
   );
   if (probe.status === 0) {
-    console.log(`▸ better-sqlite3 already matches system Node (ABI ${process.versions.modules}) — skipping rebuild`);
+    console.log(`▸ better-sqlite3 already matches system Node (ABI ${process.versions.modules}), skipping rebuild`);
     return;
   }
   console.log(`▸ rebuilding better-sqlite3 for system Node (ABI ${process.versions.modules})…`);
@@ -65,7 +65,7 @@ function restoreEnv() {
       console.log("▸ restored .env.local");
     } catch (e) {
       console.error(
-        `\n✗ could not restore .env.local automatically. Your file is at ${ENV_STASH} — move it back manually. ${e.message}`,
+        `\n✗ could not restore .env.local automatically. Your file is at ${ENV_STASH}, move it back manually. ${e.message}`,
       );
     }
   }
@@ -130,7 +130,7 @@ async function seedAfterReady() {
   try {
     await waitForReady();
     await postJSON("/api/demo-seed");
-    console.log("\n▸ demo data seeded — open http://localhost:" + PORT);
+    console.log("\n▸ demo data seeded, open http://localhost:" + PORT);
   } catch (e) {
     console.error(`\n✗ demo seed failed: ${e.message}`);
     console.error("  The dev server is still running. You can retry by POSTing to http://localhost:" + PORT + "/api/demo-seed");
@@ -140,13 +140,13 @@ async function seedAfterReady() {
 // ─── Run ────────────────────────────────────────────────────────────────────
 function main() {
   console.log("\n══════════════════════════════════════════");
-  console.log("  War Room — DEMO mode");
+  console.log("  War Room, DEMO mode");
   console.log("══════════════════════════════════════════\n");
   console.log(`  port      : http://localhost:${PORT}`);
   console.log(`  data dir  : ${DATA_DIR}  (wiped + reseeded each run)`);
   console.log(`  env       : ignored (.env.local stashed)`);
   console.log(`  use this  : show prospective forkers what a populated War Room looks like\n`);
-  console.log("  When done, hit Ctrl+C — your real .env.local is restored automatically.\n");
+  console.log("  When done, hit Ctrl+C, your real .env.local is restored automatically.\n");
 
   ensureSystemNodeBuild();
   stashEnv();

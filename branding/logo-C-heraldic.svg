@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
   <!-- Variant C: Heraldic / classic. Outlined shield, filled swords. -->
-  <!-- Reads as "insignia" — most "war room" of the three. -->
+  <!-- Reads as "insignia", most "war room" of the three. -->
 
   <!-- Shield outline -->
   <path d="M128 24 L216 52 L216 132 C216 184 178 220 128 232 C78 220 40 184 40 132 L40 52 Z"

@@ -1,4 +1,4 @@
-// Layout for the main app shell — the dashboard window in Electron, or the
+// Layout for the main app shell, the dashboard window in Electron, or the
 // normal browser experience. The mini Electron window loads /mini directly
 // and does NOT inherit this layout, so it stays a clean standalone strip.
 
@@ -10,6 +10,7 @@ import { FloatingMeeting } from "@/components/channel-system/floating-meeting";
 import { UpdateBanner } from "@/components/update-banner";
 import { DemoBanner } from "@/components/demo-banner";
 import { IdentityHydrator } from "@/components/identity-hydrator";
+import { HostingIndicator } from "@/components/hosting-indicator";
 
 export default function MainLayout({
   children,
@@ -29,6 +30,7 @@ export default function MainLayout({
       <OnboardingWizard />
       <FloatingMeeting />
       <UpdateBanner />
+      <HostingIndicator />
     </>
   );
 }

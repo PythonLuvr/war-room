@@ -1,7 +1,7 @@
 // UI smoke test. Boots the dev server (via playwright.config.ts's
 // webServer setting), walks Home → opens Settings → switches to the
 // Agent tab → closes. Assertion is the basic "did it render and serve
-// without 5xxs" — covers the regression class that matters most for
+// without 5xxs", covers the regression class that matters most for
 // forkers (a misconfigured cold-clone that crashes on first paint).
 //
 // Run via: npm run test:smoke
@@ -22,13 +22,13 @@ test("home renders, settings opens, agent tab is reachable, no 5xx", async ({ pa
   await page.goto("/c/home");
 
   // Next.js dev mode injects a `<nextjs-portal>` overlay that intercepts
-  // pointer events on the rail. It only exists in dev — production
+  // pointer events on the rail. It only exists in dev, production
   // builds don't ship it. Hide it for the duration of the test so clicks
   // hit the actual UI underneath.
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
   // Sidebar shows the seeded War Room icon (always rendered, even before
-  // the wizard's done — proves the migration ran + servers seeded).
+  // the wizard's done, proves the migration ran + servers seeded).
   await expect(page.locator('button[title*="War Room"]').first()).toBeVisible({ timeout: 10_000 });
 
   // Open settings via the gear in the rail. Force-click sidesteps the
@@ -45,7 +45,7 @@ test("home renders, settings opens, agent tab is reachable, no 5xx", async ({ pa
   }
 
   // No 5xx through the whole walk. Console errors are intentionally not
-  // asserted — Next's dev overlay + Fast Refresh fire benign warnings
+  // asserted, Next's dev overlay + Fast Refresh fire benign warnings
   // that aren't useful regression signal.
   expect(serverErrors, "5xx response during smoke walk").toEqual([]);
 });

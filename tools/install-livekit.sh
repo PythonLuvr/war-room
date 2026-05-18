@@ -36,7 +36,7 @@ KEYS_FILE=/etc/livekit-keys.txt
 # whole installer.
 if [ "${1:-}" = "--print-creds" ]; then
   if [ ! -f "$KEYS_FILE" ]; then
-    echo "✗ no keys file at $KEYS_FILE — run the installer first." >&2
+    echo "✗ no keys file at $KEYS_FILE, run the installer first." >&2
     exit 1
   fi
   # shellcheck disable=SC1090
@@ -54,7 +54,7 @@ if [ "${1:-}" = "--print-creds" ]; then
 fi
 
 # Tweak these if you want a real hostname behind nginx
-DOMAIN="${LIVEKIT_DOMAIN:-}"           # e.g. "livekit.example.com" — leave empty to use raw IP+port
+DOMAIN="${LIVEKIT_DOMAIN:-}"           # e.g. "livekit.example.com", leave empty to use raw IP+port
 VPS_IP="$(curl -sS https://api.ipify.org || hostname -I | awk '{print $1}')"
 
 # --- Step 1: install LiveKit binary ---
@@ -68,7 +68,7 @@ fi
 # --- Step 2: generate API key + secret if missing ---
 if [ ! -f "$KEYS_FILE" ]; then
   echo "[2/6] Generating API key + secret…"
-  API_KEY="APIej$(openssl rand -hex 6)"
+  API_KEY="APIwr$(openssl rand -hex 6)"
   API_SECRET="$(openssl rand -base64 32 | tr -d '=' | tr -d '\n')"
   cat > "$KEYS_FILE" <<EOF
 LIVEKIT_API_KEY=$API_KEY
@@ -135,7 +135,7 @@ NGINX
   echo "    → After this, run: certbot --nginx -d $DOMAIN"
   echo "    → Your dashboards then use: wss://$DOMAIN"
 else
-  echo "[5/6] No DOMAIN set — clients will use ws://$VPS_IP:$LIVEKIT_PORT (no TLS)."
+  echo "[5/6] No DOMAIN set, clients will use ws://$VPS_IP:$LIVEKIT_PORT (no TLS)."
   echo "    For TLS, rerun with:  LIVEKIT_DOMAIN=livekit.your-domain.com bash install-livekit.sh"
 fi
 

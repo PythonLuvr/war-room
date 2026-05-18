@@ -7,11 +7,12 @@ import {
 } from "@/lib/db";
 import { deleteFile, storageBackend, writeFile } from "@/lib/file-storage";
 import { logActivity } from "@/lib/activity";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ME = "ej";
+const ME = getRequester();
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB v1 cap
 
 export async function GET(req: NextRequest) {

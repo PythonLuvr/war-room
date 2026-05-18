@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     // Empty string clears, null/undefined skips. Saves typing in the UI.
     if (v === undefined || v === null) continue;
     // Don't write if the value looks like the masked placeholder we sent
-    // back on GET — means the user didn't touch the secret field.
+    // back on GET, means the user didn't touch the secret field.
     if (SECRET_KEYS.has(k) && /^[\w-]{0,4}•+[\w-]{0,4}$/.test(v)) continue;
     setSetting(k, v);
   }

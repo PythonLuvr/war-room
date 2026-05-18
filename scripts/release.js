@@ -16,7 +16,7 @@ const path = require("path");
 const os = require("os");
 
 // Read .env.local + ~/.war-room/.env into process.env so release can run
-// without exporting vars manually. First writer wins — process.env always
+// without exporting vars manually. First writer wins, process.env always
 // trumps file values, so CLI overrides still work.
 function loadDotEnv(filePath) {
   try {
@@ -40,7 +40,7 @@ function loadDotEnv(filePath) {
 loadDotEnv(path.join(__dirname, "..", ".env.local"));
 loadDotEnv(path.join(os.homedir(), ".war-room", ".env"));
 
-// ─── Server config — change these two lines when migrating to a new host. ────
+// ─── Server config, change these two lines when migrating to a new host. ────
 const DEFAULT_UPDATE_HOST = "";
 const DEFAULT_UPDATE_URL = "";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,14 +58,14 @@ function withPublishUrl(realUrl, action) {
   // electron-builder bakes publish.url into the .exe at build time. We need
   // the REAL URL for the build but want package.json's committed value to
   // stay a generic placeholder (open-source hygiene). Patch the file in
-  // place, run the build, restore the original — no leak to git.
+  // place, run the build, restore the original, no leak to git.
   const pkgPath = path.join(__dirname, "..", "package.json");
   const original = fs.readFileSync(pkgPath, "utf8");
   const pkg = JSON.parse(original);
   const placeholderUrl = pkg.build?.publish?.url;
   if (placeholderUrl === realUrl) {
     // already aligned (e.g. someone running release on a fork that committed
-    // a real URL) — just run the action with no swap.
+    // a real URL), just run the action with no swap.
     return action();
   }
   pkg.build.publish.url = realUrl;

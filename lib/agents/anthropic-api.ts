@@ -1,5 +1,5 @@
 // Anthropic Messages API adapter (BYOK lite mode).
-// Direct fetch to api.anthropic.com — no MCP, no tools, no project files.
+// Direct fetch to api.anthropic.com, no MCP, no tools, no project files.
 // Just streams text back. For users who don't have Claude Code installed.
 
 import { getSetting } from "../db";
@@ -25,7 +25,7 @@ export const anthropicApi: AgentAdapter = {
     memory: false,
     fileAccess: false,
     notes:
-      "Direct API call to Anthropic. Chat only — no MCP, no skills, no tool use, no project files. Stateless: each message starts fresh.",
+      "Direct API call to Anthropic. Chat only, no MCP, no skills, no tool use, no project files. Stateless: each message starts fresh.",
   },
   isConfigured() {
     return !!apiKey();

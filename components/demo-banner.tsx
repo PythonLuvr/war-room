@@ -3,7 +3,7 @@
 // Top-of-screen banner that appears only when the server was started with
 // WAR_ROOM_DEMO=1 (i.e. via `npm run demo`). Tells visitors the data is
 // synthetic and points them at the real cold-clone command. Never shows
-// in a normal install — /api/about returns demo:false unless the env is
+// in a normal install, /api/about returns demo:false unless the env is
 // set.
 
 import { useEffect, useState } from "react";

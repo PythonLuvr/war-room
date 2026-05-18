@@ -7,7 +7,7 @@ import crypto from "crypto";
  * Pluggable file storage adapter.
  *
  * Today: writes to local filesystem under ~/.war-room/files/<channel-slug>/
- * Tomorrow: swap STORAGE_BACKEND env to "s3" or "shared-vps" and rewire — the API
+ * Tomorrow: swap STORAGE_BACKEND env to "s3" or "shared-vps" and rewire, the API
  * surface stays identical.
  */
 
@@ -53,7 +53,7 @@ export async function deleteFile(channelId: string, filename: string): Promise<v
   try {
     await fs.unlink(absolutePath);
   } catch {
-    // Already gone or never existed — fine.
+    // Already gone or never existed, fine.
   }
 }
 

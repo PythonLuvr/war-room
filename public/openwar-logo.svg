@@ -12,16 +12,16 @@
         fill="#0a0a0a"/>
 
   <!-- Phase stack: four horizontal bars centered in the shield. Wider on
-       top (Phase 0 is the longest — brief intake), tapering as the
+       top (Phase 0 is the longest, brief intake), tapering as the
        phases progress. Reads as "ordered framework" at any size. -->
 
-  <!-- Phase 0 — full width -->
+  <!-- Phase 0, full width -->
   <rect x="68"  y="86"  width="120" height="14" rx="3" fill="#f5f5f5"/>
-  <!-- Phase 1 — slightly narrower -->
+  <!-- Phase 1, slightly narrower -->
   <rect x="76"  y="112" width="104" height="14" rx="3" fill="#f5f5f5"/>
-  <!-- Phase 2 / 3 — gates -->
+  <!-- Phase 2 / 3, gates -->
   <rect x="84"  y="138" width="88"  height="14" rx="3" fill="#f5f5f5"/>
-  <!-- Phase 4 — completion -->
+  <!-- Phase 4, completion -->
   <rect x="92"  y="164" width="72"  height="14" rx="3" fill="#f5f5f5"/>
 
   <!-- Tiny accent: small dot to the left of Phase 0 marking the "start"

@@ -6,6 +6,10 @@ import {
   setAgentProfile,
 } from "@/lib/db";
 import { ALL_ADAPTERS } from "@/lib/agents";
+import {
+  emitAgentProfileDelete,
+  emitAgentProfileSet,
+} from "@/lib/sync/emitters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -54,7 +58,9 @@ export async function POST(req: NextRequest) {
       body.iconUrl === undefined ? undefined : body.iconUrl?.trim() || null,
     accent: body.accent === undefined ? undefined : body.accent || null,
   });
-  return NextResponse.json({ ok: true, profile: getAgentProfile(body.adapterId) });
+  const fresh = getAgentProfile(body.adapterId);
+  if (fresh) emitAgentProfileSet(fresh);
+  return NextResponse.json({ ok: true, profile: fresh });
 }
 
 // DELETE clears the override row entirely. Same effect as POSTing all
@@ -65,5 +71,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "unknown adapterId" }, { status: 400 });
   }
   deleteAgentProfile(body.adapterId);
+  emitAgentProfileDelete(body.adapterId);
   return NextResponse.json({ ok: true });
 }

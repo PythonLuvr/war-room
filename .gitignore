@@ -32,7 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-!.env.example
 
 # vercel
 .vercel
@@ -52,16 +51,3 @@ Thumbs.db
 brief.md
 notes.txt
 /test-results
-
-# Playwright artifacts
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-DEFERRED.md
-
-# Source-material WarBit variants
-branding/War_Bit (*.png
-branding/War_Bit_Story (*.png
-branding/WarBit_SocialMedia (*.png
-branding/WarBit_Visuals (*.png

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getChannelTree } from "@/lib/channels";
 import { listDecisions, listAnnouncements, listKnowledge, listUserServers } from "@/lib/db";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ export const runtime = "nodejs";
 // wants more (search by tag, decisions across channels, etc) it
 // calls the existing /api/decisions /api/knowledge etc. endpoints.
 
-const ME = "ej";
+const ME = getRequester();
 
 export async function GET(req: NextRequest) {
   const channelId = req.nextUrl.searchParams.get("channelId");

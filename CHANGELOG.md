@@ -4,6 +4,252 @@ All notable changes to War Room are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-05-18
+
+### Added
+- **Multiplayer in one click.** Settings -> Sync -> "Host this
+  workspace from this machine" turns any teammate's desktop into
+  the sync server for the team. Four hosting modes, easiest first:
+  - **Share over the internet (instant)** - Cloudflare Quick Tunnel.
+    No account, no domain. URL rotates on restart; the app detects
+    the rotation and shows a URL-changed banner with a copy-the-new-
+    invite shortcut so the change is a feature, not a silent failure.
+  - **Share over the internet (permanent URL)** - Cloudflare Named
+    Tunnel. Stable URL. Needs a free Cloudflare account and a
+    domain.
+  - **Share over private network** - Tailscale. Detects an installed
+    tailscale CLI and surfaces `ws://<tailscale-ip>:<port>/` as the
+    URL. Inline notice when selected: free up to 3 teammates
+    including you.
+  - **Connect to my own server** - the v0.15.0 path. Manual URL.
+- **Cloudflared lazy-fetch.** The cloudflared binary is downloaded
+  on first hosting activation, not bundled in the installer.
+  Verified against the pinned-version SHA256 before caching. Solo
+  users never download it.
+- **Embedded sync server** (`lib/sync/embedded-server.ts`).
+  Extracted from `tools/reference-sync-server/server.js`. Same wire
+  protocol (`PROTOCOL_VERSION=2`). Runs in-process on
+  `127.0.0.1:<port>` from the 8788-8798 range.
+- **Tunnel manager + four adapters** (`lib/sync/tunnel-manager.ts`,
+  `lib/sync/adapters/`). One module owns the embedded server +
+  current tunnel. API routes call it; the renderer polls
+  `/api/sync/hosting` for status.
+- **Persistent host state** (`lib/sync/host-state.ts`). Mode, token,
+  named-tunnel token, last-known URL, and was-running flag persist
+  via the existing settings KV. Token encrypted via Electron
+  safeStorage when available (OS keychain on macOS/Windows,
+  libsecret on Linux); plaintext fallback with explicit
+  `tokenEncrypted: false` flag where safeStorage isn't reachable
+  (Next dev mode, tests).
+- **Auto-resume hosting on launch.** If hosting was on when you
+  last quit, it comes back up automatically. Failures surface in
+  Settings -> Sync, never block app boot.
+- **Smart-paste join form** (`components/settings-hosting-join-form.tsx`).
+  Pasting the full invite block into the URL field parses URL /
+  Workspace / Token out of any chat-quote / bullet / Slack >
+  prefix and fills all three fields. Test fixtures cover CRLF, CR,
+  case-insensitive labels, reordered lines, and quoted-reply
+  surrounding chatter.
+- **Persistent hosting indicator** (`components/hosting-indicator.tsx`).
+  Pill in the top-left of every screen while you're hosting,
+  showing the workspace name and connection state. Click to jump
+  to Settings -> Sync. Doubles as the educational guardrail for
+  single-host discipline.
+- **Token rotation flow.** "Rotate token" in Settings invalidates
+  the current invite, regenerates the token, restarts the tunnel,
+  refreshes the invite block. Teammates re-paste.
+- **URL-changed re-share banner.** Whenever the adapter's current
+  URL differs from the last-shared URL, an amber banner appears
+  in the hosting panel with a Copy New Invite shortcut.
+- **`/api/sync/hosting`** route (GET status, POST action-routed:
+  start / stop / set-mode / set-manual-url / set-named-config /
+  set-workspace / rotate-token / mark-shared).
+- **Docs.** `docs/sync-hosting.md` walks through every mode with a
+  comparison table. `SYNC.md` extended to point at the new
+  hosting path while keeping the VPS instructions for that
+  audience.
+
+### Changed
+- `package.json` adds `ws` as a direct runtime dep. (The brief
+  assumed it was already in the tree; it wasn't. `ws` is MIT,
+  ubiquitous, and shared with the reference sync server.)
+- Settings -> Sync tab rebuilt around three sections: **Connect to
+  a workspace** (smart-paste join form), **Host this workspace**
+  (the new panel), and **Quick-save URL** (the original
+  paste-a-URL flow, kept for users who already have one).
+
+### Notes for self-hosters
+- **No installer size change.** cloudflared is fetched at runtime
+  on first hosting activation.
+- **Cloudflared version is pinned** (`lib/sync/cloudflared-version.ts`).
+  Bumped explicitly per release. If a CVE drops between releases,
+  emergency-bump via a v0.16.x patch. Until checksums are filled
+  in for a specific platform's pinned binary, the fetcher refuses
+  to proceed and surfaces a setup error rather than running an
+  unverified binary.
+- **macOS via Cloudflare modes** is gated on a tarball extractor
+  that hasn't shipped yet (the published macOS binary is a `.tgz`).
+  macOS users on v0.16.0 should pick Tailscale or Manual VPS until
+  the extractor lands in a v0.16.x patch.
+- **Windows SmartScreen** may prompt on first cloudflared.exe
+  launch. The binary is Cloudflare's official signed release and
+  War Room verifies its SHA256 before running it. Click "More info"
+  -> "Run anyway" once and SmartScreen remembers.
+
+## [0.15.0] - 2026-05-18
+
+### Added
+- **Team-scale sync.** Workspace structure now travels over the
+  same WebSocket bus that already syncs decisions, announcements,
+  and knowledge entries. New event kinds: `server.upserted`,
+  `server.deleted`, `group.upserted`, `group.deleted`,
+  `channel.upserted`, `channel.deleted`, `sidebar_role.upserted`,
+  `sidebar_role.deleted`, `sidebar_assignment.set`,
+  `agent_profile.set`, `agent_profile.deleted`. When one teammate
+  creates a channel, it appears on the others' rails too. When
+  someone renames an agent, every machine picks up the new name.
+- New module `lib/sync/emitters.ts` keeps wire-payload shaping in
+  one place so API routes only call typed helpers
+  (`emitChannelUpsert`, `emitSidebarAssignment`, etc).
+
+### Changed
+- `PROTOCOL_VERSION` bumped from 1 to 2. The reference sync server
+  is storage-agnostic (opaque event blobs in a JSONL log) so it
+  needs no changes; older clients on v1 just ignore the kinds they
+  don't understand.
+- Workspace-structure events identify rows by **natural keys**
+  (server name, channel slug, group label, role name, adapter id)
+  instead of local INTEGER primary keys. Two clients that each
+  create the "design" group locally reconcile into one shared
+  group instead of clobbering each other's autoincrement ids.
+- `SYNC.md` rewritten to document the v2 coverage table.
+- The applier refuses to delete a server flagged `is_default` or
+  `is_personal` even when it receives a `server.deleted` event,
+  so a sync mishap can't wipe a teammate's seeded workspaces.
+
+### Notes for self-hosters
+- **Chat messages still don't sync.** Per-user Claude history isn't
+  a "team chat" surface; real team-chat will land in a future
+  release with its own table.
+- **File bytes don't sync.** Avatar / icon URLs travel with their
+  row, but the image bytes still live only on the machine that
+  uploaded them. Self-hosted file mirroring is a follow-up.
+
+## [0.14.0] - 2026-05-17
+
+### Changed
+- **Dropped the primary-agent auto-prefix.** Up through v0.13.x the
+  primary agent's display name was auto-generated as
+  `<your-name>-Agent` (e.g. `Builder-Agent`) and every other configured
+  agent stayed as its vendor name. Inconsistent and confusing when
+  the primary swapped (suddenly "Builder-Agent" referred to Gemini).
+  As of v0.14.0 every agent renders as its built-in vendor name by
+  default (Claude Code, Gemini CLI, OpenClaw, etc). Per-adapter
+  renaming continues to live in Settings -> Agent profile editor.
+  `agentLabelFor()` in `lib/team.ts` now returns the override or
+  empty string; the `<name>-Agent` fallback is gone.
+- First-chat hint (`@<agent> what's in <folder>?`) now pulls the
+  active adapter's actual name from `/api/agents` instead of
+  `agentLabelFor(localMember())`, so the suggestion routes
+  correctly after the prefix change.
+
+### Added
+- **File upload** for any image that has paste-a-URL support
+  (profile avatar, workspace icon, agent profile icon). New
+  endpoint `POST /api/upload` accepts `multipart/form-data` with a
+  single `file` field, caps at 10 MB, content-addresses by SHA-256
+  hash, and writes to `<DATA_DIR>/uploads/<hash>.<ext>`. Companion
+  `GET /api/uploads/[name]` route streams the file back with a
+  1-year immutable cache header. Files dedupe: re-uploading the
+  same bytes returns the same URL without writing again.
+- Shared `<UploadButton>` component at
+  `components/upload-button.tsx`. Click -> native file picker ->
+  upload -> calls `onUploaded(url)` with the new URL. Used by:
+  - Settings -> General "Your profile" avatar field
+  - Settings -> Agent profile editor logo field
+  - Rail right-click -> Edit server workspace image field
+- **Discord-style sidebar roles.** Create named, optionally
+  color-tagged groupings; assign agents + humans to them; the right
+  sidebar renders one section per role. Members not assigned to any
+  role fall into a default "Members" section. Purely visual - zero
+  impact on agent behavior, channel routing, or permissions.
+  - New `sidebar_roles(id, name, color, position, created_at)`
+    table.
+  - New `sidebar_role_assignments(role_id, member_kind, member_id)`
+    table; `(member_kind, member_id)` is the primary key so each
+    member belongs to at most one role at a time.
+  - `listSidebarRoles / createSidebarRole / updateSidebarRole /
+    deleteSidebarRole / listSidebarAssignments /
+    setSidebarAssignment` helpers in `lib/db.ts`.
+  - `GET /api/sidebar-roles` returns `{ roles, assignments }`.
+    `POST /api/sidebar-roles` is action-routed: `create`, `update`,
+    `delete`, `assign`. Valid colors:
+    amber/sky/emerald/violet/fuchsia/rose/neutral.
+  - New `Settings -> Sidebar` tab with a Roles editor (add / rename
+    inline / recolor / delete with confirm) and a Members editor
+    (per-member role dropdown).
+  - `RightPanel` now groups members by role, hides empty roles, and
+    shows a colored dot next to each role label. Old single-section
+    Humans/Agents split is gone; everything goes through the role
+    grouping.
+
+### Notes
+- Roles are local-only as of v0.14.0; they don't sync across
+  machines via the v0.8 sync server. The `sidebar_roles` table is
+  intentionally not in the synced surfaces list (chat history /
+  Claude sessions / settings stay local; roles are per-user UI
+  preference). Could opt in later if there's a multi-user team-
+  shared-roles use case.
+
+## [0.13.2] - 2026-05-17
+
+### Added
+- **User avatar image** via paste-a-URL. Settings -> General now has
+  a "Your profile" section: display name + avatar image URL. Saves
+  through new `GET / POST /api/profile` route to the existing
+  `onboarding.displayName` + new `onboarding.displayIcon` settings.
+- **Workspace image** via paste-a-URL. Rail right-click -> Edit
+  server now has a "Workspace image URL" field. Saves to new
+  `user_servers.icon_url` column via PATCH /api/servers.
+
+### Changed
+- Human avatars across the app now follow the same clean-image-or-
+  grey-letter rule that agents already had:
+  - Image present: clean PNG/JPG fills the circle, no colored
+    gradient.
+  - No image: neutral grey circle (`bg-neutral-800` + border) with
+    the first letter of the name in light text. Distinguishable
+    across multiple users without rainbow gradients.
+- Workspace rail icons follow the same rule: render `icon_url` when
+  set, fall back to neutral grey + first letter of the workspace
+  name when not. The previous colored gradient (sky/amber/etc) is
+  gone; workspace color is still settable in the edit modal but
+  it's no longer painted on the avatar.
+- Affected surfaces: right sidebar Humans row, chat bubble user
+  avatar, boardroom human seat, rail server icons (non-War Room).
+  War Room mark stays locked to its own brand image.
+
+### Notes
+- File upload is still on paste-a-URL for both profile and
+  workspace; native file picker / blob storage is a future round.
+- Existing installs migrate cleanly: `user_servers.icon_url` adds
+  with NULL default, so every existing workspace just keeps
+  rendering as a letter glyph until the user pastes an image URL.
+
+## [0.13.1] - 2026-05-17
+
+### Changed
+- Agent icons + War Room rail icon now render the actual image
+  cleanly without a colored gradient ring or backdrop. Image fills
+  the circle via `object-cover` so the brand mark / logo reads
+  larger and is the focal point. Letter avatars (humans without an
+  image, workspaces without a custom icon) keep the colored circle
+  because they need something to be.
+- Affected surfaces: right sidebar agent rows, boardroom seats,
+  chat bubble avatars, Settings Agent profile editor (header
+  preview + the icon gallery thumbnails), and the War Room rail
+  server icon.
+
 ## [0.13.0] - 2026-05-17
 
 ### Added

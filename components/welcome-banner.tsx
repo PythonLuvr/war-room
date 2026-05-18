@@ -17,7 +17,7 @@ export function WelcomeBanner() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [needsAgent, setNeedsAgent] = useState(false);
   // Initialize the dismissed flag lazily so we read localStorage exactly
-  // once at mount (client-only — useState's initializer runs after hydration
+  // once at mount (client-only, useState's initializer runs after hydration
   // when this is a "use client" component). Avoids a setState-in-effect.
   const [dismissed, setDismissed] = useState(() =>
     typeof window !== "undefined" && window.localStorage?.getItem(DISMISS_KEY) === "1",
@@ -114,7 +114,7 @@ export function WelcomeBanner() {
   }
 
   // Onboarding already done. Surface a one-line reminder unless the user
-  // explicitly dismissed it. Don't gate on whether an agent is configured —
+  // explicitly dismissed it. Don't gate on whether an agent is configured , 
   // the wizard already covers that step.
   if (dismissed) return null;
 

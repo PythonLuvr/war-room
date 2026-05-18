@@ -373,7 +373,7 @@ function AgentChip({
   const [pendingFw, setPendingFw] = useState<string | null | "__sentinel__">("__sentinel__");
   const requestFrameworkChange = (next: string | null) => {
     if (framework === next) return;
-    // First-touch on this channel (no existing pin) — no modal needed.
+    // First-touch on this channel (no existing pin), no modal needed.
     if (framework === null && next === null) return;
     setPendingFw(next);
   };
@@ -461,7 +461,7 @@ function AgentChip({
           </div>
           <div className="px-3 py-2 border-t border-neutral-900 text-[10px] text-neutral-600 leading-snug">
             The primary handles every message by default in this channel. Other agents stay
-            reachable — just <code className="text-neutral-500">@mention</code> them in chat to
+            reachable, just <code className="text-neutral-500">@mention</code> them in chat to
             route a single turn elsewhere. Unconfigured agents (grey dot) will fail until you
             set them up under Settings → Agent.
           </div>
@@ -553,7 +553,7 @@ function AgentChip({
                   ? ` (${frameworkList.find((f) => f.id === defaultFramework)?.name ?? defaultFramework})`
                   : " (none)"}
               </option>
-              <option value="none">None — raw model behavior</option>
+              <option value="none">None, raw model behavior</option>
               {frameworkList.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
@@ -678,7 +678,7 @@ function FrameworkSwitchModal({
 }) {
   const label = (id: string | null) => {
     if (id === null) return "Inherit global default";
-    if (id === "none") return "None — raw model behavior";
+    if (id === "none") return "None, raw model behavior";
     return adapters.find((a) => a.id === id)?.name ?? id;
   };
   useEffect(() => {

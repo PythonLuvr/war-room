@@ -95,7 +95,7 @@ export function ActivityChannel() {
   );
 }
 
-// Static widths — Math.random in render breaks React purity. Repeating the
+// Static widths, Math.random in render breaks React purity. Repeating the
 // pattern looks identical to the eye while keeping reconciliation stable.
 const SKELETON_TOP = [62, 48, 70, 55, 44, 68];
 const SKELETON_BOTTOM = [38, 52, 33, 47, 41, 35];

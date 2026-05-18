@@ -1,4 +1,4 @@
-// Claude Code CLI adapter — the original spawn-`claude`-subprocess
+// Claude Code CLI adapter, the original spawn-`claude`-subprocess
 // implementation lifted out of lib/claude-session.ts so it sits next to its
 // siblings under lib/agents/.
 

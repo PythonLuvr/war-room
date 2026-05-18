@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Markdown } from "@/components/markdown";
 import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles, Pin as PinIcon } from "lucide-react";
-import { agentLabelFor, localMember } from "@/lib/team";
+import { localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
 
 const LOCAL = localMember();
@@ -97,12 +97,13 @@ export function ChannelChat({
 }) {
   // Re-render when the user changes their display name in the wizard so
   // both the message author label and the avatar initial stay current.
-  useIdentityVersion();
+  const identityVersion = useIdentityVersion();
   const [input, setInput] = useState("");
   const [items, setItems] = useState<ChatItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const [adapters, setAdapters] = useState<AdapterMeta[]>([]);
+  const [userIconUrl, setUserIconUrl] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -113,12 +114,21 @@ export function ChannelChat({
     return m;
   }, [adapters]);
 
+  const [activeAdapterId, setActiveAdapterId] = useState<string>("");
+
   useEffect(() => {
     fetch("/api/agents")
       .then((r) => r.json())
-      .then((d: { adapters: AdapterMeta[] }) => setAdapters(d.adapters ?? []))
+      .then((d: { activeId: string; adapters: AdapterMeta[] }) => {
+        setAdapters(d.adapters ?? []);
+        setActiveAdapterId(d.activeId ?? "");
+      })
       .catch(() => {});
-  }, []);
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((d: { iconUrl: string }) => setUserIconUrl(d.iconUrl ?? ""))
+      .catch(() => {});
+  }, [identityVersion]);
 
   useEffect(() => {
     setLoadingHistory(true);
@@ -306,6 +316,7 @@ export function ChannelChat({
                 prev={items[i - 1]}
                 adapterMap={adapterMap}
                 channelId={channelId}
+                userIconUrl={userIconUrl}
               />
             ))}
           </div>
@@ -314,6 +325,7 @@ export function ChannelChat({
       {items.length === 0 && !loadingHistory && (
         <FirstChatHint
           projectPath={projectPath}
+          agentName={adapters.find((a) => a.id === activeAdapterId)?.name ?? "agent"}
           onUse={(text) => setInput(text)}
         />
       )}
@@ -395,11 +407,13 @@ function ChatMessage({
   prev,
   adapterMap,
   channelId,
+  userIconUrl,
 }: {
   item: ChatItem;
   prev?: ChatItem;
   adapterMap: Map<string, AdapterMeta>;
   channelId: string;
+  userIconUrl?: string;
 }) {
   if (item.kind === "system") {
     return (
@@ -417,7 +431,7 @@ function ChatMessage({
   }
   const isUser = item.kind === "user";
   // "Same author" now means same kind AND, for assistant turns, the same
-  // agent — so a Claude bubble followed by a Gemini bubble re-renders the
+  // agent, so a Claude bubble followed by a Gemini bubble re-renders the
   // header instead of pretending it's one continuous reply.
   const sameAuthor =
     prev &&
@@ -461,26 +475,22 @@ function ChatMessage({
   return (
     <div className={`relative flex gap-3 ${sameAuthor ? "mt-0.5" : "mt-4"} group hover:bg-neutral-900/30 rounded -mx-2 px-2 py-0.5`}>
       <div className="w-9 shrink-0">
-        {!sameAuthor && (
-          <div
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold border bg-gradient-to-br ${
-              isUser
-                ? "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200"
-                : `${palette.ring} ${palette.avatar}`
-            }`}
-          >
-            {isUser ? (
-              LOCAL.name[0]
-            ) : adapter?.iconUrl ? (
-              // Brand mark for the adapter that produced this turn. The
-              // SVG is monochrome and inherits the palette text color.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={adapter.iconUrl} alt="" className="w-4 h-4" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-          </div>
-        )}
+        {!sameAuthor && (() => {
+          const img = isUser ? (userIconUrl || null) : adapter?.iconUrl ?? null;
+          if (img) {
+            return (
+              <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-neutral-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </div>
+            );
+          }
+          return (
+            <div className="w-9 h-9 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-semibold text-neutral-300">
+              {isUser ? LOCAL.name[0]?.toUpperCase() ?? "?" : <Sparkles className="w-4 h-4" />}
+            </div>
+          );
+        })()}
       </div>
       <div className="flex-1 min-w-0">
         {!sameAuthor && (
@@ -548,14 +558,15 @@ function Dots() {
 // reappears if the user wipes history and walks back in.
 function FirstChatHint({
   projectPath,
+  agentName,
   onUse,
 }: {
   projectPath: string;
+  agentName: string;
   onUse: (text: string) => void;
 }) {
   const folder = projectPath.split(/[\\/]+/).filter(Boolean).pop() ?? "this folder";
-  const agent = agentLabelFor(localMember());
-  const suggestion = `@${agent} what's in ${folder}?`;
+  const suggestion = `@${agentName} what's in ${folder}?`;
   return (
     <div className="px-6 pt-3 pb-1">
       <div className="flex items-center gap-3 text-xs text-neutral-500 border border-neutral-800/70 rounded-lg bg-neutral-900/30 px-3 py-2">

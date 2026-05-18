@@ -22,7 +22,7 @@ export default async function ChannelPage({
   const { slug } = await params;
   const id = slug.join("/");
 
-  // Search across every server's tree — channels aren't URL-scoped to a server.
+  // Search across every server's tree, channels aren't URL-scoped to a server.
   // Include hidden channels (those not shown in sidebar but still routable).
   const servers = listUserServers();
   let channel: Awaited<ReturnType<typeof getChannelTree>>["channels"][number] | undefined;
@@ -78,7 +78,7 @@ function ChannelBody({
         <PlaceholderChannel
           kind="approvals"
           title="No approvals yet"
-          hint="When an agent asks for permission to do something — call an API, write a file, run a command — it shows up here for you to accept or reject. Quiet for now."
+          hint="When an agent asks for permission to do something (call an API, write a file, run a command), it shows up here for you to accept or reject. Quiet for now."
         />
       );
     case "sessions":

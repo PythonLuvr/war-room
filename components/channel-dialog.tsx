@@ -135,7 +135,7 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
                 <input
                   value={projectPath}
                   onChange={(e) => setProjectPath(e.target.value)}
-                  placeholder="Absolute path (optional — leave blank for default)"
+                  placeholder="Absolute path (optional, leave blank for default)"
                   className="w-full bg-neutral-900 border border-neutral-800 rounded-md pl-8 pr-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-700"
                 />
               </div>

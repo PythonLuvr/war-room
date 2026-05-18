@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Briefcase } from "lucide-react";
-import { TEAM } from "@/lib/team";
-
-const COLOR_BY_USER: Record<string, string> = {
-  ej: "from-amber-500/30 to-amber-700/15 border-amber-500/40 text-amber-200",
-  kerem: "from-sky-500/30 to-sky-700/15 border-sky-500/40 text-sky-200",
-  wes: "from-emerald-500/30 to-emerald-700/15 border-emerald-500/40 text-emerald-200",
-};
+import { TEAM, themeClassesFor } from "@/lib/team";
 
 export function NewJobDialog({
   onClose,
@@ -21,7 +15,9 @@ export function NewJobDialog({
   const [title, setTitle] = useState("");
   const [clientName, setClientName] = useState("");
   const [description, setDescription] = useState("");
-  const [assignees, setAssignees] = useState<string[]>(["ej"]);
+  const [assignees, setAssignees] = useState<string[]>(
+    TEAM[0] ? [TEAM[0].id] : [],
+  );
   const [status, setStatus] = useState<"active" | "recurring" | "finished">("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +124,7 @@ export function NewJobDialog({
                     onClick={() => toggleAssignee(m.id)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                       selected
-                        ? `bg-gradient-to-br ${COLOR_BY_USER[m.id] ?? "from-neutral-800 to-neutral-900"}`
+                        ? `bg-gradient-to-br ${themeClassesFor(m.id)}`
                         : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-700"
                     }`}
                   >

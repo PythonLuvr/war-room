@@ -57,7 +57,7 @@ export function KnowledgeChannel({
       .then((d) => setOpenEntry(d.entry ?? null));
   }, [openId]);
 
-  // Clearing the cached entry when the modal closes is derived state — do
+  // Clearing the cached entry when the modal closes is derived state, do
   // it during render instead of in an effect so React doesn't cascade.
   const [prevOpenId, setPrevOpenId] = useState<number | null>(openId);
   if (prevOpenId !== openId) {
@@ -487,7 +487,7 @@ function EntryEditor({
               </div>
             )}
 
-            {/* Existing categories from this channel — toggleable */}
+            {/* Existing categories from this channel, toggleable */}
             {availableExisting.length > 0 && (
               <div className="mb-2">
                 <div className="text-[10px] uppercase tracking-wider text-neutral-600 mb-1">

@@ -1,4 +1,4 @@
-// SemaClaw CLI adapter — invokes the local `semaclaw` binary. SemaClaw
+// SemaClaw CLI adapter, invokes the local `semaclaw` binary. SemaClaw
 // is the framework family this cockpit was originally built around, so
 // having it as a first-class adapter (instead of going through the
 // generic custom-cli plumbing) gives it a proper logo + name in the

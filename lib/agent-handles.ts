@@ -23,7 +23,7 @@ export function buildHandleMap(adapters: Pick<AgentAdapter, "id" | "kind">[]): H
 
 /** Find the first @handle in `text` that matches a known adapter. Returns
  *  the adapter id, or null if none of the @-tokens correspond to an agent.
- *  Does not modify `text` — the prompt is forwarded verbatim. */
+ *  Does not modify `text`, the prompt is forwarded verbatim. */
 export function resolveMentionedBackend(
   text: string,
   entries: HandleEntry[],

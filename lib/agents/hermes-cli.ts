@@ -1,4 +1,4 @@
-// Nous Research Hermes Agent CLI adapter — invokes the local `hermes`
+// Nous Research Hermes Agent CLI adapter, invokes the local `hermes`
 // binary in non-interactive mode. Hermes wraps multiple LLM providers
 // (OpenAI, Anthropic, OpenRouter…) under one agent loop with persistent
 // memory, MCP tools, and an optional messaging gateway. War Room treats

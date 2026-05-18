@@ -65,7 +65,7 @@ const SANITY_PATTERNS = [...DEFAULT_SANITY_PATTERNS, ...loadExtraSanityPatterns(
 
 function lintBody(text, id) {
   const issues = [];
-  if (text.includes("—")) issues.push(`${id}: contains em dash (banned)`);
+  if (text.includes(String.fromCharCode(0x2014))) issues.push(`${id}: contains em dash (banned)`);
   for (const re of SANITY_PATTERNS) {
     const m = text.match(re);
     if (m) issues.push(`${id}: sanity-regex hit (${re.source} -> "${m[0]}")`);

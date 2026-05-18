@@ -17,7 +17,7 @@ const path = require("path");
 
 const BUMP = (process.argv[2] || "patch").toLowerCase();
 if (!["patch", "minor", "major"].includes(BUMP)) {
-  console.error(`✗ unknown bump '${BUMP}' — expected patch | minor | major`);
+  console.error(`✗ unknown bump '${BUMP}', expected patch | minor | major`);
   process.exit(1);
 }
 

@@ -17,7 +17,7 @@ type AgentMeta = {
   color: TeamMember["color"];
   /** Configured + reachable. */
   online: boolean;
-  /** "cli" | "api" — used only for the offline reason text. */
+  /** "cli" | "api", used only for the offline reason text. */
   kind: "cli" | "api";
   /** Brand mark URL for this adapter, or null for the generic Sparkles glyph. */
   iconUrl: string | null;
@@ -135,7 +135,7 @@ export function BoardroomChat() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Resolve the local member's primary workspace path (used as the cwd for
-  // every agent reply — the boardroom is project-agnostic, so any sensible
+  // every agent reply, the boardroom is project-agnostic, so any sensible
   // root will do). Falls back to the first project the API returns.
   useEffect(() => {
     fetch("/api/projects")
@@ -148,7 +148,7 @@ export function BoardroomChat() {
   }, []);
 
   // Pull the live adapter list. Each configured adapter becomes its own
-  // first-class seat. Online = "isConfigured" — a green-dot CLI/API the user
+  // first-class seat. Online = "isConfigured", a green-dot CLI/API the user
   // has actually set up under Settings → Agent.
   useEffect(() => {
     fetch("/api/agents")
@@ -315,7 +315,7 @@ export function BoardroomChat() {
         {
           kind: "system",
           id: `s-${Date.now()}-help`,
-          text: "Mention an agent to talk — e.g. @claude or @openai. Type @ to see who's available.",
+          text: "Mention an agent to talk, e.g. @claude or @openai. Type @ to see who's available.",
           ts: Date.now(),
         },
       ]);
@@ -335,7 +335,7 @@ export function BoardroomChat() {
           {
             kind: "system",
             id: `s-${Date.now()}-${agentId}`,
-            text: `${meta.name} isn't ready — ${reason}.`,
+            text: `${meta.name} isn't ready, ${reason}.`,
             ts: Date.now(),
           },
         ]);
@@ -347,7 +347,7 @@ export function BoardroomChat() {
           {
             kind: "system",
             id: `s-${Date.now()}-path`,
-            text: `${meta.name} workspace path not resolved yet — try again in a moment.`,
+            text: `${meta.name} workspace path not resolved yet, try again in a moment.`,
             ts: Date.now(),
           },
         ]);

@@ -6,6 +6,7 @@ import { InviteModal } from "@/components/invite-modal";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useServers, serverLandingPath, type ServerRow } from "@/lib/server-context";
+import { UploadButton } from "@/components/upload-button";
 
 const COLOR_MAP: Record<string, string> = {
   amber: "from-amber-500/30 to-amber-700/20 border-amber-500/40 text-amber-300",
@@ -160,9 +161,6 @@ function ServerIcon({
   // in the database. Forkers can rename or recolor everything else, but the
   // shared War Room emblem stays consistent across every install.
   const isWarRoom = isWarRoomServer(server);
-  const palette = isWarRoom
-    ? COLOR_MAP.violet
-    : COLOR_MAP[server.color] ?? COLOR_MAP.amber;
   return (
     <button
       onClick={onClick}
@@ -180,18 +178,40 @@ function ServerIcon({
       {!active && (
         <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-2 bg-neutral-700 rounded-r-full group-hover:h-5 transition-all" />
       )}
-      <div
-        className={`w-11 h-11 rounded-full bg-gradient-to-br border flex items-center justify-center font-semibold transition-all duration-150 ${palette} ${
-          active ? "rounded-2xl" : "group-hover:rounded-2xl"
-        } ${isEmoji(server.icon) ? "text-2xl" : "text-sm"}`}
-      >
-        {isWarRoom ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src="/war-room-logo.svg" alt="" className="w-7 h-7" />
-        ) : (
-          <span className="leading-none">{server.icon}</span>
-        )}
-      </div>
+      {isWarRoom ? (
+        <div
+          className={`w-11 h-11 rounded-full overflow-hidden bg-neutral-900 flex items-center justify-center transition-all duration-150 ${
+            active ? "rounded-2xl" : "group-hover:rounded-2xl"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/war-room-logo.svg" alt="" className="w-full h-full object-cover" />
+        </div>
+      ) : server.icon_url ? (
+        // User-uploaded image fills the chip cleanly, no gradient or
+        // colored border.
+        <div
+          className={`w-11 h-11 rounded-full overflow-hidden bg-neutral-900 transition-all duration-150 ${
+            active ? "rounded-2xl" : "group-hover:rounded-2xl"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={server.icon_url} alt="" className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        // Fallback: neutral grey + the first letter of the name (or
+        // whatever glyph the user picked). Distinguishable across
+        // multiple no-image workspaces without rainbow-vomit.
+        <div
+          className={`w-11 h-11 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center font-semibold text-neutral-300 transition-all duration-150 ${
+            active ? "rounded-2xl" : "group-hover:rounded-2xl"
+          } ${isEmoji(server.icon) ? "text-2xl" : "text-sm"}`}
+        >
+          <span className="leading-none">
+            {isEmoji(server.icon) ? server.icon : (server.name.trim()[0] ?? "?").toUpperCase()}
+          </span>
+        </div>
+      )}
     </button>
   );
 }
@@ -304,11 +324,12 @@ function EditServerModal({
 }: {
   server: ServerRow;
   onClose: () => void;
-  onSave: (input: { name: string; icon: string; color: string }) => void | Promise<void>;
+  onSave: (input: { name: string; icon: string; color: string; iconUrl: string | null }) => void | Promise<void>;
 }) {
   const [name, setName] = useState(server.name);
   const [icon, setIcon] = useState(server.icon);
   const [color, setColor] = useState(server.color);
+  const [iconUrl, setIconUrl] = useState(server.icon_url ?? "");
   const isWarRoom = isWarRoomServer(server);
 
   return (
@@ -335,20 +356,21 @@ function EditServerModal({
         )}
 
         <div className="flex items-center gap-4 mb-5">
-          <div
-            className={`w-16 h-16 rounded-2xl bg-gradient-to-br border flex items-center justify-center text-2xl font-semibold ${
-              isWarRoom
-                ? COLOR_MAP.violet
-                : COLOR_MAP[color] ?? COLOR_MAP.amber
-            }`}
-          >
-            {isWarRoom ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src="/war-room-logo.svg" alt="" className="w-9 h-9" />
-            ) : (
-              icon || (name.trim() ? name.trim().slice(0, 2).toUpperCase() : "?")
-            )}
-          </div>
+          {isWarRoom ? (
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-neutral-900 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/war-room-logo.svg" alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : iconUrl ? (
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-neutral-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={iconUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-2xl font-semibold text-neutral-300">
+              {icon || (name.trim() ? name.trim()[0].toUpperCase() : "?")}
+            </div>
+          )}
           <div className="flex-1">
             <label className="text-[10px] uppercase tracking-wider text-neutral-500">
               Server name
@@ -365,7 +387,39 @@ function EditServerModal({
 
         <div className="mb-5">
           <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-2">
-            Icon (1-2 chars or emoji)
+            Workspace image
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              value={iconUrl}
+              onChange={(e) => setIconUrl(e.target.value)}
+              placeholder="https://... or click Upload"
+              disabled={isWarRoom}
+              className="flex-1 bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            />
+            {!isWarRoom && (
+              <UploadButton onUploaded={(url) => setIconUrl(url)} />
+            )}
+            {iconUrl && !isWarRoom && (
+              <button
+                onClick={() => setIconUrl("")}
+                className="text-[11px] text-neutral-500 hover:text-red-300"
+                title="Clear image"
+              >
+                clear
+              </button>
+            )}
+          </div>
+          {!isWarRoom && (
+            <div className="text-[10px] text-neutral-600 mt-1">
+              Paste a URL or upload from your computer. Falls back to the letter glyph below when blank.
+            </div>
+          )}
+        </div>
+
+        <div className="mb-5">
+          <label className="text-[10px] uppercase tracking-wider text-neutral-500 block mb-2">
+            Letter glyph (used when no image URL is set)
           </label>
           <input
             value={icon}
@@ -414,7 +468,7 @@ function EditServerModal({
           </button>
           <button
             disabled={!name.trim()}
-            onClick={() => onSave({ name: name.trim(), icon: icon.trim(), color })}
+            onClick={() => onSave({ name: name.trim(), icon: icon.trim(), color, iconUrl: iconUrl.trim() || null })}
             className="px-4 py-2 text-sm rounded-md bg-neutral-100 text-neutral-900 hover:bg-white disabled:opacity-40"
           >
             Save

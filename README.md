@@ -1,74 +1,85 @@
 <p align="center">
-  <img src="branding/icon-256.png" alt="War Room" width="160" height="160" />
+  <img src="public/war-room-logo.svg" alt="War Room" width="140" height="140" />
 </p>
 
 <h1 align="center">War Room</h1>
 
-<p align="center"><strong>The operating system for working with AI agents.</strong></p>
+<p align="center"><strong>A local-first, self-hostable team cockpit for working alongside AI agents.</strong></p>
 
 <p align="center">
   <a href="https://github.com/pythonluvr/war-room/releases"><img src="https://img.shields.io/github/v/release/pythonluvr/war-room?display_name=tag&sort=semver" alt="Latest release"></a>
-  <a href="https://github.com/pythonluvr/war-room/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/pythonluvr/war-room/ci.yml?branch=main" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg" alt="License: AGPL-3.0-or-later"></a>
-  <a href="https://github.com/pythonluvr/war-room/discussions"><img src="https://img.shields.io/badge/discuss-Discussions-green" alt="Discussions"></a>
-  <a href="https://discord.gg/ku6GJS92V2"><img src="https://img.shields.io/badge/chat-Discord-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://discord.gg/ku6GJS92V2"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-orange.svg" alt="License: AGPL-3.0"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions welcome"></a>
 </p>
-
-The market for AI tooling assumes one user, one model, one task. Real operators don't work that way. A working freelancer or small agency runs multiple AI agents in parallel across multiple client engagements, switches contexts every few minutes, and loses time to interface fragmentation. War Room is the dense, local-first cockpit that resolves it. Think Bloomberg Terminal, but for the people running AI as a primary part of their work.
-
-Plug in any backend (Claude Code, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, anything OpenAI-Chat-Completions-compatible), drive them all from one Discord-style interface, and keep every session, service, approval, project folder, and generation tool on one screen. No cloud. No login. No data leaves your laptop.
-
-![The War Room dashboard](docs/screenshots/01-hero-dashboard.png)
-
----
-
-## What's inside
-
-- **Pluggable AI backend.** Pick how War Room talks to AI: a local CLI (Claude Code, Codex, Gemini, or any custom command for full tool/memory/MCP support) or a direct API (Anthropic, OpenAI, Gemini, Grok, OpenRouter, Groq, Together, Mistral, DeepSeek, local Ollama. Anything OpenAI-Chat-Completions-shaped). Switch any time from the settings modal.
-
-![Agent backend picker](docs/screenshots/03-agent-picker.png)
-
-- **Channel-based workspace.** Discord-style layout. Each channel is wired to a real thing: a client folder, an AI session, a service, an approval queue.
-- **Persistent chat per project.** Open a channel, you're talking to an agent scoped to that folder. CLI backends get the full harness (memory, skills, MCP servers, hooks); API backends are stateless chat. Streaming output. Resumes across reloads.
-- **Multi-agent threads with `@mention` routing.** Pin a primary agent per channel from the header chip. Pull any other configured agent into a thread mid-conversation by `@claude`, `@openai`, `@gemini`, `@grok`. Each agent keeps its own private session and history; the UI merges them into one timeline. The boardroom seats every configured adapter as a first-class participant.
-
-![Multi-agent chat thread](docs/screenshots/02-multi-agent-chat.png)
-
-- **System channels per server.** Live activity feed, approvals inbox, services health, active sessions across every project. Non-deletable, always there.
-- **Project switcher.** Anything under `~/clients/` (or any folder you configure) shows up automatically as a channel. Briefs, notes, and recent sessions appear in context.
-
-![Multi-server activity view](docs/screenshots/04-multi-server-activity.png)
-
-- **Boardroom voice channel.** Multi-agent voice room backed by self-hosted LiveKit. Optional, gracefully hidden when not configured.
-- **Cross-machine config.** Shared env at `~/.war-room/.env`, machine-specific overrides at `.env.local`. API keys live in your local config, never in the repo.
-- **Behavioral framework built in.** War Room ships with [OpenWar](https://github.com/pythonluvr/openwar), a MIT-licensed framework that makes agents confirm briefs before acting, gate destructive actions, and write like a peer instead of a customer service rep. Toggle per-channel or set a global default. Use it standalone via `npm install openwar` if you want the framework without the dashboard.
 
 <p align="center">
-  <img src="branding/warbit-story/warbit-05-cockpit.png" alt="WarBit at the cockpit" width="280" />
+  <img src="branding/WarBit_Header.png" alt="A knight at a desk surrounded by four monitors and crumpled paper, mid-burnout" width="640" />
   <br />
-  <em>WarBit on watch. This is what War Room feels like to use.</em>
+  <em>Agent work without a cockpit. Four monitors, cold java, unmerged context.</em>
 </p>
 
----
+War Room is a desktop app that gives a small team one shared cockpit for the agent work they already do. Think Discord-style server / channel layout, but every channel is a workspace where a CLI agent (Claude Code, Codex, Gemini CLI, or your own) can be invoked, paired with persistent memory, decisions, announcements, and a knowledge base that the whole team sees.
 
-## Requirements
+The app runs entirely on each teammate's machine. Workspace structure syncs over a WebSocket bus to a sync server the team controls. No managed cloud, no per-seat billing, no telemetry. You bring your own agent CLIs and your own model keys; War Room just gives them a shared place to live.
 
-- **Node.js 20+**
-- **At least one AI backend** (either a CLI on your PATH (e.g. `claude`, `codex`, `gemini`) or an API key for one of the supported providers)
-- **better-sqlite3** native module compiles on your platform (it bundles on first install)
-- Linux, macOS, or Windows
+## What it does
 
-## Install
+- **Local-first.** All state lives on each teammate's machine in SQLite. The desktop app runs fully offline. Sync is optional.
+- **Server / channel layout.** Discord-style sidebar for organizing work into servers, categories, channels, and groups. Per-channel agent profiles and behavioral frameworks.
+- **Bring your own agent.** Drop in Claude Code, Codex CLI, Gemini CLI, aider, or any custom CLI as an "agent profile." War Room handles the subprocess lifecycle, output streaming, and channel routing.
+- **Persistent project memory.** Decisions, knowledge entries, and constraints sync across the team and survive across sessions. Agents see them, operators audit them.
+- **Boardroom voice and video.** A LiveKit-backed meeting room lets the team join voice or video alongside the channel work. Self-hosted; no media service we bundle, you point it at one you control.
+- **Approvals system.** Any agent or service can request operator confirmation via Discord-style buttons. Stays inside the team's workspace; never leaves the network.
+- **Reactions and pins.** Bot-message reactions for the workflows you already use (pin important context, archive noise, surface answers).
 
-War Room runs two ways. **You do not need to install an .exe.** Pick whichever fits.
+## Quick start
 
-**Localhost (recommended for forkers, developers, Linux / macOS users).** Clone the repo, `npm install`, `npm run dev`. The app runs as a Next.js server at `http://localhost:3000`. No installer, no admin rights, no DLLs. Hot reload included.
+Download the installer for your platform from [Releases](https://github.com/pythonluvr/war-room/releases). Run it, open the app, and you have a working solo cockpit out of the box. No setup, no accounts, no sign-in.
 
-**Desktop installer (Windows only).** Download the latest `war-room-setup-x.x.x.exe` from [GitHub Releases](https://github.com/PythonLuvr/war-room/releases). One-click install for non-developers who want a native window, system tray, and no terminal.
+Solo users can stop there. Everything below is for teams that want multiplayer.
 
-Both paths run the identical app. Same data dir, same features, same DB schema. Pick the one that fits.
+## Multiplayer (team sync)
 
-## Quick start (localhost)
+War Room v0.16 ships four hosting modes for team sync, each surfaced in `Settings → Sync → Host this workspace from this machine`:
+
+| Mode | What it does | Best for |
+|---|---|---|
+| Share over the internet (instant) | Cloudflare Quick Tunnel. Zero accounts, zero domains, instant URL. | Trying multiplayer for the first time. |
+| Share over the internet (permanent URL) | Cloudflare Named Tunnel. Stable URL across restarts. | Teams that want set-and-forget. Requires a free Cloudflare account and a domain. |
+| Share over private network | Tailscale. Every teammate joins the same tailnet. Traffic is direct peer-to-peer. | Privacy-focused teams that don't mind one install per teammate. |
+| Connect to my own server | Manual VPS deployment of the reference sync server. | Teams that already self-host or want full control. |
+
+Pick a mode, click Host, copy the invite block, send to your teammates. They paste into their own `Settings → Sync → Connect to a workspace`, hit Save. Channels, servers, agent profiles, decisions, announcements, and knowledge entries sync live across all machines.
+
+Full walkthrough per mode: [`docs/sync-hosting.md`](./docs/sync-hosting.md). Sync protocol details: [`SYNC.md`](./SYNC.md).
+
+## Behavioral framework (OpenWar)
+
+War Room ships with [**OpenWar**](https://github.com/pythonluvr/openwar) as the bundled default agent framework. OpenWar is a system prompt that makes any agent (Claude, GPT, Gemini, custom CLI) behave like a senior peer: confirms briefs before acting, breaks work into phases, asks before destructive actions, refuses to invent next steps not grounded in the brief.
+
+The framework is opt-in per channel and globally. The default selection lives in `system_settings.default_framework`; new installs are seeded to `openwar`. Frameworks are plain markdown files at `presets/frameworks/*.md`; drop a new one in and it shows up automatically in the wizard picker and channel header chip. No registration code, no manifest.
+
+Update bundled frameworks from upstream:
+
+```bash
+npm run update-frameworks
+```
+
+## Boardroom voice and video (LiveKit)
+
+The boardroom UI is wired end-to-end against [LiveKit](https://livekit.io). War Room never bundles a media server; you point it at one you control. The shipped installer stands up a self-hosted LiveKit on any Linux VPS in about thirty seconds:
+
+```bash
+# On your VPS as root:
+LIVEKIT_DOMAIN=livekit.your-domain.com bash tools/install-livekit.sh
+# Or no-domain mode for testing on the raw IP:
+bash tools/install-livekit.sh
+```
+
+The script installs the LiveKit binary, generates an API key and secret, writes `/etc/livekit.yaml`, opens the firewall, optionally configures an nginx vhost when `LIVEKIT_DOMAIN` is set, and registers the server under PM2 so it survives reboots. At the end it prints three env lines to paste into `~/.war-room/.env` on each teammate's machine.
+
+## Build from source
 
 ```bash
 git clone https://github.com/pythonluvr/war-room.git
@@ -77,113 +88,37 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. The onboarding wizard walks you through picking an AI backend, naming yourself, and optionally wiring up extras (clients folder, VPS monitoring, LiveKit). You can skip everything and configure later from the settings modal.
+Opens the dev build at `http://localhost:3000`. Hot reload for the renderer; Electron main reloads on save too. Full installer build: `npm run build && npm run electron:dist`.
 
-## Try it without committing
+War Room treats every commit as a stranger's first clone. Zero-config must produce a working app; empty states are part of the product, not bugs to be hidden behind onboarding. Errors are explanations.
 
-```bash
-npm run demo       # populated cockpit on :3031, isolated demo data dir
-npm run dev:blank  # cold-clone empty state on :3030, fresh SQLite
-```
+## What War Room is not
 
-Both stash your `.env.local` while running and restore it on Ctrl+C. Demo data lives in `~/.war-room-demo/` and never touches a real install. Run `demo` to see a fully populated cockpit (channels, agents, conversations, services); run `dev:blank` to see what a first-time forker sees.
+Not a managed SaaS. We don't host anything for users. Each team runs their own copy.
 
-## Production build
+Not an AI chat client. Agents are CLIs that War Room spawns and supervises; the cockpit is for the team's coordination work around those agents, not for the agent's reasoning quality.
 
-```bash
-npm run build
-node .next/standalone/server.js
-```
+Not a Slack or Discord replacement. The chat surface is opinionated toward agent-paired work. If you want general team chat, use a tool built for that.
 
-This serves on `http://localhost:3000`. The standalone bundle is what the Electron desktop wrapper launches under the hood; running it directly is the right path for headless / VPS / PM2 deployments. Run behind a process manager like PM2 if you want it always-on.
+Not a per-seat billing target. Forever AGPL, forever self-hostable, no enterprise tier hiding features behind a paywall.
 
----
+## Documentation
 
-## Configuration
-
-War Room runs end-to-end with zero configuration. Every integration is opt-in. Panels that depend on a specific env var show a "configure to enable" placeholder when it's missing.
-
-See `.env.example` for the full list of supported variables. The important ones:
-
-| Variable | Purpose |
+| Topic | Doc |
 |---|---|
-| `WAR_ROOM_CLIENTS_ROOT` | Folder War Room scans for client channels. Defaults to `~/clients`. |
-| `WAR_ROOM_CLAUDE_PROJECTS` | Where Claude Code stores session files. Defaults to `~/.claude/projects`. |
-| `WAR_ROOM_WORKSPACES` | JSON array of `{path, name}` for static workspace shortcuts. |
-| `WAR_ROOM_VPS_HOST` | Optional remote VPS to monitor PM2 services on. |
-| `LIVEKIT_URL` etc. | Enables the boardroom voice channel. See `tools/install-livekit.sh`. |
-
-AI backend credentials (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) and CLI binary paths (`CLAUDE_BIN`, `CODEX_BIN`, etc.) can be set via env vars or directly in the in-app settings modal. The settings UI masks existing values on read so re-saving doesn't overwrite them.
-
-## Team roster
-
-Edit `lib/team.ts` to define the people in your operation. The default ships with one member ("You"). Add more for team mode; the dashboard renders one server per member plus a shared "The War Room" server.
-
-## Optional self-hosted LiveKit
-
-If you want the boardroom voice channel, run `tools/install-livekit.sh` on a Linux VPS as root. It installs LiveKit, generates credentials, sets up an nginx reverse proxy, and prints the env vars to paste into your local `.env.local`.
-
-## Auto-updater (Electron desktop builds)
-
-The auto-updater is **opt-in** by environment variable. The packaged installer ships with a deliberately invalid `publish.url` placeholder; the updater code checks `WAR_ROOM_UPDATE_URL` at runtime and stays disabled if it's not set, so a forker who hasn't published anywhere never sees a failed update check.
-
-To enable for your own fork:
-
-1. Stand up a generic-provider HTTP host that serves your `latest.yml` + installer artifacts (S3, nginx, Cloudflare R2, anything static).
-2. Set `WAR_ROOM_UPDATE_URL=https://your-host/path/` in the environment the app runs under.
-3. Use `npm run release` to build. It bakes the real URL into the build artifact while restoring the placeholder in committed `package.json` (open-source hygiene).
-
-## Testing
-
-```bash
-npm test                # runs migration + UI smoke tests
-npm run test:migration  # tsx + node:test, no browser needed
-npm run test:smoke      # Playwright against dev:blank
-```
-
-CI runs both on every push and PR via [`.github/workflows/test.yml`](.github/workflows/test.yml). First-time local setup needs `npx playwright install chromium` (downloads ~150MB).
-
----
-
-## Architecture
-
-- **Next.js 16 + TypeScript + Tailwind + shadcn-style UI**
-- **SQLite (better-sqlite3) for local state** for sessions, channels, activity, approvals, decisions, agent backend config
-- **`lib/agents/` adapter layer** with one `AgentAdapter` contract, nine implementations (CLI and API)
-- **Server-Sent Events** for streaming agent output into the chat pane
-- **Chokidar** watches `.jsonl` session files for live cross-project activity (CLI backends)
-- **Optional Electron wrapper** for tray-icon desktop install (Next.js localhost works fine in a browser too)
-
-The Next.js server is the only backend. There is no separate API service, no cloud, no auth.
-
----
-
-## Why does this exist
-
-The market for AI tooling assumes one user, one task, one model. Real operators don't work that way. A working freelancer or small agency runs multiple AI agents in parallel across multiple client engagements, switches contexts every few minutes, and loses time to interface fragmentation. War Room is the dense, opinionated, local-first cockpit that resolves it, and it doesn't care which model or vendor you're using underneath.
-
-If you've ever had Claude open in five terminals, GPT in three browser tabs, and a Slack notification you missed because you were checking your Higgsfield render, this app is for you.
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and scope. Looking for a place to start? Browse issues labeled [good-first-issue](https://github.com/pythonluvr/war-room/labels/good-first-issue).
+| Sync hosting modes | [`docs/sync-hosting.md`](./docs/sync-hosting.md) |
+| Sync protocol details | [`SYNC.md`](./SYNC.md) |
+| Contributing | [`CONTRIBUTING.md`](./CONTRIBUTING.md) |
+| Release notes per version | [`CHANGELOG.md`](./CHANGELOG.md) |
 
 ## Community
 
-- **[Discord](https://discord.gg/ku6GJS92V2)** for real-time chat, setup help, showing off your build, and hanging out with other operators running AI agents.
-- **[GitHub Discussions](https://github.com/pythonluvr/war-room/discussions)** for longer-form questions and ideas you want indexed and searchable.
-- **[GitHub Issues](https://github.com/pythonluvr/war-room/issues)** for bugs and concrete feature requests.
-
-## Security
-
-Found a vulnerability? See [SECURITY.md](SECURITY.md) for responsible disclosure.
+Questions, bug reports, framework discussion, multiplayer setup help: [Discord](https://discord.gg/ku6GJS92V2). Issues and PRs welcome on this repo.
 
 ## License
 
-[AGPL-3.0-or-later](LICENSE). Use, fork, and modify freely. If you run War Room as a hosted service for other people, you must publish your modified source under the same license. Solo and team self-hosting on your own machines has no such obligation. Commercial licenses for closed-source hosted use are negotiable. Open an issue.
+[AGPL-3.0-or-later](./LICENSE). Use it, modify it, fork it, run it for your team, run it for someone else's team. If you build something on top of War Room and host it as a service, your modifications stay open under the same license. That's the deal.
 
-## Changelog
+## Authorship
 
-See [CHANGELOG.md](CHANGELOG.md), or browse the full release history on [GitHub Releases](https://github.com/pythonluvr/war-room/releases).
+War Room is built around [OpenWar](https://github.com/pythonluvr/openwar), the behavioral framework that ships inside it. Both projects evolve together through real use, one ship at a time, with the discipline that the rest of the agent ecosystem mostly skips.

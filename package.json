@@ -1,13 +1,10 @@
 {
   "name": "war-room",
-  "version": "0.13.0",
+  "version": "0.16.0",
   "private": true,
-  "description": "Local-first cockpit for solo operators running AI agents at scale. Plug in any AI backend (Claude, Codex, Gemini, Grok, OpenAI, OpenRouter, Ollama, more) and drive them all from one Discord-style dashboard.",
+  "description": "Shared cockpit dashboard. Self-hostable team workspace that wraps a local Claude Code agent in a Discord-style multi-server interface.",
   "license": "AGPL-3.0-or-later",
-  "author": {
-    "name": "pythonluvr",
-    "email": "ejredd2007@gmail.com"
-  },
+  "author": "PythonLuvr",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
@@ -32,6 +29,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@types/ws": "^8.18.1",
     "@xyflow/react": "^12.10.2",
     "better-sqlite3": "^12.10.0",
     "chokidar": "^5.0.0",
@@ -46,7 +44,8 @@
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "rehype-highlight": "^7.0.2",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "ws": "^8.20.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
@@ -98,13 +97,5 @@
       "url": "https://example.invalid/UNSET-set-WAR_ROOM_UPDATE_URL-before-release",
       "channel": "latest"
     }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pythonluvr/war-room.git"
-  },
-  "bugs": {
-    "url": "https://github.com/pythonluvr/war-room/issues"
-  },
-  "homepage": "https://github.com/pythonluvr/war-room#readme"
+  }
 }

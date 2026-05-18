@@ -42,7 +42,7 @@ body {
   padding: 0 !important;
 }
 
-/* Subtle noise texture overlay — Linear/Vercel-style premium grain.
+/* Subtle noise texture overlay, Linear/Vercel-style premium grain.
    Sits above all backgrounds, never intercepts pointer events. */
 body::before {
   content: "";
@@ -56,7 +56,7 @@ body::before {
   background-size: 200px 200px;
 }
 
-/* Hairline gradient — single-pixel divider that fades at the edges.
+/* Hairline gradient, single-pixel divider that fades at the edges.
    Apply via <span className="hairline-h" /> inside a relative parent. */
 .hairline-h {
   position: absolute;

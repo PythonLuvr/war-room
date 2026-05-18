@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Boot a fresh War Room — what a stranger cloning the repo sees on first
+// Boot a fresh War Room, what a stranger cloning the repo sees on first
 // run. Non-destructive: your real .env.local + ~/.war-room/ are left alone.
 //
 // What this does:
@@ -31,8 +31,8 @@ const PORT = 3030;
 // Electron's Node ABI. Switching back to dev needs the binary rebuilt for
 // system Node. We probe first (cheap subprocess that just tries to load the
 // module), and only rebuild on mismatch. Always-rebuild was deterministic
-// but failed on Windows whenever any other process — a stranded dev server,
-// the running Electron app — had the .node file mapped (EBUSY/EPERM on
+// but failed on Windows whenever any other process, a stranded dev server,
+// the running Electron app, had the .node file mapped (EBUSY/EPERM on
 // unlink). The probe runs in a fresh Node process so a stale loaded copy in
 // this script's memory doesn't poison the result.
 function ensureSystemNodeBuild() {
@@ -42,7 +42,7 @@ function ensureSystemNodeBuild() {
     { cwd: REPO },
   );
   if (probe.status === 0) {
-    console.log(`▸ better-sqlite3 already matches system Node (ABI ${process.versions.modules}) — skipping rebuild`);
+    console.log(`▸ better-sqlite3 already matches system Node (ABI ${process.versions.modules}), skipping rebuild`);
     return;
   }
   console.log(`▸ rebuilding better-sqlite3 for system Node (ABI ${process.versions.modules})…`);
@@ -73,7 +73,7 @@ function restoreEnv() {
       console.log("▸ restored .env.local");
     } catch {
       console.error(
-        `\n✗ could not restore .env.local automatically. Your file is at ${ENV_STASH} — move it back manually.`,
+        `\n✗ could not restore .env.local automatically. Your file is at ${ENV_STASH}, move it back manually.`,
       );
     }
   }
@@ -98,13 +98,13 @@ process.on("SIGTERM", () => {
 // ─── Run ────────────────────────────────────────────────────────────────────
 function main() {
   console.log("\n══════════════════════════════════════════");
-  console.log("  War Room — blank-state preview");
+  console.log("  War Room, blank-state preview");
   console.log("══════════════════════════════════════════\n");
   console.log(`  port      : http://localhost:${PORT}`);
   console.log(`  data dir  : ${DATA_DIR}`);
   console.log(`  env       : ignored (.env.local stashed)`);
   console.log(`  use this  : like a stranger seeing War Room for the first time\n`);
-  console.log("  When done, hit Ctrl+C — your real .env.local is restored automatically.\n");
+  console.log("  When done, hit Ctrl+C, your real .env.local is restored automatically.\n");
 
   ensureSystemNodeBuild();
   stashEnv();

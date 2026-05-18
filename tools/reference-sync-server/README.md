@@ -42,7 +42,7 @@ WAR_ROOM_SYNC_TOKEN=pick-a-long-random-string node server.js
 PORT=9000 WAR_ROOM_SYNC_DATA=/var/lib/war-room-sync node server.js
 ```
 
-## PM2 deployment (Contabo / similar)
+## PM2 deployment (any VPS)
 
 ```bash
 pm2 start server.js --name war-room-sync --update-env -- \

@@ -267,7 +267,7 @@ async function walk(
 }
 
 export async function GET() {
-  // Demo mode skips the SSH probe entirely — without VPS credentials it
+  // Demo mode skips the SSH probe entirely, without VPS credentials it
   // would just block the dashboard load for the SSH timeout each call.
   // KPI numbers are synthesized further below.
   const healthPromise = isDemo()

@@ -5,10 +5,10 @@ import os from "os";
 
 // Env file convention (all optional, all gitignored):
 //   ~/.war-room/.env       (per-user shared overrides)
-//   .env.local             (repo-local — Next loads this last automatically)
+//   .env.local             (repo-local, Next loads this last automatically)
 //   $WAR_ROOM_ENV_FILE     (custom path, lets users point at a team file)
 //
-// "First writer wins" — the order below is the precedence order. .env.local
+// "First writer wins", the order below is the precedence order. .env.local
 // always wins on top of all of these because Next loads it after this file.
 function loadEnvFile(p: string) {
   try {
@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
   // Standalone output bundles a self-contained server.js + a minimal node_modules
   // tree. This is what the packaged Electron app launches as the API server.
   output: "standalone",
-  // Native modules (better-sqlite3, etc.) must NOT be bundled by Webpack —
+  // Native modules (better-sqlite3, etc.) must NOT be bundled by Webpack , 
   // they're loaded from node_modules at runtime, both in dev and inside the
   // standalone build.
   serverExternalPackages: ["better-sqlite3"],

@@ -1,4 +1,4 @@
-// Google Gemini API adapter — uses the streamGenerateContent endpoint
+// Google Gemini API adapter, uses the streamGenerateContent endpoint
 // which returns SSE chunks. Different shape from OpenAI's protocol, so it
 // doesn't share the openai-compat sender.
 

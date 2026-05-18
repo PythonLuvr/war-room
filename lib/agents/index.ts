@@ -195,7 +195,7 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
 
 // Wrap the agent framework markdown in a clearly-tagged block so the
 // model reads it as "operating instructions" rather than user content.
-// Position is outermost — the framework defines how the agent receives
+// Position is outermost, the framework defines how the agent receives
 // every other piece of text below it.
 // Outermost layer: War Room environment briefing. Wraps everything
 // else (framework, cross-agent context, user prompt) so the agent
@@ -225,7 +225,7 @@ function renderPrimerPrompt(
 
 function renderFrameworkPrompt(framework: string, body: string): string {
   return [
-    "[ AGENT FRAMEWORK — operating instructions for this turn.",
+    "[ AGENT FRAMEWORK, operating instructions for this turn.",
     "  These rules govern how you receive briefs, communicate, and gate",
     "  execution. Apply them to every part of the body below. ]",
     "",
@@ -254,7 +254,7 @@ function renderSharedContextPrompt(
     ),
   );
   const lines: string[] = [
-    "[ SHARED CHANNEL CONTEXT — recent turns from OTHER agents in this channel.",
+    "[ SHARED CHANNEL CONTEXT, recent turns from OTHER agents in this channel.",
     "  Use as background only. Reply as yourself. Don't quote this block back. ]",
     "",
   ];

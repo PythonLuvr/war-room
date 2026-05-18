@@ -16,7 +16,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { TEAM } from "@/lib/team";
+import { TEAM, themeClassesFor, serverSlotFor } from "@/lib/team";
 
 type Job = {
   id: number;
@@ -37,12 +37,6 @@ type Post = {
   kind: string;
   body: string;
   created_at: number;
-};
-
-const COLOR_BY_USER: Record<string, string> = {
-  ej: "from-amber-500/30 to-amber-700/15 border-amber-500/40 text-amber-200",
-  kerem: "from-sky-500/30 to-sky-700/15 border-sky-500/40 text-sky-200",
-  wes: "from-emerald-500/30 to-emerald-700/15 border-emerald-500/40 text-emerald-200",
 };
 
 const KIND_META: Record<string, { Icon: React.ComponentType<{ className?: string }>; tone: string }> = {
@@ -156,11 +150,9 @@ export function JobPageClient({
                 return (
                   <Link
                     key={a.user_id}
-                    href={`/c/user/s${a.user_id === "ej" ? 1 : a.user_id === "kerem" ? 4 : 5}-job-${job.slug}`}
+                    href={`/c/user/s${serverSlotFor(a.user_id)}-job-${job.slug}`}
                     title={`Open ${member?.name ?? a.user_id}'s execution channel`}
-                    className={`w-7 h-7 rounded-full border-2 border-neutral-950 bg-gradient-to-br flex items-center justify-center text-xs font-semibold ${
-                      COLOR_BY_USER[a.user_id] ?? "from-neutral-700 to-neutral-900 text-neutral-300"
-                    } hover:ring-2 hover:ring-current/40`}
+                    className={`w-7 h-7 rounded-full border-2 border-neutral-950 bg-gradient-to-br flex items-center justify-center text-xs font-semibold ${themeClassesFor(a.user_id)} hover:ring-2 hover:ring-current/40`}
                   >
                     {(member?.name ?? a.user_id)[0].toUpperCase()}
                   </Link>
@@ -221,10 +213,7 @@ export function JobPageClient({
               return (
                 <div key={p.id} className="flex gap-3">
                   <div
-                    className={`w-8 h-8 rounded-full border bg-gradient-to-br flex items-center justify-center text-xs font-semibold shrink-0 ${
-                      COLOR_BY_USER[p.author] ??
-                      "from-neutral-700 to-neutral-900 text-neutral-300 border-neutral-800"
-                    }`}
+                    className={`w-8 h-8 rounded-full border bg-gradient-to-br flex items-center justify-center text-xs font-semibold shrink-0 ${themeClassesFor(p.author)}`}
                   >
                     {(member?.name ?? p.author)[0].toUpperCase()}
                   </div>

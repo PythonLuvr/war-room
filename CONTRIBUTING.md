@@ -1,60 +1,74 @@
 # Contributing to War Room
 
-Thanks for the interest. War Room is built and maintained by a single operator, so contribution flow is light.
-
-Talk to me or other contributors in the [Discord](https://discord.gg/ku6GJS92V2) before sinking serious time into anything.
-
-## Before opening a PR
-
-- **Open an issue first** for anything bigger than a typo, a one-line fix, or a clear bug. Saves both sides time if the change isn't a fit.
-- **No new dependencies** without discussion. War Room is intentionally light on packages.
-- **No personal data in commits.** Don't hardcode paths, names, IPs, or service identifiers. All such values read from env vars in `lib/config.ts`. If you need a new one, add it to `.env.example` with a comment.
-- **Match the existing style.** TypeScript, functional React components, Tailwind for styling, no class components, no CSS modules.
-
-## Local dev
+## Local development
 
 ```bash
-git clone https://github.com/pythonluvr/war-room.git
+git clone https://github.com/pythonluvr/war-room
 cd war-room
 npm install
-npm run dev
+npm run dev          # http://localhost:3000, uses your real ~/.war-room/
+npm run dev:blank    # http://localhost:3030, isolated empty SQLite
+npm run demo         # http://localhost:3031, populated demo cockpit
 ```
 
-The app boots at `http://localhost:3000` with the onboarding wizard.
+Cold-clone discipline: every feature must ship working defaults with no
+config required. If `npm run dev:blank` doesn't produce a usable cockpit
+on a brand-new clone, the feature isn't done.
 
-## Architecture pointers
+## Tests
 
-- `app/`: Next.js App Router pages and API routes
-- `components/`: React components (most of the UI lives here)
-- `components/channel-system/`: Discord-style channel/server UI
-- `lib/`: server-side helpers, DB access, config, activity, services check
-- `lib/config.ts`: **the only place that reads `process.env.*` for app config**
-- `lib/team.ts`: team roster (single source of truth for member identities)
-- `lib/db.ts`: SQLite schema and migrations
-- `electron/`: desktop wrapper (optional, not needed for development)
+```bash
+npm test                # everything
+npm run test:migration  # tsx + node:test, no browser
+npm run test:smoke      # Playwright against dev:blank
+```
 
-## What's in scope
+CI runs both on every push and PR via `.github/workflows/test.yml`.
 
-- Bug fixes
-- Performance improvements
-- New panels and integrations that fit the "one screen for AI ops" thesis
-- Documentation improvements
-- Accessibility and keyboard-navigation work
+## Agent frameworks
 
-## What's out of scope
+War Room ships bundled agent frameworks at `presets/frameworks/*.md`. Each
+is a plain markdown file the chat runtime prepends to every adapter call
+as a system preamble.
 
-- Cloud sync / multi-user backend (planned for a separate hosted product)
-- Replacing core tech choices (Next.js, SQLite, Tailwind)
-- Adding auth / login flows (this is single-user, localhost)
-- AI providers other than Anthropic Claude (for now)
+Add a framework by dropping a markdown file in. The registry auto-detects
+it; no manifest, no registration code. Wizard picker + per-channel chip
+update on next reload.
 
-## Commit / PR style
+Update bundled frameworks from upstream:
 
-- Conventional commits welcome but not required
-- Squash on merge
-- Keep PRs focused. One feature or fix per PR.
-- Include a short description and screenshots/GIFs for UI changes
+```bash
+npm run update-frameworks
+```
 
-## License agreement
+This script lives at `scripts/update-frameworks.mjs`. Each registered
+source declares an upstream repo + tag + filename. The script fetches the
+pinned tag, resolves the commit SHA via the GitHub API, lints the
+content for em-dashes + personal-data patterns, and writes to
+`presets/frameworks/<id>.md` with a vendor-trace header noting the
+upstream tag + SHA. Exits non-zero if any lint gate fires.
 
-By contributing you agree your contributions are licensed under AGPL-3.0-or-later, the same license as the rest of the project.
+Bump the pinned tag in the SOURCES array when upstream cuts a new
+release. Never point at `main`. Pinned tags only, so vendor updates are
+intentional and auditable.
+
+## Lint gates
+
+- **No em dashes** in any markdown or TypeScript that ships. Use periods,
+  commas, parens, or restructure. The CI lint job + the framework
+  fetcher both enforce this.
+- **Sanity regex** at zero hits. The grep patterns catch personal-data
+  shapes (specific names, emails, IPs). Run `npm run lint` locally
+  before pushing if you've added any new strings.
+
+## Commit messages
+
+One-line summary, optional body. Reference issue numbers if applicable.
+No "WIP" commits on `main`.
+
+## Pull requests
+
+- One feature per PR.
+- Tests for new behavior.
+- CHANGELOG entry under the next-version heading.
+- README update if user-visible behavior changed.

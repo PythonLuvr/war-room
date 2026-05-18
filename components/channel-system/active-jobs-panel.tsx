@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Briefcase, Plus, ArrowRight, Calendar } from "lucide-react";
 import { NewJobDialog } from "@/components/new-job-dialog";
+import { themeClassesFor } from "@/lib/team";
 
 type Assignee = { user_id: string; role: string };
 type Job = {
@@ -17,12 +18,6 @@ type Job = {
   created_at: number;
   updated_at: number;
   assignees: Assignee[];
-};
-
-const COLOR_BY_USER: Record<string, string> = {
-  ej: "from-amber-500/30 to-amber-700/15 border-amber-500/40 text-amber-200",
-  kerem: "from-sky-500/30 to-sky-700/15 border-sky-500/40 text-sky-200",
-  wes: "from-emerald-500/30 to-emerald-700/15 border-emerald-500/40 text-emerald-200",
 };
 
 export function ActiveJobsPanel() {
@@ -144,9 +139,7 @@ function JobCard({ job }: { job: Job }) {
           {job.assignees.map((a) => (
             <div
               key={a.user_id}
-              className={`w-6 h-6 rounded-full border-2 border-neutral-950 bg-gradient-to-br flex items-center justify-center text-[10px] font-semibold ${
-                COLOR_BY_USER[a.user_id] ?? "from-neutral-700 to-neutral-900 text-neutral-300"
-              }`}
+              className={`w-6 h-6 rounded-full border-2 border-neutral-950 bg-gradient-to-br flex items-center justify-center text-[10px] font-semibold ${themeClassesFor(a.user_id)}`}
               title={a.user_id}
             >
               {a.user_id[0].toUpperCase()}

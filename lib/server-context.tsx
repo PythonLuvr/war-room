@@ -8,6 +8,7 @@ export type ServerRow = {
   name: string;
   icon: string;
   color: string;
+  icon_url: string | null;
   is_default: number;
   position: number;
 };
@@ -44,7 +45,7 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     void refresh();
     const saved = Number(localStorage.getItem(LS_KEY));
     if (saved && !Number.isNaN(saved)) setCurrentIdState(saved);
-    // Re-fetch when the wizard updates identity — the Personal server's
+    // Re-fetch when the wizard updates identity, the Personal server's
     // icon is auto-derived from the display name on the server side, but
     // the rail won't pick up the change without a refresh.
     const onIdentity = () => void refresh();

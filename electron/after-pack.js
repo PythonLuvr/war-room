@@ -1,4 +1,4 @@
-// electron-builder afterPack hook — copies the Next.js standalone bundle
+// electron-builder afterPack hook, copies the Next.js standalone bundle
 // into the packaged app's resources folder. Done manually because
 // electron-builder's extraResources strips node_modules + .next from this
 // specific structure.
@@ -22,7 +22,7 @@ exports.default = async function afterPack(context) {
     recursive: true,
   });
 
-  // 2. Static assets (CSS, JS chunks) — Next puts these at .next/static/ but
+  // 2. Static assets (CSS, JS chunks), Next puts these at .next/static/ but
   //    the standalone server expects them at .next/standalone/.next/static/
   fs.cpSync(
     path.join(projectRoot, ".next", "static"),
@@ -30,7 +30,7 @@ exports.default = async function afterPack(context) {
     { recursive: true },
   );
 
-  // 3. /public — same story, must sit beside the standalone server
+  // 3. /public, same story, must sit beside the standalone server
   if (fs.existsSync(path.join(projectRoot, "public"))) {
     fs.cpSync(
       path.join(projectRoot, "public"),
@@ -39,7 +39,7 @@ exports.default = async function afterPack(context) {
     );
   }
 
-  // 3b. /presets — bundled framework markdown (OpenWar etc.) that
+  // 3b. /presets, bundled framework markdown (OpenWar etc.) that
   //     lib/frameworks.ts reads at runtime. Without this the framework
   //     loader returns null for every preset, the OpenWar overlay never
   //     fires, and the wizard's framework picker shows an empty list.
@@ -52,7 +52,7 @@ exports.default = async function afterPack(context) {
     console.log(`[after-pack] copied presets/ into standalone bundle`);
   }
 
-  // 4. Native modules — @electron/rebuild compiled better-sqlite3 against
+  // 4. Native modules, @electron/rebuild compiled better-sqlite3 against
   //    Electron's ABI into the project root's node_modules. The standalone
   //    bundle's own copy of node_modules/better-sqlite3 has the JS but no
   //    /build dir (next build runs before the rebuild step). Copy the
@@ -61,7 +61,7 @@ exports.default = async function afterPack(context) {
   // After-pack itself runs under Node so we can't compare against
   // process.versions.modules. Instead we hardcode the Electron major→ABI
   // map (Electron 41 = ABI 145). Mismatch here means scripts/rebuild-native.js
-  // didn't actually refresh the binary — fail loud rather than ship a
+  // didn't actually refresh the binary, fail loud rather than ship a
   // crash-on-launch installer.
   const ELECTRON_ABI = { 41: 145, 40: 142, 39: 138 };
   const electronMajor = parseInt(

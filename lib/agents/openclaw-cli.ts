@@ -1,4 +1,4 @@
-// OpenClaw CLI adapter — invokes the local `openclaw` binary in
+// OpenClaw CLI adapter, invokes the local `openclaw` binary in
 // non-interactive mode. OpenClaw is a self-hostable agent framework with
 // its own skill system + chat-app gateways; from War Room's POV it's
 // just another CLI we pipe a prompt into and stream stdout back from.

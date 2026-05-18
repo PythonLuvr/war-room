@@ -95,7 +95,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
           <Section
             icon={<Download className="w-4 h-4 text-neutral-300" />}
             title="1. Send them the install"
-            subtitle="Anything that runs Node 20+ will do — Mac, Linux, Windows."
+            subtitle="Anything that runs Node 20+ will do, Mac, Linux, Windows."
           >
             <pre className="bg-neutral-950 border border-neutral-800 rounded-md px-3 py-2.5 text-xs font-mono text-neutral-200 overflow-x-auto whitespace-pre">
 {installSnippet}
@@ -134,8 +134,8 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
             title="2. Connect the installs"
             subtitle={
               hasSync
-                ? "Sync is configured — share the URL below and your installs see each other."
-                : "Sync isn't set up yet — without it, each install only knows about itself."
+                ? "Sync is configured, share the URL below and your installs see each other."
+                : "Sync isn't set up yet, without it, each install only knows about itself."
             }
           >
             {!loaded ? (
@@ -172,7 +172,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
               <>
                 <div className="text-xs text-neutral-400 leading-relaxed mb-2">
                   No sync URL set yet. Until you stand up a sync relay, teammate installs run in
-                  isolation — local-only is a real mode, not a bug, but cross-machine mentions /
+                  isolation, local-only is a real mode, not a bug, but cross-machine mentions /
                   shared activity / presence don&apos;t work.
                 </div>
                 <ol className="text-xs text-neutral-400 space-y-1.5 list-decimal pl-5 mb-3">
@@ -211,11 +211,11 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
             <ul className="text-xs text-neutral-400 space-y-1 list-disc pl-5 leading-relaxed">
               <li>Their own AI agent in chat + the boardroom</li>
               <li>Their own jobs, decisions, knowledge entries, files</li>
-              <li>LiveKit voice — if they point at the same LiveKit URL you do</li>
+              <li>LiveKit voice, if they point at the same LiveKit URL you do</li>
             </ul>
             <div className="text-[10px] text-neutral-600 mt-2 leading-snug">
               The thing sync unlocks is{" "}
-              <strong className="text-neutral-500">cross-install visibility</strong> — teammates
+              <strong className="text-neutral-500">cross-install visibility</strong>, teammates
               showing up in your sidebar, mentions reaching their machine, shared activity feed.
             </div>
           </Section>

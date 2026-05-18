@@ -149,7 +149,7 @@ export function OnboardingWizard() {
             <Sparkles className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold">War Room setup</h2>
           </div>
-          <button onClick={skip} title="Skip — finish later" className="text-neutral-500 hover:text-neutral-300 p-1">
+          <button onClick={skip} title="Skip, finish later" className="text-neutral-500 hover:text-neutral-300 p-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -293,7 +293,7 @@ export function OnboardingWizard() {
                 <div className="text-[10px] text-neutral-600 mt-1.5">
                   Self-host whatever sync service this version of War Room expects. Reference
                   implementation will live in the <code className="text-neutral-500">tools/</code>{" "}
-                  directory of the repo. We don&apos;t host one for you — your data, your server.
+                  directory of the repo. We don&apos;t host one for you, your data, your server.
                 </div>
               </div>
               <div className="text-[11px] text-neutral-500 leading-relaxed border-t border-neutral-900 pt-3 mt-2">
@@ -1068,7 +1068,7 @@ function ProviderSetupCard({
               CLI bridge
             </div>
             <div className="text-[10px] text-neutral-600 italic px-1">
-              No official CLI from this provider yet — API only.
+              No official CLI from this provider yet, API only.
             </div>
           </div>
         )}
@@ -1122,7 +1122,7 @@ function ProviderField({
       <input
         type={field.secret ? "password" : "text"}
         value={draft}
-        placeholder={isMaskedPlaceholder ? "(saved — type to replace)" : field.ph}
+        placeholder={isMaskedPlaceholder ? "(saved, type to replace)" : field.ph}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => {

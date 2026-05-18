@@ -1,10 +1,10 @@
-// Custom CLI adapter — spawns whatever the user configured.
+// Custom CLI adapter, spawns whatever the user configured.
 // Lets people bridge in tools we haven't explicitly added (Aider,
 // Continue, Open Interpreter, in-house wrappers, etc.).
 //
 // Settings consumed:
-//   agent.cli.custom.bin       — path to the executable
-//   agent.cli.custom.template  — args template; supports {{prompt}} and {{cwd}}
+//   agent.cli.custom.bin      , path to the executable
+//   agent.cli.custom.template , args template; supports {{prompt}} and {{cwd}}
 //                                 placeholders. Args are parsed with a simple
 //                                 quote-aware splitter.
 

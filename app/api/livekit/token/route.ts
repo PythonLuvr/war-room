@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AccessToken } from "livekit-server-sdk";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json().catch(() => ({}))) as { identity?: string; name?: string };
-  const identity = body.identity?.trim() || "ej";
+  const identity = body.identity?.trim() || getRequester();
   const name = body.name?.trim() || identity;
 
   const at = new AccessToken(apiKey, apiSecret, {
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   // Demo pretends LiveKit is wired so the boardroom doesn't show its
   // amber "voice + video not enabled" warning. Actual joins still 503
-  // from the POST handler — but the surface reads as ready, which is
+  // from the POST handler, but the surface reads as ready, which is
   // what screenshots need.
   if (process.env.WAR_ROOM_DEMO === "1") {
     return NextResponse.json({ configured: true, room: ROOM_NAME });

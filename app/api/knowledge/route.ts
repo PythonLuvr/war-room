@@ -8,11 +8,12 @@ import {
 } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
 import { emitEvent } from "@/lib/sync/client";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ME = "ej";
+const ME = getRequester();
 
 export async function GET(req: NextRequest) {
   const channelId = req.nextUrl.searchParams.get("channelId");

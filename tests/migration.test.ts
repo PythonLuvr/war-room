@@ -3,7 +3,7 @@
 // existing rows survive + re-running is idempotent.
 //
 // Run via: npm run test:migration
-// (Uses tsx + Node's built-in test runner — no Vitest, no Jest.)
+// (Uses tsx + Node's built-in test runner, no Vitest, no Jest.)
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -33,7 +33,7 @@ function freshDb(): { db: Database.Database; cleanup: () => void } {
 }
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
-// "v0.1.0 shape" — what the schema looked like before the multi-agent
+// "v0.1.0 shape", what the schema looked like before the multi-agent
 // rework + two-server seed + per-channel agent override landed. Just enough
 // of the old tables to exercise every migration path.
 function seedV010Schema(db: Database.Database) {
@@ -184,7 +184,7 @@ test("migrate adds adapter_id + agent_id + new seeds without losing legacy rows"
   }
 });
 
-test("migrate is idempotent — running twice doesn't double-seed or error", () => {
+test("migrate is idempotent, running twice doesn't double-seed or error", () => {
   const { db, cleanup } = freshDb();
   try {
     seedV010Schema(db);

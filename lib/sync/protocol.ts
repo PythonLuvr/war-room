@@ -21,7 +21,12 @@
 // holds the token can read and write the workspace. Run your own
 // server, don't expose the URL to people you don't trust.
 
-export const PROTOCOL_VERSION = 1;
+// v2 (2026-05): added server/group/channel/sidebar_role/agent_profile
+// kinds so a team can share workspace structure, not just decisions
+// and knowledge. Reference server is storage-agnostic (opaque event
+// blobs in a JSONL log) so it didn't need a bump; clients on protocol
+// 1 will just ignore the new kinds they don't recognize.
+export const PROTOCOL_VERSION = 2;
 
 // ───────────────────────────────────────────────────────────────────
 // Event kinds. Each kind names a (table, action) pair. The reference
@@ -39,7 +44,23 @@ export type EventKind =
   | "announcement.deleted"
   | "knowledge.created"
   | "knowledge.updated"
-  | "knowledge.deleted";
+  | "knowledge.deleted"
+  // v2: workspace structure. Identified by natural keys (name / slug /
+  // (server_name, label) / adapter_id) so each client's local INTEGER
+  // primary key stays a per-machine implementation detail and never
+  // travels over the wire. The applier looks up by the natural key and
+  // inserts a fresh row if it's missing locally.
+  | "server.upserted"
+  | "server.deleted"
+  | "group.upserted"
+  | "group.deleted"
+  | "channel.upserted"
+  | "channel.deleted"
+  | "sidebar_role.upserted"
+  | "sidebar_role.deleted"
+  | "sidebar_assignment.set"
+  | "agent_profile.set"
+  | "agent_profile.deleted";
 
 // Wrapper applied to every event going across the wire. `seq` is
 // server-assigned, monotonic per workspace. `clientId` lets a client

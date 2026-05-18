@@ -1,4 +1,4 @@
-// OpenAI Codex CLI adapter — invokes the official `codex` binary.
+// OpenAI Codex CLI adapter, invokes the official `codex` binary.
 // Codex doesn't expose a structured streaming protocol like Claude Code, so
 // we just pipe stdout through as text deltas and surface stderr as system
 // events.

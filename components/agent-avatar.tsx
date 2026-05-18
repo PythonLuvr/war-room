@@ -3,7 +3,7 @@
 // Single source of truth for "what graphic represents this agent in the
 // UI." Resolution order (per agent):
 //   1. The user's per-agent override (`onboarding.agentIcon`) when it's
-//      set to a real URL — wins for the LOCAL agent only.
+//      set to a real URL, wins for the LOCAL agent only.
 //   2. The adapter's own iconUrl (Claude / GPT / Gemini brand mark for
 //      the matching adapters; null for custom).
 //   3. Fallback: a Sparkles glyph or first-letter initial inside a
@@ -44,7 +44,7 @@ export function AgentAvatar({
   size = "md",
   alt = "",
 }: {
-  /** Resolved icon URL — `null` to fall through to the glyph/initial. */
+  /** Resolved icon URL, `null` to fall through to the glyph/initial. */
   iconUrl: string | null;
   /** Used when iconUrl is null. First character is rendered as the initial. */
   fallbackText?: string;

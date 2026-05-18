@@ -273,7 +273,7 @@ function DecisionCard({
         </div>
       )}
       <div className="mt-3 text-[10px] uppercase tracking-wider flex items-center gap-1.5">
-        <span className="text-neutral-600">—</span>
+        <span className="text-neutral-600">-</span>
         <span className={`px-1.5 py-0.5 rounded border ${author.chip}`}>
           {author.label}
         </span>
@@ -373,7 +373,7 @@ function DecisionDialog({
             <textarea
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="Self-hosted, no per-minute fees, runs on existing Contabo VPS. Skipping Daily.co + Whereby."
+              placeholder="Switched from managed service to self-hosted. Lower cost, full control, accepted the ops overhead."
               rows={5}
               className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700 resize-none"
             />

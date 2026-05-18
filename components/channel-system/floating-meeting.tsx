@@ -31,7 +31,7 @@ export function FloatingMeeting() {
 
   // Lazy initializer reads the viewport once on mount instead of mirroring
   // it through a setState-in-effect on first paint. Falls through to null
-  // on the SSR pass — the first client render then computes the real
+  // on the SSR pass, the first client render then computes the real
   // anchor and the panel snaps into bottom-right.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
     if (typeof window === "undefined") return null;

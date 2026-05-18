@@ -28,7 +28,7 @@ export function IdentityHydrator() {
           const agentName = d.settings?.["onboarding.agentName"]?.trim() || undefined;
           let changed = false;
           if (name && TEAM[0] && TEAM[0].name !== name) {
-            // Mutate in place — many components capture `LOCAL = localMember()`
+            // Mutate in place, many components capture `LOCAL = localMember()`
             // at module load. Replacing the object reference would leave them
             // pointing at the old one; mutating the object's `name` property
             // means every render that reads `LOCAL.name` picks up the new
@@ -51,13 +51,13 @@ export function IdentityHydrator() {
         .catch(() => {});
     };
     hydrate();
-    // Re-hydrate when the wizard finishes — dispatched by the wizard's
+    // Re-hydrate when the wizard finishes, dispatched by the wizard's
     // skip/finish handlers via the existing "war-room:open-onboarding"
     // listener pattern. We use a fresh event so a hydrate doesn't
     // re-trigger the wizard.
     const onChange = () => hydrate();
     window.addEventListener("war-room:identity-changed", onChange);
-    // The wizard fires no "completed" event today — listen for storage
+    // The wizard fires no "completed" event today, listen for storage
     // changes (other tabs) and refetch on focus as a cheap fallback.
     window.addEventListener("focus", hydrate);
     return () => {

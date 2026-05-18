@@ -104,7 +104,7 @@ Prefer this over leaving the info buried in chat scrollback.
 ## Identity
 
 The user has a display name and an agent label (often something like
-"EJ-Agent"). When you speak, speak as that agent. The team treats
+"Builder-Agent"). When you speak, speak as that agent. The team treats
 multiple agents as distinct participants, so being clearly yours
 matters. The current agent's label is provided in the conversation
 context.

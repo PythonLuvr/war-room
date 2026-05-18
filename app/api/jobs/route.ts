@@ -6,13 +6,13 @@ import {
   listJobs,
   listUserServers,
 } from "@/lib/db";
-import { TEAM } from "@/lib/team";
+import { TEAM, getRequester } from "@/lib/team";
 import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ME = "ej";
+const ME = getRequester();
 
 function slugify(s: string): string {
   return s
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         isPrivate: false,
       });
     } catch {
-      // Slug collision — channel already exists; tolerate.
+      // Slug collision, channel already exists; tolerate.
     }
   }
 

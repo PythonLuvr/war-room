@@ -52,7 +52,14 @@ const PAIR_COLOR: Record<string, { ring: string; text: string }> = Object.fromEn
 );
 
 type Tile =
-  | { kind: "human"; identity: string; pair: string; name: string; isLocal: boolean }
+  | {
+      kind: "human";
+      identity: string;
+      pair: string;
+      name: string;
+      isLocal: boolean;
+      iconUrl: string | null;
+    }
   | {
       kind: "agent";
       identity: string;
@@ -285,7 +292,7 @@ function PreJoin() {
             To turn on real audio, set <code className="text-amber-200">LIVEKIT_URL</code>,
             <code className="ml-1 text-amber-200">LIVEKIT_API_KEY</code>, and
             <code className="ml-1 text-amber-200">LIVEKIT_API_SECRET</code> in your{" "}
-            <code className="text-amber-200">.env.local</code> (point them at any LiveKit server — self-hosted or LiveKit Cloud).
+            <code className="text-amber-200">.env.local</code> (point them at any LiveKit server, self-hosted or LiveKit Cloud).
           </div>
         )}
         {meeting.error && (
@@ -368,6 +375,7 @@ function MeetingStage() {
   const meeting = useMeeting();
   const identityVersion = useIdentityVersion();
   const [adapters, setAdapters] = useState<ConfiguredAdapter[]>([]);
+  const [myIconUrl, setMyIconUrl] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/agents")
@@ -376,16 +384,20 @@ function MeetingStage() {
         setAdapters((d.adapters ?? []).filter((a) => a.isConfigured));
       })
       .catch(() => {});
-  }, []);
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((d: { iconUrl: string }) => setMyIconUrl(d.iconUrl ?? ""))
+      .catch(() => {});
+  }, [identityVersion]);
 
   const tiles = useMemo<Tile[]>(() => {
     const HUMAN_LABEL = buildHumanLabels();
     const out: Tile[] = [];
-    out.push({ kind: "human", identity: meeting.localIdentity, pair: meeting.localIdentity, name: meeting.localName, isLocal: true });
+    out.push({ kind: "human", identity: meeting.localIdentity, pair: meeting.localIdentity, name: meeting.localName, isLocal: true, iconUrl: myIconUrl || null });
     for (const id of meeting.remoteHumans) {
       if (id === meeting.localIdentity) continue;
       const pair = id in HUMAN_LABEL ? id : meeting.localIdentity;
-      out.push({ kind: "human", identity: id, pair, name: HUMAN_LABEL[pair] ?? id, isLocal: false });
+      out.push({ kind: "human", identity: id, pair, name: HUMAN_LABEL[pair] ?? id, isLocal: false, iconUrl: null });
     }
     // Every configured adapter gets its own seat. Pair = adapter id so
     // the palette stays stable per adapter; the actual color comes
@@ -403,7 +415,7 @@ function MeetingStage() {
     return out;
     // identityVersion bumps every time the user renames themselves or
     // their agent - re-runs this memo so tile labels stay current.
-  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans, identityVersion, adapters]);
+  }, [meeting.localIdentity, meeting.localName, meeting.remoteHumans, identityVersion, adapters, myIconUrl]);
 
   return meeting.screenShare ? (
     <StageView share={meeting.screenShare} tiles={tiles} />
@@ -508,22 +520,29 @@ function ParticipantTile({ tile, compact }: { tile: Tile; compact?: boolean }) {
         <div className="absolute inset-0 flex items-center justify-center">
           {isAgent ? (
             <div className="flex flex-col items-center gap-2">
-              <div className={`w-14 h-14 rounded-full border-2 ${palette.ring.replace("ring-", "border-").replace("/60", "/40")} flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900`}>
-                {agentIconUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={agentIconUrl} alt="" className={`w-7 h-7 ${palette.text}`} />
-                ) : (
+              {agentIconUrl ? (
+                <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-neutral-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={agentIconUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className={`w-14 h-14 rounded-full border-2 ${palette.ring.replace("ring-", "border-").replace("/60", "/40")} flex items-center justify-center bg-gradient-to-br from-neutral-800 to-neutral-900`}>
                   <Sparkles className={`w-6 h-6 ${palette.text}`} />
-                )}
-              </div>
+                </div>
+              )}
               <span className={`text-[10px] uppercase tracking-wider ${palette.text} flex items-center gap-1`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                 listening
               </span>
             </div>
+          ) : tile.kind === "human" && tile.iconUrl ? (
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-neutral-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={tile.iconUrl} alt="" className="w-full h-full object-cover" />
+            </div>
           ) : (
-            <div className={`w-14 h-14 rounded-full border bg-gradient-to-br from-neutral-700 to-neutral-900 flex items-center justify-center text-xl font-semibold ${palette.text}`}>
-              {tile.name[0]}
+            <div className="w-14 h-14 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xl font-semibold text-neutral-300">
+              {tile.name[0]?.toUpperCase() ?? "?"}
             </div>
           )}
         </div>

@@ -17,7 +17,7 @@ import fs from "fs";
 
 const cache = new Map<string, boolean>();
 // 30s TTL so users don't have to restart the dev server after installing
-// a missing CLI mid-session — the probe re-runs at most twice a minute
+// a missing CLI mid-session, the probe re-runs at most twice a minute
 // while staying snappy for back-to-back UI fetches.
 const TTL_MS = 30_000;
 const stamps = new Map<string, number>();
@@ -39,7 +39,7 @@ export function isBinaryAvailable(name: string | null | undefined): boolean {
 }
 
 function probe(name: string): boolean {
-  // Absolute path or any path with a separator — check existence directly.
+  // Absolute path or any path with a separator, check existence directly.
   if (/[\\/]/.test(name)) {
     try {
       return fs.existsSync(name);
@@ -47,7 +47,7 @@ function probe(name: string): boolean {
       return false;
     }
   }
-  // Bare command — ask the OS to resolve it via PATH. `where` returns 0
+  // Bare command, ask the OS to resolve it via PATH. `where` returns 0
   // when at least one match is found, non-zero when nothing's on PATH.
   const cmd = process.platform === "win32" ? "where" : "which";
   try {

@@ -1,6 +1,6 @@
 // Playwright config for the smoke test. Auto-starts the cold-clone dev
 // server (`npm run dev:blank` on port 3030) so tests run against a fresh
-// SQLite each invocation — no risk of test state leaking into a real
+// SQLite each invocation, no risk of test state leaking into a real
 // install. Reuses the running server when you've already started one
 // locally to keep the loop fast during development.
 

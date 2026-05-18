@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const prompt = body.prompt?.trim();
   const channelId = body.channelId?.trim() || undefined;
   // Explicit backendId from the client wins. Otherwise, look for a leading
-  // @mention in the prompt — that's the per-turn override that lets users
+  // @mention in the prompt, that's the per-turn override that lets users
   // call any agent from any channel without changing the channel's primary.
   const explicitBackend = body.backendId?.trim() || undefined;
   const mentioned = explicitBackend

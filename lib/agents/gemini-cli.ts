@@ -1,4 +1,4 @@
-// Google Gemini CLI adapter — invokes the official `gemini` binary
+// Google Gemini CLI adapter, invokes the official `gemini` binary
 // (@google/gemini-cli on npm).
 
 import { spawn } from "child_process";

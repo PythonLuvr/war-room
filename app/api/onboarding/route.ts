@@ -19,7 +19,7 @@ function firstGlyph(s: string): string {
   return trimmed[0]?.toUpperCase() ?? "";
 }
 
-// Icons we treat as "still the seeded default" — safe to overwrite when
+// Icons we treat as "still the seeded default", safe to overwrite when
 // the user sets a display name. Anything else means they've customized
 // it and we leave it alone.
 const DEFAULT_PERSONAL_ICONS = new Set(["✦", "?"]);
@@ -31,6 +31,7 @@ const KEYS = [
   "onboarding.completed",
   "onboarding.identity",
   "onboarding.displayName",
+  "onboarding.displayIcon",
   "onboarding.agentName",
   "onboarding.agentIcon",
   "onboarding.claudeBin",
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as Partial<{
     identity: string;
     displayName: string;
+    displayIcon: string;
     agentName: string;
     agentIcon: string;
     claudeBin: string;
@@ -67,12 +69,13 @@ export async function POST(req: NextRequest) {
 
   if (body.agentName !== undefined) setSetting("onboarding.agentName", body.agentName);
   if (body.agentIcon !== undefined) setSetting("onboarding.agentIcon", body.agentIcon);
+  if (body.displayIcon !== undefined) setSetting("onboarding.displayIcon", body.displayIcon);
   if (body.identity !== undefined) setSetting("onboarding.identity", body.identity);
   if (body.displayName !== undefined) {
     setSetting("onboarding.displayName", body.displayName);
     // Personal workspace icon defaults to the first letter of the user's
     // display name. Only overwrite if the icon is still one of the seeded
-    // defaults — any custom value the user picked themselves is left alone.
+    // defaults, any custom value the user picked themselves is left alone.
     const glyph = firstGlyph(body.displayName);
     if (glyph) {
       const personal = getPersonalServer();

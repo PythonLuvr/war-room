@@ -6,7 +6,7 @@
 // context, just a different layer (framework first, cross-agent context
 // second, user prompt last).
 //
-// Files are read once and cached in-process — they're static assets,
+// Files are read once and cached in-process, they're static assets,
 // not user state.
 
 import fs from "fs";
@@ -21,7 +21,7 @@ import path from "path";
 function resolveFrameworksDir(): string {
   const candidates: string[] = [];
   candidates.push(path.join(process.cwd(), "presets", "frameworks"));
-  // Walk up from this module's directory — covers .next/standalone/lib,
+  // Walk up from this module's directory, covers .next/standalone/lib,
   // resources/app/lib, etc. Eight levels is more than enough.
   let here = __dirname;
   for (let i = 0; i < 8; i++) {
@@ -82,7 +82,7 @@ export function listFrameworks(opts: { refresh?: boolean } = {}): FrameworkPrese
       out.push({ id, name, description });
     }
   } catch {
-    // No frameworks dir or unreadable — return empty list.
+    // No frameworks dir or unreadable, return empty list.
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   listCache = out;

@@ -203,7 +203,7 @@ export function CommandPalette() {
 
   // Clamp the cursor when the result list shrinks. React's "adjust state
   // during render" pattern (https://react.dev/learn/you-might-not-need-an-effect)
-  // — better than mirroring through useEffect.
+  //, better than mirroring through useEffect.
   const [prevLen, setPrevLen] = useState(filtered.length);
   if (prevLen !== filtered.length) {
     setPrevLen(filtered.length);
@@ -224,7 +224,7 @@ export function CommandPalette() {
       }
       setOpen(false);
     },
-    // servers is referenced through `.find` — including it would re-create
+    // servers is referenced through `.find`, including it would re-create
     // onSelect every time the server list refetches, churning child memos.
     // Reading the latest array via closure is fine because we only
     // dereference at click time.

@@ -1,7 +1,7 @@
 // Force-rebuild native modules against Electron's ABI before electron-builder
 // packages them. @electron/rebuild caches aggressively and silently no-ops
 // when it thinks the work is already done, which has shipped binaries built
-// for Node's ABI inside Electron-bundled apps — the symptom is a blank
+// for Node's ABI inside Electron-bundled apps, the symptom is a blank
 // "Server Components render" error on first launch because better-sqlite3
 // fails ERR_DLOPEN_FAILED when the renderer hits the DB.
 //

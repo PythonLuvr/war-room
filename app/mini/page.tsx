@@ -1,7 +1,7 @@
 "use client";
 
 // Renders inside the always-on-top mini Electron window. Doesn't connect to
-// LiveKit itself — it receives state pushed over IPC from the main window's
+// LiveKit itself, it receives state pushed over IPC from the main window's
 // MeetingProvider and sends actions back the same way.
 
 import { useEffect, useState } from "react";

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createJobPost, getJob } from "@/lib/db";
 import { logActivity } from "@/lib/activity";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ME = "ej";
+const ME = getRequester();
 
 export async function POST(
   req: NextRequest,

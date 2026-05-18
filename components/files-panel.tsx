@@ -241,7 +241,7 @@ function FileRow({
   );
 }
 
-// Static skeleton widths — Math.random in render breaks React purity.
+// Static skeleton widths, Math.random in render breaks React purity.
 const SKELETON_TOP = [62, 48, 70, 55];
 const SKELETON_BOTTOM = [32, 28, 36, 24];
 

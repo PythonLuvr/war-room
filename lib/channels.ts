@@ -149,7 +149,7 @@ export async function getChannelTree(
   const isPersonal = currentServer?.is_personal === 1;
 
   // The shared War Room dashboard surface lives on its own server with
-  // exactly one channel — /c/home — that renders the dashboard widgets.
+  // exactly one channel, /c/home, that renders the dashboard widgets.
   // Personal and custom servers have their own landing (system/activity)
   // and don't need a separate "home" entry in the sidebar.
   if (isShared) {

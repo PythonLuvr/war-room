@@ -4,11 +4,12 @@ import {
   pinMessage,
   unpinMessage,
 } from "@/lib/db";
+import { getRequester } from "@/lib/team";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ME = "ej";
+const ME = getRequester();
 
 export async function GET(req: NextRequest) {
   const channelId = req.nextUrl.searchParams.get("channelId");

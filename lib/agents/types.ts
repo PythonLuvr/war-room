@@ -1,4 +1,4 @@
-// AgentAdapter — common contract every backend implements. Lets the chat
+// AgentAdapter, common contract every backend implements. Lets the chat
 // API dispatch to whichever agent the user picked in onboarding (Claude
 // Code CLI, OpenAI Codex CLI, raw API call to Anthropic / OpenAI / Gemini /
 // Grok, or a custom command / OpenAI-compatible endpoint).
@@ -8,7 +8,7 @@
 
 export type StreamEvent =
   /** Synthesized by the chat wrapper before adapter output starts. Tells
-   *  the client which agent is about to respond — matters when @mentions
+   *  the client which agent is about to respond, matters when @mentions
    *  or channel pins routed the turn somewhere other than the global
    *  default, so the UI can attribute the bubble to the right agent. */
   | { type: "adapter"; adapterId: string }
@@ -24,7 +24,7 @@ export type SendOptions = {
   /** Filesystem directory the agent should treat as its working root. */
   projectPath: string;
   prompt: string;
-  /** Provider-specific session id to resume (CLI only — APIs are stateless). */
+  /** Provider-specific session id to resume (CLI only, APIs are stateless). */
   sessionId?: string | null;
   onEvent: (e: StreamEvent) => void;
   signal?: AbortSignal;

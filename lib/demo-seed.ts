@@ -1,6 +1,6 @@
 // Demo data seeder. Used by `npm run demo` so cold-clone visitors can
 // see what a populated War Room actually looks like in the first 5
-// seconds. Only ever runs when WAR_ROOM_DEMO=1 — never against a real
+// seconds. Only ever runs when WAR_ROOM_DEMO=1, never against a real
 // install.
 //
 // Generic names only. No real client paths, identities, or services.
@@ -17,7 +17,7 @@ import {
   upsertSession,
   type UserServerRow,
 } from "./db";
-// Type-only import — used in seedActivity to reuse the logActivity event
+// Type-only import, used in seedActivity to reuse the logActivity event
 // shape without taking the runtime dependency.
 import type { logActivity } from "./activity";
 
@@ -111,7 +111,7 @@ function seedKnowledge() {
   });
   createKnowledge({
     channelId: "user/sara-notes",
-    title: "Onboarding research — week 2 themes",
+    title: "Onboarding research, week 2 themes",
     body:
       "Three themes surfaced from the second batch of interviews:\n\n- Users want a tour they can dismiss permanently after the first run.\n- The empty state of the first canvas is the highest-friction surface.\n- Most participants tried to drag-and-drop on day one and were surprised it didn't work.",
     tags: ["research", "onboarding"],
@@ -130,21 +130,21 @@ function seedKnowledge() {
 function seedAnnouncements() {
   createAnnouncement({
     channelId: "user/acme-launches",
-    title: "ACME homepage refresh — shipping Friday",
+    title: "ACME homepage refresh, shipping Friday",
     body:
       "New hero, restored trust badges, A/B on the CTA copy. Comms in #general, status updates in this channel. React with the eye to ack.",
     author: "you",
   });
   createAnnouncement({
     channelId: "user/acme-launches",
-    title: "Q3 redesign discovery — kickoff Monday",
+    title: "Q3 redesign discovery, kickoff Monday",
     body:
       "Two-week scoping pass. We'll be touching navigation IA + dashboard density. Ping the channel if any of your screens are in scope.",
     author: "you",
   });
   createAnnouncement({
     channelId: "user/studio-announcements",
-    title: "Render box online — please retire local renders",
+    title: "Render box online, please retire local renders",
     body:
       "The shared render box is live on the VPS. Hand off long renders via the queue script in the runbooks channel. Local renders should now be the exception.",
     author: "you",
@@ -184,7 +184,7 @@ function seedChannels(
   mike: UserServerRow,
   studio: UserServerRow,
 ) {
-  // Personal — workspaces (Discord category)
+  // Personal, workspaces (Discord category)
   createUserChannel({
     slug: "p-ws-home",
     name: "home",
@@ -202,7 +202,7 @@ function seedChannels(
     projectPath: DEMO_PROJECTS.scratchpad,
   });
 
-  // Personal — active projects
+  // Personal, active projects
   createUserChannel({
     slug: "p-acme-website",
     name: "acme-website",
@@ -236,7 +236,7 @@ function seedChannels(
     projectPath: DEMO_PROJECTS.retainerOps,
   });
 
-  // Personal — finished
+  // Personal, finished
   createUserChannel({
     slug: "p-old-delivery",
     name: "old-delivery",
@@ -246,7 +246,7 @@ function seedChannels(
     projectPath: DEMO_PROJECTS.oldDelivery,
   });
 
-  // ACME Co server — a few team-shared channels
+  // ACME Co server, a few team-shared channels
   createUserChannel({
     slug: "acme-general",
     name: "general",
@@ -295,7 +295,7 @@ function seedChannels(
     serverId: sara.id,
   });
 
-  // Mike's workspace — one platform migration project + an approvals
+  // Mike's workspace, one platform migration project + an approvals
   // queue placeholder so the channel reads "ops engineer".
   createUserChannel({
     slug: "mike-platform",
@@ -313,7 +313,7 @@ function seedChannels(
     serverId: mike.id,
   });
 
-  // Studio — cross-functional team space.
+  // Studio, cross-functional team space.
   createUserChannel({
     slug: "studio-motion",
     name: "motion-pack",
@@ -374,7 +374,7 @@ function seedJobs() {
   });
   createJob({
     slug: "side-project-beta-launch",
-    title: "Side Project Beta — launch checklist",
+    title: "Side Project Beta, launch checklist",
     clientName: "Personal",
     status: "active",
     description: "Final pass before opening waitlist signups.",
@@ -383,7 +383,7 @@ function seedJobs() {
   });
   createJob({
     slug: "q3-redesign-spike",
-    title: "Q3 redesign — discovery spike",
+    title: "Q3 redesign, discovery spike",
     clientName: "ACME Co",
     status: "active",
     description: "Two-week scoping pass. Looking at navigation IA + dashboard density.",
@@ -392,7 +392,7 @@ function seedJobs() {
   });
   createJob({
     slug: "studio-motion-pack",
-    title: "Studio motion pack — Q2 deliverable",
+    title: "Studio motion pack, Q2 deliverable",
     clientName: "Studio",
     status: "active",
     description: "Six 4-second loops for the marketing site hero.",
@@ -401,7 +401,7 @@ function seedJobs() {
   });
   createJob({
     slug: "platform-migration-cutover",
-    title: "Platform migration — production cutover",
+    title: "Platform migration, production cutover",
     clientName: "Mike",
     status: "active",
     description: "Final cutover window. Rollback plan attached.",
@@ -443,10 +443,10 @@ function seedDecisions() {
 //   • All seven activity kinds represented so the by-kind pie reads full
 //
 // Deterministic via a seeded PRNG so reseeds look identical across runs
-// (matters for screenshots — no surprise spikes between captures).
+// (matters for screenshots, no surprise spikes between captures).
 
 function makeRng(seed: number) {
-  // Mulberry32 — small, fast, good enough for fixture generation.
+  // Mulberry32, small, fast, good enough for fixture generation.
   let s = seed >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -505,7 +505,7 @@ const REPLY_SAMPLES = [
   "Two structural drifts found, three minor color-token gaps. PR opened.",
   "Walked it. One blocker (DNS propagation), two soft warnings, rollback plan attached.",
   "Three: 'See the live site', 'New numbers inside', 'You asked, we shipped'.",
-  "Slow query in `event_aggregations` — added the missing composite index.",
+  "Slow query in `event_aggregations`, added the missing composite index.",
   "Pulled. CSV in the channel. Conversion is up 3.1% week-over-week.",
   "Migration script in branch `tokens-oklch`. Idempotent, dry-run flag included.",
 ];
@@ -531,7 +531,7 @@ const SERVICE_CHECK_SAMPLES = [
 const SERVICE_DOWN_SAMPLES = [
   { title: "Service degraded: cache-edge", detail: "p99 latency spiked to 1.8s, recovering" },
   { title: "Service stopped: render-worker", detail: "OOM kill, auto-restart attempted" },
-  { title: "Service flapping: ingest-api", detail: "3 restarts in 90s — investigating" },
+  { title: "Service flapping: ingest-api", detail: "3 restarts in 90s, investigating" },
 ];
 
 const APPROVAL_SAMPLES = [
@@ -554,10 +554,10 @@ function seedActivity() {
   const DAY = 24 * HOUR;
   const rng = makeRng(0xC0DEBABE);
 
-  // Day-of-week multiplier — Mon-Thu carry the workload, Friday tapers,
+  // Day-of-week multiplier, Mon-Thu carry the workload, Friday tapers,
   // weekend is a trickle. Sunday=0 in JS.
   const DOW_WEIGHT = [0.3, 1.0, 1.1, 1.0, 0.95, 0.7, 0.35]; // Sun..Sat
-  // Hour-of-day multiplier — bell-shaped around 10am-4pm.
+  // Hour-of-day multiplier, bell-shaped around 10am-4pm.
   const HOUR_WEIGHT = (h: number) => {
     if (h < 6) return 0.05;
     if (h < 9) return 0.2;
@@ -593,7 +593,7 @@ function seedActivity() {
     const dayMid = new Date(now - dayOffset * DAY);
     dayMid.setHours(0, 0, 0, 0);
     const dow = dayMid.getDay();
-    const target = Math.round(40 * DOW_WEIGHT[dow]); // 12–44 per day
+    const target = Math.round(40 * DOW_WEIGHT[dow]); // 12-44 per day
     let placed = 0;
     let attempts = 0;
     while (placed < target && attempts < target * 4) {
@@ -773,7 +773,7 @@ function seedMultiAgentChat() {
       offsetMs: 390000,
       text:
         "Pulled it up. Three things stand out:\n\n" +
-        "1. The hero CTA copy changed last Tuesday — \"Get started\" → \"Start your free trial\". Longer = lower scan rate.\n" +
+        "1. The hero CTA copy changed last Tuesday, \"Get started\" → \"Start your free trial\". Longer = lower scan rate.\n" +
         "2. The plan toggle defaults to \"yearly\" now. New visitors hit a higher number first and bounce.\n" +
         "3. The trust badges row was removed in the same deploy.\n\n" +
         "Want me to write a revert PR for #1 and #3, leave #2 for product to call?",
@@ -792,9 +792,9 @@ function seedMultiAgentChat() {
       offsetMs: 500000,
       text:
         "Three options, ordered from safest to boldest:\n\n" +
-        "• **\"Try it free\"** — short, action-first, removes friction word \"start\".\n" +
-        "• **\"See it in action\"** — softer, lower commitment, good for cold traffic.\n" +
-        "• **\"Start building today\"** — stays in the \"start\" family but adds a verb-object pair, reads more confident.\n\n" +
+        "• **\"Try it free\"**, short, action-first, removes friction word \"start\".\n" +
+        "• **\"See it in action\"**, softer, lower commitment, good for cold traffic.\n" +
+        "• **\"Start building today\"**, stays in the \"start\" family but adds a verb-object pair, reads more confident.\n\n" +
         "I'd run all three against \"Get started\" with even traffic split for a week. Sample size to detect a 5% lift at 95% confidence is ~14k visitors per arm.",
     },
     {
@@ -811,7 +811,7 @@ function seedMultiAgentChat() {
       offsetMs: 660000,
       text:
         "Compared the before/after captures. The trust badges row was replaced by a single \"500+ teams\" line in 60% smaller type. " +
-        "Reads like a conscious simplification, not a regression — but the line lost the logos that did the actual social-proof work. " +
+        "Reads like a conscious simplification, not a regression, but the line lost the logos that did the actual social-proof work. " +
         "Suggest restoring the logo row above the line.",
     },
     {
@@ -828,7 +828,7 @@ function seedMultiAgentChat() {
       offsetMs: 840000,
       text:
         "Both done.\n\n" +
-        "- Revert PR: #2147 — restores hero copy + trust badges + logo row, ready for review.\n" +
+        "- Revert PR: #2147, restores hero copy + trust badges + logo row, ready for review.\n" +
         "- Experiment: `pricing-cta-2026-q2` in the flag dashboard, all four variants registered, traffic split 25/25/25/25.\n\n" +
         "Rolling out the experiment is gated on the revert landing first, so confirm merge order is revert → experiment-on.",
     },

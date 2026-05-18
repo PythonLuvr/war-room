@@ -14,7 +14,7 @@ export const openaiApi: AgentAdapter = {
     memory: false,
     fileAccess: false,
     notes:
-      "Direct API call to OpenAI. Chat only — no tools, no file access. Stateless: each message starts fresh.",
+      "Direct API call to OpenAI. Chat only, no tools, no file access. Stateless: each message starts fresh.",
   },
   isConfigured() {
     return !!(getSetting("agent.api.openai.key") || process.env.OPENAI_API_KEY);

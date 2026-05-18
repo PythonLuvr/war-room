@@ -135,7 +135,7 @@ export function WarRoomDashboard() {
       <WelcomeBanner />
       <DashboardHeader checkedAt={data?.checkedAt} />
 
-      {/* KPI strip — Tier 1: Pulse */}
+      {/* KPI strip, Tier 1: Pulse */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-7">
         <Kpi
           icon={<FolderOpen className="w-4 h-4" />}
@@ -196,7 +196,7 @@ export function WarRoomDashboard() {
         />
       </div>
 
-      {/* Active Jobs panel — the heart of team coordination */}
+      {/* Active Jobs panel, the heart of team coordination */}
       <Panel
         title="Active jobs"
         subtitle="Click to open · auto-creates personal channels"
@@ -211,7 +211,7 @@ export function WarRoomDashboard() {
         <ActiveJobsPanel />
       </Panel>
 
-      {/* Boardroom — meeting + voice */}
+      {/* Boardroom, meeting + voice */}
       <BoardroomPanel
         expandedPanel={expandedPanel}
         setExpandedPanel={setExpandedPanel}
@@ -409,7 +409,7 @@ export function WarRoomDashboard() {
         </Panel>
       </div>
 
-      {/* Agent flow — visual / secondary */}
+      {/* Agent flow, visual / secondary */}
       <Panel
         title="Agent flow"
         subtitle="Team graph · click an agent to enter"
@@ -426,18 +426,12 @@ export function WarRoomDashboard() {
 
       {/* Quick actions */}
       <Panel title="Quick actions" subtitle="Common jumps" anchorId="quick-actions">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3">
           <ActionTile
             icon={<Plus className="w-4 h-4" />}
             label="New brief"
             hint="Add a client engagement"
             href="/c/system/approvals"
-          />
-          <ActionTile
-            icon={<Bot className="w-4 h-4" />}
-            label="Agent traffic"
-            hint="Cross-agent activity"
-            href="/c/user/s6-agent-traffic"
           />
           <ActionTile
             icon={<Server className="w-4 h-4" />}
@@ -480,7 +474,7 @@ function Kpi({
         </div>
       </div>
       <div className="text-2xl font-semibold text-neutral-100 leading-none">
-        {value === undefined ? <span className="text-neutral-700">—</span> : value}
+        {value === undefined ? <span className="text-neutral-700">-</span> : value}
       </div>
     </>
   );
@@ -603,7 +597,7 @@ function Panel({
       >
         {header(false)}
         <div className={fullscreen ? "p-8 text-center text-xs text-neutral-600" : ""}>
-          {fullscreen ? "Currently expanded — press Esc to restore" : children}
+          {fullscreen ? "Currently expanded, press Esc to restore" : children}
         </div>
       </div>
 
@@ -733,7 +727,7 @@ function Empty({ text }: { text: string }) {
   return <div className="px-4 py-8 text-center text-xs text-neutral-600">{text}</div>;
 }
 
-// Deterministic skeleton widths — Math.random in render breaks React purity
+// Deterministic skeleton widths, Math.random in render breaks React purity
 // (every render re-rolls and produces a layout shift). The shimmer is the
 // thing readers notice; the exact widths only need to look "varied enough".
 const SKELETON_BAR_HEIGHTS = [40, 78, 32, 65, 50, 72, 45];
