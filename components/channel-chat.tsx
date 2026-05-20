@@ -6,6 +6,7 @@ import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles, Pin as PinIcon } from "lucide-react";
 import { localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
+import { chatLogProps, composerProps, iconButton, statusRegionProps } from "@/lib/a11y";
 
 const LOCAL = localMember();
 
@@ -308,7 +309,7 @@ export function ChannelChat({
             description={description}
           />
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1" {...chatLogProps}>
             {items.map((it, i) => (
               <ChatMessage
                 key={it.id}
@@ -521,12 +522,15 @@ function ChatMessage({
           <Dots />
         )}
         {item.kind === "assistant" && item.streaming && item.text && (
-          <span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-400/70 animate-pulse align-middle rounded-sm" />
+          <span
+            className="inline-block w-1.5 h-4 ml-0.5 bg-amber-400/70 animate-pulse align-middle rounded-sm"
+            {...statusRegionProps}
+          />
         )}
       </div>
       <button
         onClick={pinThis}
-        title="Pin this message"
+        {...iconButton("Fijar mensaje")}
         className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1 right-2 p-1.5 rounded text-neutral-500 hover:text-amber-300 hover:bg-neutral-900/60"
       >
         <PinIcon className="w-3.5 h-3.5" />
@@ -611,7 +615,7 @@ function Composer({
       <span aria-hidden className="hairline-h top" />
       <div className="flex items-end gap-2 bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 focus-within:border-neutral-700 transition-colors">
         <button
-          title="Slash commands (coming soon)"
+          {...iconButton("Comandos de barra")}
           className="w-8 h-8 shrink-0 rounded-md hover:bg-neutral-800 text-neutral-500 flex items-center justify-center"
         >
           <Slash className="w-4 h-4" />
@@ -629,7 +633,11 @@ function Composer({
           placeholder={`Message #${channelName}`}
           rows={1}
           className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-neutral-600 py-1.5 max-h-40"
+          {...composerProps(channelName)}
         />
+        <span id="chat-composer-hint" className="sr-only">
+          Intro para enviar, Mayús+Intro para nueva línea
+        </span>
         {streaming ? (
           <button
             onClick={onStop}

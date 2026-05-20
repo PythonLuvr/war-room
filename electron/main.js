@@ -14,6 +14,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
 
+
 const net = require("net");
 
 const isDev = !app.isPackaged;
@@ -120,6 +121,7 @@ async function createMainWindow() {
     backgroundColor: "#0a0a0a",
     autoHideMenuBar: true,
     title: "War Room",
+    accessibleTitle: "War Room — panel de equipo",
     show: false,
     webPreferences: {
       contextIsolation: true,
@@ -371,6 +373,11 @@ if (!hasSingleInstanceLock) {
   });
 
   app.whenReady().then(async () => {
+    // WHY: must be called after ready. Without this, Chromium only builds the
+    // accessibility tree when a screen reader is already running at launch.
+    // VoiceOver started after the app would see an empty tree.
+    app.setAccessibilitySupportEnabled(true);
+
     await createMainWindow();
     await createMiniWindow();
 

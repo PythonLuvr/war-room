@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Hash, Lock, FolderOpen, X, Folder } from "lucide-react";
 import { FolderPicker } from "@/components/folder-picker";
+import { modalProps } from "@/lib/a11y";
+import { t } from "@/lib/i18n/es";
 
 export type ChannelDraft = {
   name: string;
@@ -70,21 +72,23 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
       <div
         ref={ref}
         onClick={(e) => e.stopPropagation()}
+        {...modalProps(mode === "create" ? t.channel.createChannel : t.channel.renameChannel)}
         className="relative bg-[#0d0d0f] border-l border-neutral-800 w-full max-w-md h-full shadow-2xl flex flex-col drawer-slide"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
           <div>
             <h2 className="text-lg font-semibold">
-              {mode === "create" ? "Create channel" : "Edit channel"}
+              {mode === "create" ? t.channel.createChannel : t.channel.renameChannel}
             </h2>
             <p className="text-xs text-neutral-500 mt-0.5">
               {mode === "create" && groupLabel
-                ? `In ${serverName ? `${serverName} → ` : ""}${groupLabel}`
-                : "Name, working directory, privacy"}
+                ? `En ${serverName ? `${serverName} → ` : ""}${groupLabel}`
+                : t.channel.editChannelSubtitle}
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label={t.settings.close}
             className="text-neutral-500 hover:text-neutral-300 p-1"
           >
             <X className="w-4 h-4" />
@@ -93,7 +97,7 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           <div>
-            <Label>Channel name</Label>
+            <Label>{t.channel.channelName}</Label>
             <div className="relative">
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-600">
                 {isPrivate ? <Lock className="w-3.5 h-3.5 text-amber-300" /> : <Hash className="w-3.5 h-3.5" />}
@@ -112,11 +116,11 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
           </div>
 
           <div>
-            <Label>Description</Label>
+            <Label>{t.channel.channelDescription}</Label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="One sentence on what this channel is for."
+              placeholder="Una frase sobre para qué es este canal."
               rows={2}
               className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700 resize-none"
             />
@@ -124,9 +128,9 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
 
           <div>
             <div className="flex items-center justify-between">
-              <Label>Working directory</Label>
+              <Label>{t.channel.workingDirectory}</Label>
               <span className="text-[10px] text-neutral-600">
-                Where the agent runs for this channel
+                {t.channel.workingDirectoryHint}
               </span>
             </div>
             <div className="flex items-stretch gap-2">
@@ -142,11 +146,11 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                title="Browse folders"
+                title={t.channel.browseFolders}
                 className="px-2.5 rounded-md border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 flex items-center gap-1 text-xs"
               >
                 <FolderOpen className="w-3.5 h-3.5" />
-                Browse
+                {t.channel.browseFolders}
               </button>
             </div>
             {Object.keys(groupedPicks).length > 0 && (
@@ -180,21 +184,21 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
           </div>
 
           <div>
-            <Label>Privacy</Label>
+            <Label>{t.channel.privacy}</Label>
             <div className="flex gap-2">
               <PrivacyOption
                 active={!isPrivate}
                 onClick={() => setIsPrivate(false)}
                 icon={<Hash className="w-3.5 h-3.5" />}
-                title="Public"
-                hint="Everyone in the server"
+                title={t.channel.privacyPublic}
+                hint={t.channel.privacyPublicHint}
               />
               <PrivacyOption
                 active={isPrivate}
                 onClick={() => setIsPrivate(true)}
                 icon={<Lock className="w-3.5 h-3.5" />}
-                title="Private"
-                hint="Only you (for now)"
+                title={t.channel.privacyPrivate}
+                hint={t.channel.privacyPrivateHint}
                 amber
               />
             </div>
@@ -206,14 +210,14 @@ export function ChannelDialog({ mode, initial, groupLabel, serverName, onSave, o
             onClick={onClose}
             className="px-3 py-2 text-sm rounded-md border border-neutral-800 hover:bg-neutral-900"
           >
-            Cancel
+            {t.settings.cancel}
           </button>
           <button
             disabled={!name.trim() || saving}
             onClick={submit}
             className="px-4 py-2 text-sm rounded-md bg-neutral-100 text-neutral-900 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving…" : mode === "create" ? "Create" : "Save changes"}
+            {saving ? t.settings.saving : mode === "create" ? t.channel.createChannel : t.settings.saveChanges}
           </button>
         </div>
       </div>

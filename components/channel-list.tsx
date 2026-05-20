@@ -43,6 +43,7 @@ import { ChannelDialog, type ChannelDraft } from "./channel-dialog";
 import { DashboardWidgets } from "./dashboard-widgets";
 import type { ChannelGroup, Channel } from "@/lib/channels";
 import { useServers } from "@/lib/server-context";
+import { iconButton, ariaExpanded } from "@/lib/a11y";
 
 const KIND_ICONS = {
   home: Home,
@@ -288,6 +289,7 @@ export function ChannelList() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search channels"
+            aria-label="Buscar canales"
             className="w-full bg-neutral-900 border border-neutral-800 rounded-md text-xs pl-7 pr-2 py-1.5 focus:outline-none focus:border-neutral-700 placeholder:text-neutral-600"
           />
         </div>
@@ -306,6 +308,7 @@ export function ChannelList() {
                   <div className="flex items-center gap-1 px-3 group">
                     <button
                       onClick={() => setCollapsed({ ...collapsed, [g.label]: !isCol })}
+                      {...ariaExpanded(!isCol, g.label)}
                       className="flex items-center gap-1 py-1 text-xs uppercase tracking-wider font-semibold text-neutral-500 hover:text-neutral-300 flex-1"
                     >
                       {isCol ? (
@@ -317,7 +320,7 @@ export function ChannelList() {
                       <span className="ml-auto text-neutral-700">{g.channels.length}</span>
                     </button>
                     <button
-                      title={`Create channel in ${g.label}`}
+                      {...iconButton(`Crear canal en ${g.label}`)}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         setCollapsed({ ...collapsed, [g.label]: false });

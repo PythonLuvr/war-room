@@ -103,3 +103,16 @@ body::before {
 .drawer-fade {
   animation: drawer-fade-in 0.15s ease-out;
 }
+
+/* Visually hidden utility — content readable by screen readers, invisible on screen */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

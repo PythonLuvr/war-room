@@ -39,6 +39,11 @@ if (process.env.WAR_ROOM_ENV_FILE) loadEnvFile(process.env.WAR_ROOM_ENV_FILE);
 loadEnvFile(path.join(os.homedir(), ".war-room", ".env"));
 
 const nextConfig: NextConfig = {
+  // WHY: without this, Next.js detects the home directory lockfile and treats
+  // ~/  as the monorepo root. The standalone server.js ends up at
+  // standalone/clawd/repos/war-room/server.js instead of standalone/server.js,
+  // breaking the Electron main.js path lookup.
+  outputFileTracingRoot: __dirname,
   // Standalone output bundles a self-contained server.js + a minimal node_modules
   // tree. This is what the packaged Electron app launches as the API server.
   output: "standalone",

@@ -13,6 +13,7 @@ import {
   Check,
   Sparkles,
   ChevronDown,
+  FolderOpen,
 } from "lucide-react";
 import type { Channel } from "@/lib/channels";
 import { FilesPanel } from "./files-panel";
@@ -72,6 +73,9 @@ export function ChannelHeader({
             contextChars={channel.contextChars ?? 3000}
             frameworkPin={channel.frameworkPreset ?? null}
           />
+        )}
+        {channel.projectPath && (
+          <OpenInEditorBtn projectPath={channel.projectPath} />
         )}
         <IconBtn title="Files" onClick={() => setFilesOpen(true)}>
           <Paperclip className="w-4 h-4" />
@@ -465,6 +469,38 @@ function AgentChip({
             route a single turn elsewhere. Unconfigured agents (grey dot) will fail until you
             set them up under Settings → Agent.
           </div>
+          {adapters.length > 0 && (
+            <div className="px-3 py-2 border-t border-neutral-900">
+              <div className="text-[9px] uppercase tracking-wider text-neutral-600 mb-1.5">
+                @mention handles
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {adapters.map((a) => {
+                  const stem = a.id.replace(/-(cli|api)$/i, "");
+                  const collides = adapters.filter(
+                    (x) => x.id.replace(/-(cli|api)$/i, "") === stem,
+                  ).length > 1;
+                  const handle = collides ? `${stem}.${a.kind}` : stem;
+                  return (
+                    <span
+                      key={a.id}
+                      title={a.name}
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                        a.isConfigured
+                          ? "bg-neutral-800 text-neutral-300"
+                          : "bg-neutral-900 text-neutral-600 line-through"
+                      }`}
+                    >
+                      @{handle}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="text-[9px] text-neutral-700 mt-1.5 leading-snug">
+                Strikethrough means not configured. Enable shared context to let agents see each other&apos;s replies.
+              </div>
+            </div>
+          )}
 
           <div className="px-3 py-2 border-t border-neutral-800 text-[10px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-amber-400" />
@@ -726,6 +762,58 @@ function FrameworkSwitchModal({
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Open-in-editor button ───────────────────────────────────────────────────
+//
+// Sits next to the agent chip when the channel has a projectPath.
+// Probes available editors once on mount; clicking opens the project folder
+// in the first editor found (Antigravity > Cursor > VS Code > Windsurf > Zed).
+
+function OpenInEditorBtn({ projectPath }: { projectPath: string }) {
+  const [editorName, setEditorName] = useState<string | null>(null);
+  const [opening, setOpening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/fs/open-editor")
+      .then((r) => r.json())
+      .then((d: { editors: Array<{ name: string }> }) => {
+        setEditorName(d.editors[0]?.name ?? null);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!editorName) return null;
+
+  const open = async () => {
+    setOpening(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/fs/open-editor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      if (!r.ok) {
+        const d = (await r.json()) as { error?: string };
+        setError(d.error ?? "Could not open editor");
+      }
+    } catch {
+      setError("Could not open editor");
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return (
+    <IconBtn
+      title={error ?? `Open in ${editorName}`}
+      onClick={opening ? undefined : open}
+    >
+      <FolderOpen className={`w-4 h-4 ${error ? "text-red-400" : ""}`} />
+    </IconBtn>
   );
 }
 

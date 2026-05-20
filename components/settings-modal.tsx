@@ -18,6 +18,8 @@ import {
 import { UploadButton } from "@/components/upload-button";
 import { HostingPanel } from "@/components/settings-hosting-panel";
 import { JoinForm } from "@/components/settings-hosting-join-form";
+import { modalProps } from "@/lib/a11y";
+import { t } from "@/lib/i18n/es";
 
 export type SettingsTab = "general" | "agent" | "sidebar" | "boardroom" | "sync" | "about";
 
@@ -52,14 +54,15 @@ export function SettingsModal({
     <div className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
+        {...modalProps(t.settings.title)}
         className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
           <div className="flex items-center gap-2">
             <SettingsIcon className="w-5 h-5 text-neutral-400" />
-            <h2 className="text-lg font-semibold">Settings</h2>
+            <h2 className="text-lg font-semibold">{t.settings.title}</h2>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200 p-1">
+          <button onClick={onClose} aria-label={t.settings.close} className="text-neutral-500 hover:text-neutral-200 p-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -68,22 +71,22 @@ export function SettingsModal({
           {/* Tab rail */}
           <div className="w-48 shrink-0 border-r border-neutral-800 py-3 flex flex-col">
             <TabButton current={tab} value="general" icon={<SettingsIcon className="w-3.5 h-3.5" />} onSelect={setTab}>
-              General
+              {t.settings.tabs.general}
             </TabButton>
             <TabButton current={tab} value="agent" icon={<Bot className="w-3.5 h-3.5" />} onSelect={setTab}>
-              Agent
+              {t.settings.tabs.agent}
             </TabButton>
             <TabButton current={tab} value="sidebar" icon={<Users className="w-3.5 h-3.5" />} onSelect={setTab}>
-              Sidebar
+              {t.settings.tabs.sidebar}
             </TabButton>
             <TabButton current={tab} value="boardroom" icon={<Users className="w-3.5 h-3.5" />} onSelect={setTab}>
-              Boardroom
+              {t.settings.tabs.boardroom}
             </TabButton>
             <TabButton current={tab} value="sync" icon={<Cloud className="w-3.5 h-3.5" />} onSelect={setTab}>
-              Sync
+              {t.settings.tabs.sync}
             </TabButton>
             <TabButton current={tab} value="about" icon={<Info className="w-3.5 h-3.5" />} onSelect={setTab}>
-              About
+              {t.settings.tabs.about}
             </TabButton>
           </div>
 
@@ -244,7 +247,7 @@ function ProfileEditorRow() {
             disabled={!loaded || saving}
             className="px-3 py-1.5 text-xs rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 disabled:opacity-40"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t.settings.saving : t.settings.save}
           </button>
         </div>
       </div>
@@ -501,7 +504,7 @@ function AgentTab() {
           disabled={saving}
           className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40"
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t.settings.saving : t.settings.saveChanges}
         </button>
       </div>
     </div>
@@ -720,7 +723,7 @@ function ProfileEditor({
                   disabled={saving}
                   className="px-3 py-1.5 text-xs rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 disabled:opacity-40"
                 >
-                  {saving ? "Saving..." : "Save profile"}
+                  {saving ? t.settings.saving : t.settings.saveProfile}
                 </button>
               </div>
             </>
@@ -1206,7 +1209,7 @@ function SyncTab() {
             disabled={!loaded || saving}
             className="px-3 py-1.5 text-xs rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40"
           >
-            {saving ? "Saving..." : "Save URL"}
+            {saving ? t.settings.saving : "Guardar URL"}
           </button>
         </div>
       </Section>

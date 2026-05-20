@@ -9,7 +9,19 @@ const path = require("path");
 exports.default = async function afterPack(context) {
   const projectRoot = context.packager.info.projectDir;
   const appOutDir = context.appOutDir;
-  const dest = path.join(appOutDir, "resources", "app", ".next", "standalone");
+  const productName = context.packager.appInfo.productName;
+
+  // WHY: on macOS, electron-builder places the .app bundle at
+  // appOutDir/<ProductName>.app/Contents/Resources/, NOT at
+  // appOutDir/resources/. The old path left the standalone server outside
+  // the .app bundle, so process.resourcesPath could not find it and the
+  // embedded Next.js server never started.
+  const resourcesDir =
+    process.platform === "darwin"
+      ? path.join(appOutDir, `${productName}.app`, "Contents", "Resources")
+      : path.join(appOutDir, "resources");
+
+  const dest = path.join(resourcesDir, "app", ".next", "standalone");
 
   // Wipe whatever electron-builder copied first (it may have partial contents).
   if (fs.existsSync(dest)) {
