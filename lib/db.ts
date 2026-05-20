@@ -359,6 +359,13 @@ export function migrate(d: Database.Database) {
   // user's behalf. Default on for fresh installs (seeded below) so
   // the feature is discoverable.
   migrateAddColumn(d, "channel_overrides", "primer_enabled", "INTEGER");
+  // Sub-agent: when adapter is claude-cli, which named agent to invoke via
+  // --agent flag. NULL = Claude picks the best agent itself.
+  migrateAddColumn(d, "channel_overrides", "sub_agent_id", "TEXT");
+  // Supervisor: lightweight meta-agent that watches the channel and injects
+  // improvement suggestions every N user messages. NULL agent = disabled.
+  migrateAddColumn(d, "channel_overrides", "supervisor_agent_id", "TEXT");
+  migrateAddColumn(d, "channel_overrides", "supervisor_every_n", "INTEGER NOT NULL DEFAULT 0");
   migrateAddColumn(d, "decisions", "status", "TEXT NOT NULL DEFAULT 'open'");
   migrateAddColumn(d, "announcements", "status", "TEXT NOT NULL DEFAULT 'open'");
   // is_personal marks the user's local "Personal" workspace, the server
@@ -703,6 +710,66 @@ export function getChannelOverrideAgent(channelId: string): string | null {
     .prepare(`SELECT agent_backend FROM channel_overrides WHERE channel_id = ?`)
     .get(channelId) as { agent_backend: string | null } | undefined;
   return row?.agent_backend ?? null;
+}
+
+// ─── Sub-agent selection ────────────────────────────────────────────────────
+
+/** Which named sub-agent to invoke via --agent for claude-cli in this channel. */
+export function getChannelSubAgent(channelId: string): string | null {
+  const row = db()
+    .prepare(`SELECT sub_agent_id FROM channel_overrides WHERE channel_id = ?`)
+    .get(channelId) as { sub_agent_id: string | null } | undefined;
+  return row?.sub_agent_id ?? null;
+}
+
+export function setChannelSubAgent(channelId: string, subAgentId: string | null) {
+  const now = Date.now();
+  db()
+    .prepare(
+      `INSERT INTO channel_overrides(channel_id, sub_agent_id, created_at, updated_at)
+       VALUES(?, ?, ?, ?)
+       ON CONFLICT(channel_id) DO UPDATE SET sub_agent_id = excluded.sub_agent_id, updated_at = excluded.updated_at`,
+    )
+    .run(channelId, subAgentId, now, now);
+}
+
+// ─── Supervisor settings ─────────────────────────────────────────────────────
+
+export type SupervisorSettings = {
+  agentId: string | null;
+  everyN: number;
+};
+
+export function getChannelSupervisor(channelId: string): SupervisorSettings {
+  const row = db()
+    .prepare(
+      `SELECT supervisor_agent_id, supervisor_every_n FROM channel_overrides WHERE channel_id = ?`,
+    )
+    .get(channelId) as
+    | { supervisor_agent_id: string | null; supervisor_every_n: number | null }
+    | undefined;
+  return {
+    agentId: row?.supervisor_agent_id ?? null,
+    everyN: row?.supervisor_every_n ?? 0,
+  };
+}
+
+export function setChannelSupervisor(
+  channelId: string,
+  agentId: string | null,
+  everyN: number,
+) {
+  const now = Date.now();
+  db()
+    .prepare(
+      `INSERT INTO channel_overrides(channel_id, supervisor_agent_id, supervisor_every_n, created_at, updated_at)
+       VALUES(?, ?, ?, ?, ?)
+       ON CONFLICT(channel_id) DO UPDATE SET
+         supervisor_agent_id = excluded.supervisor_agent_id,
+         supervisor_every_n = excluded.supervisor_every_n,
+         updated_at = excluded.updated_at`,
+    )
+    .run(channelId, agentId, everyN, now, now);
 }
 
 // ─── Cross-agent context settings ──────────────────────────────────────────

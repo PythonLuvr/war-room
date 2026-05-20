@@ -34,7 +34,8 @@ type ChatItem =
       agentId: string | null;
     }
   | { kind: "tool"; name: string; input: unknown; id: string; ts: number }
-  | { kind: "system"; text: string; id: string; ts: number };
+  | { kind: "system"; text: string; id: string; ts: number }
+  | { kind: "supervisor"; text: string; agentId: string; id: string; ts: number };
 
 // Stable color per adapter so the same agent always reads the same way
 // across the chat. Mirrors the rotation used in the boardroom.
@@ -107,6 +108,10 @@ export function ChannelChat({
   const [userIconUrl, setUserIconUrl] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Supervisor: count user turns and fire every N.
+  const userTurnCountRef = useRef(0);
+  const supervisorEveryNRef = useRef(0);
+  const supervisorAgentIdRef = useRef<string | null>(null);
 
   // Adapter id → meta lookup, used to label + brand assistant bubbles.
   const adapterMap = useMemo(() => {
@@ -130,6 +135,18 @@ export function ChannelChat({
       .then((d: { iconUrl: string }) => setUserIconUrl(d.iconUrl ?? ""))
       .catch(() => {});
   }, [identityVersion]);
+
+  // Load supervisor settings once per channel so the chat knows when to trigger.
+  useEffect(() => {
+    userTurnCountRef.current = 0;
+    fetch(`/api/supervisor?channelId=${encodeURIComponent(channelId)}`)
+      .then((r) => r.json())
+      .then((d: { agentId: string | null; everyN: number }) => {
+        supervisorAgentIdRef.current = d.agentId;
+        supervisorEveryNRef.current = d.everyN ?? 0;
+      })
+      .catch(() => {});
+  }, [channelId]);
 
   useEffect(() => {
     setLoadingHistory(true);
@@ -226,6 +243,34 @@ export function ChannelChat({
       );
       setStreaming(false);
       abortRef.current = null;
+
+      // Supervisor check: fire if agent is configured and N turns reached.
+      userTurnCountRef.current += 1;
+      const everyN = supervisorEveryNRef.current;
+      const supervisorAgent = supervisorAgentIdRef.current;
+      if (supervisorAgent && everyN > 0 && userTurnCountRef.current % everyN === 0) {
+        fetch("/api/supervisor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelId, run: true }),
+        })
+          .then((r) => r.json())
+          .then((d: { note?: string; agentId?: string }) => {
+            if (d.note) {
+              setItems((cur) => [
+                ...cur,
+                {
+                  kind: "supervisor",
+                  text: d.note!,
+                  agentId: d.agentId ?? supervisorAgent,
+                  id: `sv-${Date.now()}`,
+                  ts: Date.now(),
+                },
+              ]);
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [input, projectPath, streaming, channelId]);
 
@@ -420,6 +465,19 @@ function ChatMessage({
     return (
       <div className="text-xs text-amber-400/80 border-l-2 border-amber-900/50 pl-3 py-1 ml-12 my-2">
         {item.text}
+      </div>
+    );
+  }
+  if (item.kind === "supervisor") {
+    return (
+      <div className="mx-4 my-3 px-3 py-2.5 rounded-lg border border-violet-500/30 bg-violet-500/5 flex gap-2.5">
+        <Sparkles className="w-3.5 h-3.5 text-violet-400 mt-0.5 shrink-0" />
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-violet-500 mb-1">
+            {item.agentId} · supervisor note
+          </div>
+          <div className="text-xs text-violet-200/80 leading-relaxed">{item.text}</div>
+        </div>
       </div>
     );
   }
