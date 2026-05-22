@@ -61,7 +61,7 @@ test("parse ignores surrounding chatter (Slack quote markers, signatures)", () =
     `> Token: ${SAMPLE.token}`,
     ">",
     "> Let me know if it doesn't work.",
-    "> - EJ",
+    "> - Sam",
   ].join("\n");
   assert.deepEqual(parseInvite(text), SAMPLE);
 });

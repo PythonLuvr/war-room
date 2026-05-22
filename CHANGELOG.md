@@ -4,6 +4,28 @@ All notable changes to War Room are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-05-21
+
+### Added
+- **Meeting transcripts.** An optional WhisperX worker
+  (`tools/whisperx-transcriber/`) joins a boardroom call as a hidden,
+  listen-only participant, records each person's audio on its own
+  track, and after the call saves one speaker-labelled transcript into
+  the new boardroom "Meeting transcripts" panel. Per-track recording
+  means speaker labels are exact, no diarization guesswork.
+- New `meeting_transcripts` table and `/api/livekit/transcript` route.
+  The worker authenticates its write with the LiveKit API secret as a
+  bearer token; the panel reads transcripts over a plain GET.
+- Transcripts sync across teammates via `transcript.created` /
+  `transcript.deleted` events.
+- `docs/voice-setup.md` walks through both the self-hosted LiveKit
+  setup and the optional transcriber.
+
+### Notes
+- Voice transcription is an opt-in module. A fresh clone runs fully
+  without it: the panel just shows an empty state, and the worker is a
+  separate Python process that ships outside the app build.
+
 ## [0.16.0] - 2026-05-18
 
 ### Added

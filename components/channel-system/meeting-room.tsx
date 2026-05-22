@@ -487,7 +487,7 @@ function ParticipantTile({ tile, compact }: { tile: Tile; compact?: boolean }) {
       : null;
   const palette = accent && accent in COLOR_TABLE
     ? COLOR_TABLE[accent as keyof typeof COLOR_TABLE]
-    : (PAIR_COLOR[tile.pair] ?? PAIR_COLOR.ej);
+    : (PAIR_COLOR[tile.pair] ?? COLOR_TABLE.amber);
   const agentIconUrl = isAgent
     ? (tile as Extract<Tile, { kind: "agent" }>).iconUrl
     : null;

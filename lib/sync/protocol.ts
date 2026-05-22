@@ -60,7 +60,9 @@ export type EventKind =
   | "sidebar_role.deleted"
   | "sidebar_assignment.set"
   | "agent_profile.set"
-  | "agent_profile.deleted";
+  | "agent_profile.deleted"
+  | "transcript.created"
+  | "transcript.deleted";
 
 // Wrapper applied to every event going across the wire. `seq` is
 // server-assigned, monotonic per workspace. `clientId` lets a client

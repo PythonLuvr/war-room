@@ -63,6 +63,11 @@ export function applyEvent(event: SyncEvent): number {
     case "agent_profile.deleted":
       return deleteAgentProfileRow(event);
 
+    case "transcript.created":
+      return upsertTranscript(event);
+    case "transcript.deleted":
+      return deleteRow("meeting_transcripts", event.data.id as number);
+
     default:
       return 0;
   }
@@ -360,6 +365,45 @@ function upsertAnnouncement(e: SyncEvent): number {
          status = excluded.status`,
     )
     .run(row.id, row.channel_id, row.title, row.body, row.author, row.status, row.created_at);
+  return r.changes;
+}
+
+function upsertTranscript(e: SyncEvent): number {
+  const row = e.data as {
+    id: number;
+    room: string;
+    title: string;
+    body: string;
+    participants_json: string | null;
+    started_at: number | null;
+    ended_at: number | null;
+    duration_seconds: number | null;
+    created_at: number;
+  };
+  const r = db()
+    .prepare(
+      `INSERT INTO meeting_transcripts(id, room, title, body, participants_json, started_at, ended_at, duration_seconds, created_at)
+       VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         room = excluded.room,
+         title = excluded.title,
+         body = excluded.body,
+         participants_json = excluded.participants_json,
+         started_at = excluded.started_at,
+         ended_at = excluded.ended_at,
+         duration_seconds = excluded.duration_seconds`,
+    )
+    .run(
+      row.id,
+      row.room,
+      row.title,
+      row.body,
+      row.participants_json,
+      row.started_at,
+      row.ended_at,
+      row.duration_seconds,
+      row.created_at,
+    );
   return r.changes;
 }
 

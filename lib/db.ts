@@ -318,6 +318,24 @@ export function migrate(d: Database.Database) {
       created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at DESC);
+
+    -- Saved meeting transcripts. Written by the optional WhisperX worker
+    -- after a boardroom call ends; read by the boardroom transcripts
+    -- panel. participants_json is a JSON string array of speaker labels.
+    -- Empty on a fresh install: voice transcription is an opt-in module
+    -- (see docs/voice-setup.md), so the panel just shows an empty state.
+    CREATE TABLE IF NOT EXISTS meeting_transcripts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      room TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      participants_json TEXT,
+      started_at INTEGER,
+      ended_at INTEGER,
+      duration_seconds INTEGER,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_transcripts_created ON meeting_transcripts(created_at DESC);
   `);
 
   migrateClaudeSessionsAdapterId(d);
@@ -1440,6 +1458,69 @@ export function updateKnowledge(
 
 export function deleteKnowledge(id: number) {
   db().prepare(`DELETE FROM knowledge_entries WHERE id = ?`).run(id);
+}
+
+// Meeting transcripts (written by the optional WhisperX worker)
+export type MeetingTranscriptRow = {
+  id: number;
+  room: string;
+  title: string;
+  body: string;
+  participants_json: string | null;
+  started_at: number | null;
+  ended_at: number | null;
+  duration_seconds: number | null;
+  created_at: number;
+};
+
+export function listMeetingTranscripts(withBody = false): MeetingTranscriptRow[] {
+  const cols = withBody
+    ? "*"
+    : "id, room, title, '' as body, participants_json, started_at, ended_at, duration_seconds, created_at";
+  return db()
+    .prepare(`SELECT ${cols} FROM meeting_transcripts ORDER BY created_at DESC LIMIT 100`)
+    .all() as MeetingTranscriptRow[];
+}
+
+export function getMeetingTranscript(id: number): MeetingTranscriptRow | undefined {
+  return db()
+    .prepare(`SELECT * FROM meeting_transcripts WHERE id = ?`)
+    .get(id) as MeetingTranscriptRow | undefined;
+}
+
+export function createMeetingTranscript(input: {
+  room: string;
+  title: string;
+  body: string;
+  participants?: string[];
+  startedAt?: number | null;
+  endedAt?: number | null;
+  durationSeconds?: number | null;
+}): MeetingTranscriptRow {
+  const res = db()
+    .prepare(
+      `INSERT INTO meeting_transcripts(room, title, body, participants_json, started_at, ended_at, duration_seconds, created_at)
+       VALUES(?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      input.room,
+      input.title,
+      input.body,
+      input.participants && input.participants.length
+        ? JSON.stringify(input.participants)
+        : null,
+      input.startedAt ?? null,
+      input.endedAt ?? null,
+      input.durationSeconds ?? null,
+      Date.now(),
+    );
+  return db()
+    .prepare(`SELECT * FROM meeting_transcripts WHERE id = ?`)
+    .get(Number(res.lastInsertRowid)) as MeetingTranscriptRow;
+}
+
+export function deleteMeetingTranscript(id: number) {
+  db().prepare(`DELETE FROM meeting_transcripts WHERE id = ?`).run(id);
 }
 
 // Channel files

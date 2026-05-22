@@ -79,6 +79,8 @@ bash tools/install-livekit.sh
 
 The script installs the LiveKit binary, generates an API key and secret, writes `/etc/livekit.yaml`, opens the firewall, optionally configures an nginx vhost when `LIVEKIT_DOMAIN` is set, and registers the server under PM2 so it survives reboots. At the end it prints three env lines to paste into `~/.war-room/.env` on each teammate's machine.
 
+Optionally, the [WhisperX transcriber](./tools/whisperx-transcriber/) can join a call as a hidden listener and save a speaker-labelled transcript into the boardroom afterward. Full walkthrough for both: [`docs/voice-setup.md`](./docs/voice-setup.md).
+
 ## Build from source
 
 ```bash
@@ -106,6 +108,7 @@ Not a per-seat billing target. Forever AGPL, forever self-hostable, no enterpris
 
 | Topic | Doc |
 |---|---|
+| Voice + transcription setup | [`docs/voice-setup.md`](./docs/voice-setup.md) |
 | Sync hosting modes | [`docs/sync-hosting.md`](./docs/sync-hosting.md) |
 | Sync protocol details | [`SYNC.md`](./SYNC.md) |
 | Contributing | [`CONTRIBUTING.md`](./CONTRIBUTING.md) |

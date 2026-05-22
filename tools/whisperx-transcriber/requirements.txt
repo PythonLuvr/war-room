@@ -1,0 +1,7 @@
+# War Room WhisperX transcriber, optional voice module.
+# Python 3.10+ recommended. See docs/voice-setup.md.
+livekit~=0.18
+livekit-api~=0.8
+whisperx~=3.1
+requests~=2.32
+python-dotenv~=1.0

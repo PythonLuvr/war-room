@@ -32,6 +32,7 @@ import { PulseDot } from "@/components/pulse-dot";
 import { AgentFlow } from "./agent-flow";
 import { MeetingRoom } from "./meeting-room";
 import { BoardroomChat } from "./boardroom-chat";
+import { MeetingTranscripts } from "./meeting-transcripts";
 import { ActiveJobsPanel } from "./active-jobs-panel";
 import { colorForPath } from "@/lib/workspace-color";
 import { useMeeting } from "@/lib/meeting-context";
@@ -855,6 +856,7 @@ function BoardroomPanel({
         </div>
         {chatOpen && (
           <div className="md:w-96 lg:w-[28rem] shrink-0 border-t md:border-t-0 border-neutral-900 flex flex-col min-h-0">
+            <MeetingTranscripts />
             <BoardroomChat />
           </div>
         )}
