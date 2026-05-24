@@ -26,6 +26,8 @@ export type SendOptions = {
   prompt: string;
   /** Provider-specific session id to resume (CLI only, APIs are stateless). */
   sessionId?: string | null;
+  /** Channel id forwarded so adapters can read per-channel overrides. */
+  channelId?: string;
   onEvent: (e: StreamEvent) => void;
   signal?: AbortSignal;
 };

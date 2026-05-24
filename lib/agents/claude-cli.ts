@@ -3,7 +3,7 @@
 // siblings under lib/agents/.
 
 import { spawn } from "child_process";
-import { getSetting } from "../db";
+import { getSetting, getChannelSubAgent } from "../db";
 import type { AgentAdapter, SendOptions } from "./types";
 import { isBinaryAvailable } from "./bin-probe";
 
@@ -32,10 +32,13 @@ export const claudeCli: AgentAdapter = {
     return isBinaryAvailable(claudeBin());
   },
   send(opts: SendOptions): Promise<void> {
-    const { projectPath, prompt, sessionId, onEvent, signal } = opts;
+    const { projectPath, prompt, sessionId, channelId, onEvent, signal } = opts;
 
     const args = ["-p", "--output-format", "stream-json", "--verbose"];
     if (sessionId) args.push("--resume", sessionId);
+    // Route to a specific sub-agent when the channel has one configured.
+    const subAgent = channelId ? getChannelSubAgent(channelId) : null;
+    if (subAgent) args.push("--agent", subAgent);
     args.push(prompt);
 
     return new Promise((resolve) => {

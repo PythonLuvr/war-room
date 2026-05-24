@@ -15,6 +15,8 @@ import {
   KeyRound,
 } from "lucide-react";
 import { FolderPicker } from "@/components/folder-picker";
+import { modalProps } from "@/lib/a11y";
+import { t } from "@/lib/i18n/es";
 
 type Identity = "primary" | "teammate";
 
@@ -31,14 +33,14 @@ type WizardData = {
 const PRESETS: Array<{ id: Identity; name: string; hint: string; color: string }> = [
   {
     id: "primary",
-    name: "Workspace owner",
-    hint: "I'm the main user of this install",
+    name: t.onboarding.identityOwner,
+    hint: t.onboarding.identityOwnerHint,
     color: "from-amber-500/30 to-amber-700/20 border-amber-500/40 text-amber-200",
   },
   {
     id: "teammate",
-    name: "Teammate",
-    hint: "I'm joining someone else's setup",
+    name: t.onboarding.identityTeammate,
+    hint: t.onboarding.identityTeammateHint,
     color: "from-sky-500/30 to-sky-700/20 border-sky-500/40 text-sky-200",
   },
 ];
@@ -139,18 +141,26 @@ export function OnboardingWizard() {
 
   if (!show) return null;
 
-  const steps = ["Welcome", "Identity", "Agent", "Projects folder", "Sync"];
+  const steps = t.onboarding.stepNames;
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
+      <div
+        {...modalProps(t.onboarding.setupTitle)}
+        className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-semibold">War Room setup</h2>
+            <Sparkles className="w-5 h-5 text-amber-400" aria-hidden="true" />
+            <h2 className="text-lg font-semibold">{t.onboarding.setupTitle}</h2>
           </div>
-          <button onClick={skip} title="Skip, finish later" className="text-neutral-500 hover:text-neutral-300 p-1">
-            <X className="w-4 h-4" />
+          <button
+            onClick={skip}
+            aria-label={t.onboarding.skipLabel}
+            title={t.onboarding.skipLabel}
+            className="text-neutral-500 hover:text-neutral-300 p-1"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -165,41 +175,43 @@ export function OnboardingWizard() {
             </div>
           ))}
         </div>
-        <div className="px-6 pt-2 text-[10px] uppercase tracking-wider text-neutral-500">
-          step {step + 1} of {steps.length} · {steps[step]}
+        <div
+          className="px-6 pt-2 text-[10px] uppercase tracking-wider text-neutral-500"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {t.onboarding.stepLabel(step + 1, steps.length, steps[step])}
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === 0 && (
             <div className="space-y-4">
-              <h3 className="text-2xl font-semibold">Welcome to War Room.</h3>
+              <h3 className="text-2xl font-semibold">{t.onboarding.welcomeTitle}</h3>
               <p className="text-sm text-neutral-400 leading-relaxed">
-                This dashboard wires your local AI agent into a shared cockpit. Each
-                teammate runs their own copy. Your agent works on your machine, with
-                your files, your memory, your tools.
+                {t.onboarding.welcomeBody}
               </p>
               <div className="grid grid-cols-3 gap-3 mt-4">
-                <Hint icon={<Users className="w-4 h-4 text-amber-300" />} title="Identity">
-                  Tell us who you are.
+                <Hint icon={<Users className="w-4 h-4 text-amber-300" aria-hidden="true" />} title={t.onboarding.welcomeHintIdentityTitle}>
+                  {t.onboarding.welcomeHintIdentityBody}
                 </Hint>
-                <Hint icon={<Terminal className="w-4 h-4 text-sky-300" />} title="Agent">
-                  Pick from Claude, GPT, Gemini, Grok, or any OpenAI-compatible endpoint.
+                <Hint icon={<Terminal className="w-4 h-4 text-sky-300" aria-hidden="true" />} title={t.onboarding.welcomeHintAgentTitle}>
+                  {t.onboarding.welcomeHintAgentBody}
                 </Hint>
-                <Hint icon={<FolderOpen className="w-4 h-4 text-emerald-300" />} title="Projects">
-                  Where your project folders live.
+                <Hint icon={<FolderOpen className="w-4 h-4 text-emerald-300" aria-hidden="true" />} title={t.onboarding.welcomeHintProjectsTitle}>
+                  {t.onboarding.welcomeHintProjectsBody}
                 </Hint>
               </div>
               <p className="text-xs text-neutral-500 mt-2">
-                Takes ~30 seconds. You can change any of this later in settings.
+                {t.onboarding.welcomeTime}
               </p>
             </div>
           )}
 
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Who&apos;s running this dashboard?</h3>
+              <h3 className="text-xl font-semibold">{t.onboarding.identityTitle}</h3>
               <p className="text-sm text-neutral-400">
-                Pick yourself. This is how your messages get attributed in the boardroom.
+                {t.onboarding.identityBody}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {PRESETS.map((p) => {
@@ -208,6 +220,7 @@ export function OnboardingWizard() {
                     <button
                       key={p.id}
                       onClick={() => pickIdentity(p.id)}
+                      aria-pressed={selected}
                       className={`px-4 py-3 rounded-lg border text-left transition-all ${
                         selected
                           ? `bg-gradient-to-br ${p.color}`
@@ -223,34 +236,28 @@ export function OnboardingWizard() {
                 })}
               </div>
               <div>
-                <Label>Display name</Label>
+                <Label>{t.onboarding.displayNameLabel}</Label>
                 <input
                   value={data.displayName}
                   onChange={(e) => setData((c) => ({ ...c, displayName: e.target.value }))}
-                  placeholder="What should we call you?"
+                  placeholder={t.onboarding.displayNamePlaceholder}
                   className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
                 />
               </div>
               <div>
-                <Label>Your agent&apos;s name</Label>
+                <Label>{t.onboarding.agentNameLabel}</Label>
                 <input
                   value={data.agentName}
                   onChange={(e) => setData((c) => ({ ...c, agentName: e.target.value }))}
                   placeholder={
                     data.displayName.trim()
-                      ? `${data.displayName.trim()}-Agent`
-                      : "e.g. Jarvis, Friday, Computer"
+                      ? `${data.displayName.trim()}-Agente`
+                      : "Jarvis, Viernes, Ordenador..."
                   }
                   className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neutral-700"
                 />
                 <div className="text-[10px] text-neutral-600 mt-1">
-                  Header label for your AI in chat + the boardroom. The
-                  underlying provider (Claude, GPT, etc.) is shown separately.
-                  Leave blank to use{" "}
-                  <code className="text-neutral-500">
-                    {data.displayName.trim() || "Your"}-Agent
-                  </code>
-                  .
+                  {t.onboarding.agentNameHint(data.displayName.trim() || "Tu")}
                 </div>
               </div>
             </div>
@@ -268,39 +275,30 @@ export function OnboardingWizard() {
 
           {step === 4 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold">Sync (optional)</h3>
+              <h3 className="text-xl font-semibold">{t.onboarding.syncTitle}</h3>
               <p className="text-sm text-neutral-400">
-                War Room runs <strong>fully local by default</strong>. Your channels, jobs, knowledge,
-                and chats live in <code className="text-neutral-300">~/.war-room/app.db</code> on
-                your machine. Nothing leaves it.
+                {t.onboarding.syncBody1}
               </p>
               <p className="text-sm text-neutral-400">
-                If you want your install to talk to teammates&apos; installs in real time
-                (cross-machine @-mentions, shared activity feed, presence), <strong>you</strong> run
-                a small relay server on a host you control. Drop the URL in below if you have one,
-                or leave blank and stay local.
+                {t.onboarding.syncBody2}
               </p>
               <div>
-                <Label>Your sync server URL (optional)</Label>
+                <Label>{t.onboarding.syncUrlLabel}</Label>
                 <input
                   value={data.syncUrl ?? ""}
                   onChange={(e) =>
                     setData((c) => ({ ...c, syncUrl: e.target.value, syncOptIn: !!e.target.value.trim() }))
                   }
-                  placeholder="wss://war-room.your-domain.com  or  http://192.168.1.50:7880"
+                  placeholder="wss://war-room.tu-dominio.com  o  http://192.168.1.50:7880"
                   className="w-full bg-neutral-900 border border-neutral-800 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-700"
                 />
                 <div className="text-[10px] text-neutral-600 mt-1.5">
-                  Self-host whatever sync service this version of War Room expects. Reference
-                  implementation will live in the <code className="text-neutral-500">tools/</code>{" "}
-                  directory of the repo. We don&apos;t host one for you, your data, your server.
+                  {t.onboarding.syncUrlHint}
                 </div>
               </div>
               <div className="text-[11px] text-neutral-500 leading-relaxed border-t border-neutral-900 pt-3 mt-2">
-                <strong className="text-neutral-400">What works locally with no sync:</strong> your
-                own agent in the boardroom and dedicated channels, your own jobs / decisions /
-                knowledge, your own files, LiveKit voice (if you point at any LiveKit server you
-                trust). Everything except cross-machine teammate visibility.
+                <strong className="text-neutral-400">{t.onboarding.syncLocalWorksTitle}</strong>{" "}
+                {t.onboarding.syncLocalWorksBody}
               </div>
             </div>
           )}
@@ -312,11 +310,11 @@ export function OnboardingWizard() {
             disabled={step === 0}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-neutral-400 hover:text-neutral-200 disabled:opacity-30"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back
+            <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
+            {t.onboarding.back}
           </button>
           <div className="text-[10px] text-neutral-600">
-            esc to skip · settings remembered
+            {t.onboarding.escHint}
           </div>
           {step < steps.length - 1 ? (
             (() => {
@@ -329,11 +327,11 @@ export function OnboardingWizard() {
                 <button
                   onClick={() => setStep((s) => s + 1)}
                   disabled={gated}
-                  title={gated ? "Add at least one agent to your roster to continue" : undefined}
+                  title={gated ? t.onboarding.continueDisabledHint : undefined}
                   className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-200 hover:bg-amber-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  Continue
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  {t.onboarding.next}
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               );
             })()
@@ -343,8 +341,11 @@ export function OnboardingWizard() {
               disabled={saving}
               className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/30 disabled:opacity-40"
             >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Enter the War Room
+              {saving ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />{t.onboarding.saving}</>
+              ) : (
+                <><Check className="w-3.5 h-3.5" aria-hidden="true" />{t.onboarding.finish}</>
+              )}
             </button>
           )}
         </div>
@@ -438,17 +439,16 @@ function ProjectsStep({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Where do your projects live?</h3>
+      <h3 className="text-xl font-semibold">{t.onboarding.projectsTitle}</h3>
       <p className="text-sm text-neutral-400">
-        War Room turns each project folder into a chat channel. Add the ones you&apos;re actively
-        working in. You can always add more later from the sidebar.
+        {t.onboarding.projectsBody}
       </p>
 
       <div>
-        <Label>Found on your machine{detected ? ` (${detected.length})` : ""}</Label>
+        <Label>{t.onboarding.detectedLabel(detected ? detected.length : null)}</Label>
         {detected === null ? (
           <div className="text-xs text-neutral-600 italic px-1 py-3">
-            Scanning common locations…
+            {t.onboarding.scanningLabel}
           </div>
         ) : detected.length === 0 ? (
           <div className="rounded-lg border border-dashed border-neutral-800 bg-neutral-900/20 p-4 flex items-center gap-3">
@@ -461,8 +461,7 @@ function ProjectsStep({
               className="w-10 h-10 [image-rendering:pixelated] shrink-0 opacity-80"
             />
             <div className="text-xs text-neutral-400">
-              No project-looking folders found in the usual spots ( <code>~/code</code>,{" "}
-              <code>~/projects</code>, <code>~/Desktop</code>, etc.). Add one below.
+              {t.onboarding.noProjectsFound}
             </div>
           </div>
         ) : (
@@ -507,7 +506,7 @@ function ProjectsStep({
 
       {manualPicks.length > 0 && (
         <div>
-          <Label>Added manually ({manualPicks.length})</Label>
+          <Label>{t.onboarding.manualLabel(manualPicks.length)}</Label>
           <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 divide-y divide-neutral-900">
             {manualPicks.map((p) => (
               <div
@@ -520,10 +519,11 @@ function ProjectsStep({
                 </div>
                 <button
                   onClick={() => removeManual(p.path)}
-                  title="Remove"
+                  aria-label={`${t.onboarding.removeProject} ${p.name}`}
+                  title={t.onboarding.removeProject}
                   className="text-neutral-500 hover:text-red-300 p-1"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -536,27 +536,19 @@ function ProjectsStep({
           onClick={onPickAnother}
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900 text-neutral-300"
         >
-          <FolderOpen className="w-4 h-4" />
-          Add another folder...
+          <FolderOpen className="w-4 h-4" aria-hidden="true" />
+          {t.onboarding.addFolder}
         </button>
         <div className="text-[10px] text-neutral-600 mt-1 leading-snug">
-          For projects in places we didn&apos;t scan: a non-default drive, OneDrive, an unusual
-          layout. As many as you want.
+          {t.onboarding.addFolderHint}
         </div>
       </div>
 
       <div className="border-t border-neutral-900 pt-3 text-[11px] text-neutral-500">
         {picked.length === 0 ? (
-          <span>
-            No projects added yet. You can continue with zero and add them later from the
-            sidebar&apos;s <strong className="text-neutral-400">+</strong> button.
-          </span>
+          <span>{t.onboarding.noProjectsAdded}</span>
         ) : (
-          <span>
-            <strong className="text-neutral-300">{picked.length}</strong>{" "}
-            project{picked.length === 1 ? "" : "s"} will be added as channel
-            {picked.length === 1 ? "" : "s"} under <strong className="text-neutral-300">Projects</strong>.
-          </span>
+          <span>{t.onboarding.projectsAdded(picked.length)}</span>
         )}
       </div>
     </div>
@@ -797,11 +789,9 @@ function AgentPickStep({ onRosterChange }: { onRosterChange: (count: number) => 
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold">Wire up your agents</h3>
+      <h3 className="text-xl font-semibold">{t.onboarding.agentTitle}</h3>
       <p className="text-sm text-neutral-400">
-        War Room runs like a Discord server where every agent you wire up lives in your channels.
-        Add as many as you want. They&apos;ll all show up as seats in the boardroom and you can{" "}
-        <code className="text-neutral-300">@mention</code> any of them in chat.
+        {t.onboarding.agentBody}
       </p>
 
       <Roster
@@ -863,9 +853,8 @@ function Roster({
           className="w-12 h-12 [image-rendering:pixelated] shrink-0 opacity-80"
         />
         <div className="text-sm text-neutral-400">
-          <div className="font-semibold text-neutral-200 mb-0.5">Your roster is empty.</div>
-          Wire up at least one agent below to continue. Paste an API key or point at a CLI
-          binary; anything you fill in shows up here.
+          <div className="font-semibold text-neutral-200 mb-0.5">{t.onboarding.rosterEmpty}</div>
+          {t.onboarding.rosterEmptyHint}
         </div>
       </div>
     );
@@ -873,7 +862,7 @@ function Roster({
   return (
     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
       <div className="text-[10px] uppercase tracking-wider text-emerald-300/80 font-semibold mb-2">
-        Your roster ({configured.length})
+        {t.onboarding.rosterLabel(configured.length)}
       </div>
       <div className="flex flex-wrap gap-2">
         {configured.map((a) => {
@@ -898,7 +887,7 @@ function Roster({
                     onChange={() => onPickPrimary(a.id)}
                     className="w-3 h-3 accent-emerald-500"
                   />
-                  <span className="text-[10px] opacity-80">default</span>
+                  <span className="text-[10px] opacity-80">{t.onboarding.rosterDefaultLabel}</span>
                 </label>
               )}
             </div>
@@ -907,7 +896,7 @@ function Roster({
       </div>
       {configured.length === 1 && (
         <div className="text-[10px] text-neutral-500 mt-2">
-          Add more below to give yourself a multi-agent roster, or continue with just this one.
+          {t.onboarding.rosterSingle}
         </div>
       )}
     </div>
@@ -933,22 +922,21 @@ function BehaviorOptIns({
 }) {
   return (
     <div className="pt-2 border-t border-neutral-900 space-y-3">
-      <Label>Optional behavior overlays</Label>
+      <Label>{t.onboarding.behaviorTitle}</Label>
       <CheckboxOption
         checked={frameworkEnabled}
         onChange={onFramework}
-        title="Use the OpenWar framework"
-        body="Starter system prompt for users who don't already have one. Adds phase gating, voice rules, and confirmation-before-execution behavior on every agent reply. Skip if you've already built your own framework."
+        title={t.onboarding.openWarTitle}
+        body={t.onboarding.openWarBody}
       />
       <CheckboxOption
         checked={primerEnabled}
         onChange={onPrimer}
-        title="Teach my agents about War Room"
-        body="Prepends a short brief explaining the channel / decision / announcement / knowledge model so agents can log decisions, post announcements, and add knowledge entries on your behalf via tool use. Skip if you'd rather your agents stay framework-neutral."
+        title={t.onboarding.primerTitle}
+        body={t.onboarding.primerBody}
       />
       <div className="text-[10px] text-neutral-600 leading-snug">
-        Both off by default. Flip them on per-channel anytime from the AI chip in any chat header,
-        or globally from <strong>Settings → Agent</strong>.
+        {t.onboarding.behaviorFooter}
       </div>
     </div>
   );
@@ -1027,7 +1015,7 @@ function ProviderSetupCard({
         <span className="text-sm font-semibold text-neutral-100">{card.label}</span>
         {anyReady && (
           <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            ready
+            {t.onboarding.agentReady}
           </span>
         )}
         {card.installUrl && !cliReady && (
@@ -1038,8 +1026,8 @@ function ProviderSetupCard({
             className="ml-auto text-[10px] text-neutral-500 hover:text-amber-300 inline-flex items-center gap-1"
             title={card.installNote ?? "install instructions"}
           >
-            install CLI
-            <ExternalLink className="w-2.5 h-2.5" />
+            {t.onboarding.installCli}
+            <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
           </a>
         )}
       </div>
@@ -1048,8 +1036,8 @@ function ProviderSetupCard({
         {card.cliFields.length > 0 && (
           <div className="space-y-2">
             <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
-              <Terminal className="w-3 h-3" />
-              CLI bridge
+              <Terminal className="w-3 h-3" aria-hidden="true" />
+              {t.onboarding.cliLabel}
             </div>
             {card.cliFields.map((f) => (
               <ProviderField
@@ -1064,19 +1052,19 @@ function ProviderSetupCard({
         {card.cliFields.length === 0 && (
           <div className="space-y-2 opacity-50">
             <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
-              <Terminal className="w-3 h-3" />
-              CLI bridge
+              <Terminal className="w-3 h-3" aria-hidden="true" />
+              {t.onboarding.cliLabel}
             </div>
             <div className="text-[10px] text-neutral-600 italic px-1">
-              No official CLI from this provider yet, API only.
+              {t.onboarding.noCliYet}
             </div>
           </div>
         )}
         {card.apiFields.length > 0 && (
           <div className="space-y-2">
             <div className="text-[9px] uppercase tracking-wider text-neutral-500 flex items-center gap-1.5">
-              <KeyRound className="w-3 h-3" />
-              Direct API
+              <KeyRound className="w-3 h-3" aria-hidden="true" />
+              {t.onboarding.apiLabel}
             </div>
             {card.apiFields.map((f) => (
               <ProviderField

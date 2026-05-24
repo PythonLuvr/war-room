@@ -184,6 +184,7 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
     projectPath,
     prompt: effectivePrompt,
     sessionId,
+    channelId: opts.channelId,
     onEvent: wrappedOnEvent,
     signal,
   });

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useServers, serverLandingPath, type ServerRow } from "@/lib/server-context";
 import { UploadButton } from "@/components/upload-button";
+import { iconButton, ariaCurrent } from "@/lib/a11y";
 
 const COLOR_MAP: Record<string, string> = {
   amber: "from-amber-500/30 to-amber-700/20 border-amber-500/40 text-amber-300",
@@ -56,7 +57,10 @@ export function Rail() {
   };
 
   return (
-    <div className="w-[72px] shrink-0 bg-neutral-950 border-r border-neutral-900 flex flex-col items-center py-3 gap-2 overflow-y-auto">
+    <nav
+      aria-label="Servidores"
+      className="w-[72px] shrink-0 bg-neutral-950 border-r border-neutral-900 flex flex-col items-center py-3 gap-2 overflow-y-auto"
+    >
       {servers.map((s) => (
         <ServerIcon
           key={s.id}
@@ -71,7 +75,7 @@ export function Rail() {
 
       <button
         onClick={() => setCreating(true)}
-        title="Create server"
+        {...iconButton("Crear servidor")}
         className="w-11 h-11 rounded-full bg-neutral-900 border border-neutral-800 hover:border-emerald-500/40 hover:bg-emerald-500/10 text-neutral-400 hover:text-emerald-300 flex items-center justify-center transition-all"
       >
         <Plus className="w-4 h-4" />
@@ -80,7 +84,7 @@ export function Rail() {
       <div className="flex-1" />
 
       <button
-        title="Invite teammates"
+        {...iconButton("Invitar compañeros")}
         onClick={() => setInviting(true)}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-600 hover:text-amber-300 flex items-center justify-center"
       >
@@ -94,7 +98,7 @@ export function Rail() {
         <Cloud className="w-4 h-4" />
       </button>
       <button
-        title="Settings"
+        {...iconButton("Configuración")}
         onClick={() => setSettingsOpen("general")}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-500 hover:text-neutral-300 flex items-center justify-center"
       >
@@ -141,7 +145,7 @@ export function Rail() {
           }}
         />
       )}
-    </div>
+    </nav>
   );
 }
 
@@ -170,6 +174,7 @@ function ServerIcon({
         onEdit();
       }}
       title={`${server.name} · right-click to edit`}
+      {...ariaCurrent(active)}
       className="relative group"
     >
       {active && (

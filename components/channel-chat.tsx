@@ -6,6 +6,7 @@ import { ToolCall } from "@/components/tool-call";
 import { Send, Square, Slash, Sparkles, Pin as PinIcon } from "lucide-react";
 import { localMember } from "@/lib/team";
 import { useIdentityVersion } from "@/lib/use-identity-version";
+import { chatLogProps, composerProps, iconButton, statusRegionProps } from "@/lib/a11y";
 
 const LOCAL = localMember();
 
@@ -33,7 +34,8 @@ type ChatItem =
       agentId: string | null;
     }
   | { kind: "tool"; name: string; input: unknown; id: string; ts: number }
-  | { kind: "system"; text: string; id: string; ts: number };
+  | { kind: "system"; text: string; id: string; ts: number }
+  | { kind: "supervisor"; text: string; agentId: string; id: string; ts: number };
 
 // Stable color per adapter so the same agent always reads the same way
 // across the chat. Mirrors the rotation used in the boardroom.
@@ -106,6 +108,10 @@ export function ChannelChat({
   const [userIconUrl, setUserIconUrl] = useState<string>("");
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Supervisor: count user turns and fire every N.
+  const userTurnCountRef = useRef(0);
+  const supervisorEveryNRef = useRef(0);
+  const supervisorAgentIdRef = useRef<string | null>(null);
 
   // Adapter id → meta lookup, used to label + brand assistant bubbles.
   const adapterMap = useMemo(() => {
@@ -129,6 +135,18 @@ export function ChannelChat({
       .then((d: { iconUrl: string }) => setUserIconUrl(d.iconUrl ?? ""))
       .catch(() => {});
   }, [identityVersion]);
+
+  // Load supervisor settings once per channel so the chat knows when to trigger.
+  useEffect(() => {
+    userTurnCountRef.current = 0;
+    fetch(`/api/supervisor?channelId=${encodeURIComponent(channelId)}`)
+      .then((r) => r.json())
+      .then((d: { agentId: string | null; everyN: number }) => {
+        supervisorAgentIdRef.current = d.agentId;
+        supervisorEveryNRef.current = d.everyN ?? 0;
+      })
+      .catch(() => {});
+  }, [channelId]);
 
   useEffect(() => {
     setLoadingHistory(true);
@@ -225,6 +243,34 @@ export function ChannelChat({
       );
       setStreaming(false);
       abortRef.current = null;
+
+      // Supervisor check: fire if agent is configured and N turns reached.
+      userTurnCountRef.current += 1;
+      const everyN = supervisorEveryNRef.current;
+      const supervisorAgent = supervisorAgentIdRef.current;
+      if (supervisorAgent && everyN > 0 && userTurnCountRef.current % everyN === 0) {
+        fetch("/api/supervisor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelId, run: true }),
+        })
+          .then((r) => r.json())
+          .then((d: { note?: string; agentId?: string }) => {
+            if (d.note) {
+              setItems((cur) => [
+                ...cur,
+                {
+                  kind: "supervisor",
+                  text: d.note!,
+                  agentId: d.agentId ?? supervisorAgent,
+                  id: `sv-${Date.now()}`,
+                  ts: Date.now(),
+                },
+              ]);
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [input, projectPath, streaming, channelId]);
 
@@ -308,7 +354,7 @@ export function ChannelChat({
             description={description}
           />
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1" {...chatLogProps}>
             {items.map((it, i) => (
               <ChatMessage
                 key={it.id}
@@ -422,6 +468,19 @@ function ChatMessage({
       </div>
     );
   }
+  if (item.kind === "supervisor") {
+    return (
+      <div className="mx-4 my-3 px-3 py-2.5 rounded-lg border border-violet-500/30 bg-violet-500/5 flex gap-2.5">
+        <Sparkles className="w-3.5 h-3.5 text-violet-400 mt-0.5 shrink-0" />
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-violet-500 mb-1">
+            {item.agentId} · supervisor note
+          </div>
+          <div className="text-xs text-violet-200/80 leading-relaxed">{item.text}</div>
+        </div>
+      </div>
+    );
+  }
   if (item.kind === "tool") {
     return (
       <div className="ml-12 my-1">
@@ -521,12 +580,15 @@ function ChatMessage({
           <Dots />
         )}
         {item.kind === "assistant" && item.streaming && item.text && (
-          <span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-400/70 animate-pulse align-middle rounded-sm" />
+          <span
+            className="inline-block w-1.5 h-4 ml-0.5 bg-amber-400/70 animate-pulse align-middle rounded-sm"
+            {...statusRegionProps}
+          />
         )}
       </div>
       <button
         onClick={pinThis}
-        title="Pin this message"
+        {...iconButton("Fijar mensaje")}
         className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1 right-2 p-1.5 rounded text-neutral-500 hover:text-amber-300 hover:bg-neutral-900/60"
       >
         <PinIcon className="w-3.5 h-3.5" />
@@ -611,7 +673,7 @@ function Composer({
       <span aria-hidden className="hairline-h top" />
       <div className="flex items-end gap-2 bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 focus-within:border-neutral-700 transition-colors">
         <button
-          title="Slash commands (coming soon)"
+          {...iconButton("Comandos de barra")}
           className="w-8 h-8 shrink-0 rounded-md hover:bg-neutral-800 text-neutral-500 flex items-center justify-center"
         >
           <Slash className="w-4 h-4" />
@@ -629,7 +691,11 @@ function Composer({
           placeholder={`Message #${channelName}`}
           rows={1}
           className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-neutral-600 py-1.5 max-h-40"
+          {...composerProps(channelName)}
         />
+        <span id="chat-composer-hint" className="sr-only">
+          Intro para enviar, Mayús+Intro para nueva línea
+        </span>
         {streaming ? (
           <button
             onClick={onStop}

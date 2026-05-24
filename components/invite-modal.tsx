@@ -20,6 +20,8 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
+import { modalProps } from "@/lib/a11y";
+import { t } from "@/lib/i18n/es";
 
 type OnboardingShape = {
   settings?: Record<string, string | null>;
@@ -72,6 +74,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        {...modalProps(t.nav.inviteTeammates)}
         className="bg-[#0d0d0f] border border-neutral-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
@@ -79,7 +82,7 @@ export function InviteModal({ onClose }: { onClose: () => void }) {
             <UserPlus className="w-5 h-5 text-amber-300" />
             <h2 className="text-lg font-semibold">Invite teammates</h2>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200 p-1">
+          <button onClick={onClose} aria-label={t.settings.close} className="text-neutral-500 hover:text-neutral-200 p-1">
             <X className="w-4 h-4" />
           </button>
         </div>

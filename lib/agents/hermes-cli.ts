@@ -32,8 +32,9 @@ export const hermesCli: AgentAdapter = {
   send(opts: SendOptions): Promise<void> {
     const { projectPath, prompt, onEvent, signal } = opts;
     return new Promise((resolve) => {
-      // `hermes -p <prompt>` runs a single non-interactive turn and exits.
-      const child = spawn(hermesBin(), ["-p", prompt], {
+      // `hermes chat -q <prompt> -Q` runs a single non-interactive turn.
+      // -Q suppresses the banner/spinner for clean stdout capture.
+      const child = spawn(hermesBin(), ["chat", "-q", prompt, "-Q"], {
         cwd: projectPath,
         shell: process.platform === "win32",
         env: { ...process.env },
