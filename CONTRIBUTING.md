@@ -1,5 +1,24 @@
 # Contributing to War Room
 
+## How to contribute
+
+War Room is solo-maintained right now. That means a few things:
+
+1. **Open an issue first for anything bigger than a typo or one-liner.** Saves
+   us both from a long review on a PR that doesn't fit the direction. For
+   typos and obvious bugs, a PR is fine without a prior issue.
+2. **One thing per PR.** A PR that bundles five unrelated changes is harder
+   to review and harder to roll back. Split your work into separate PRs.
+3. **Reviews happen weekly.** Reviews are batched, usually on weekends.
+   Expect a response within seven days. If something is urgent (security,
+   critical bug), say so and it will be prioritized.
+4. **The license is MIT.** By opening a PR you agree your contribution is
+   licensed under MIT.
+5. **Look for `good-first-issue` labels** if you want to help but don't have
+   a specific itch. Those are pre-scoped and reviewer-ready.
+
+Questions, framework discussion, multiplayer setup help: [Discord](https://discord.gg/ku6GJS92V2).
+
 ## Local development
 
 ```bash

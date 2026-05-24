@@ -7,6 +7,10 @@
 <p align="center"><strong>A local-first, self-hostable team cockpit for working alongside AI agents.</strong></p>
 
 <p align="center">
+  <strong>English</strong> · <a href="./README.es.md">Español</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/pythonluvr/war-room/releases"><img src="https://img.shields.io/github/v/release/pythonluvr/war-room?display_name=tag&sort=semver" alt="Latest release"></a>
   <a href="https://discord.gg/ku6GJS92V2"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
