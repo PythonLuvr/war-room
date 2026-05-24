@@ -1238,7 +1238,7 @@ function AboutTab({ about }: { about: AboutInfo | null }) {
           <div className="text-xs text-neutral-600">Loading…</div>
         )}
       </Section>
-      <Section title="Credits" description="Open-source AGPL-3.0 release. Open source dependencies listed in package.json.">
+      <Section title="Credits" description="Open-source MIT release. Open source dependencies listed in package.json.">
         <div />
       </Section>
     </div>

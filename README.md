@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/pythonluvr/war-room/releases"><img src="https://img.shields.io/github/v/release/pythonluvr/war-room?display_name=tag&sort=semver" alt="Latest release"></a>
   <a href="https://discord.gg/ku6GJS92V2"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-orange.svg" alt="License: AGPL-3.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-brightgreen.svg" alt="Contributions welcome"></a>
 </p>
 
@@ -102,7 +102,7 @@ Not an AI chat client. Agents are CLIs that War Room spawns and supervises; the 
 
 Not a Slack or Discord replacement. The chat surface is opinionated toward agent-paired work. If you want general team chat, use a tool built for that.
 
-Not a per-seat billing target. Forever AGPL, forever self-hostable, no enterprise tier hiding features behind a paywall.
+Not a per-seat billing target. Forever MIT, forever self-hostable, no enterprise tier hiding features behind a paywall.
 
 ## Documentation
 
@@ -120,7 +120,7 @@ Questions, bug reports, framework discussion, multiplayer setup help: [Discord](
 
 ## License
 
-[AGPL-3.0-or-later](./LICENSE). Use it, modify it, fork it, run it for your team, run it for someone else's team. If you build something on top of War Room and host it as a service, your modifications stay open under the same license. That's the deal.
+[MIT](./LICENSE). Use it, modify it, fork it, run it for your team, run it for someone else's team. Build a commercial product on top of it if you want. No strings attached.
 
 ## Authorship
 

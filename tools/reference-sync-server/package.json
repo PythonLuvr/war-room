@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": false,
   "description": "Minimal reference implementation of the War Room sync protocol. Run on any VPS to share decisions, announcements, and knowledge entries across machines in the same workspace.",
-  "license": "AGPL-3.0-or-later",
+  "license": "MIT",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

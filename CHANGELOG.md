@@ -4,6 +4,16 @@ All notable changes to War Room are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow
 [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+- **Relicensed from AGPL-3.0-or-later to MIT.** War Room is now MIT-licensed.
+  Fork it, modify it, build commercial products on top of it. No copyleft
+  obligations. Applies to the main app and the reference sync server in
+  `tools/reference-sync-server/`. Earlier changelog entries that describe
+  bundled components as AGPL refer to their state at the time of that
+  release; from this point forward everything is MIT.
+
 ## [0.17.0] - 2026-05-21
 
 ### Added
