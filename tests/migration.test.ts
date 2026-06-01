@@ -172,13 +172,13 @@ test("migrate adds adapter_id + agent_id + new seeds without losing legacy rows"
       );
     }
 
-    // Cold-clone seeds default.framework=openwar. Legacy installs that
-    // hadn't seen this seed before get it added now (no existing setting
-    // row → seedDefaultFramework inserts).
+    // OpenWar is opt-in/default-off on cold-clone installs now. Legacy
+    // installs that never set a framework should stay unset instead of
+    // getting the old default-on seed reintroduced by migration.
     const fw = db.prepare(`SELECT value FROM settings WHERE key = ?`).get("default.framework") as
       | { value: string }
       | undefined;
-    assert.equal(fw?.value, "openwar", "default.framework setting should be seeded to openwar");
+    assert.equal(fw, undefined, "default.framework should stay unset until the user opts in");
   } finally {
     cleanup();
   }
@@ -237,6 +237,11 @@ test("fresh DB (no legacy tables) gets full schema from cold", () => {
     assert.ok(warRoom, "cold-clone DB should have War Room seeded");
     const personal = db.prepare(`SELECT * FROM user_servers WHERE is_personal = 1`).get();
     assert.ok(personal, "cold-clone DB should have a personal workspace seeded");
+
+    // Behavioral overlays are explicit opt-ins. A new database should not
+    // silently enable OpenWar for users who already bring their own prompt.
+    const fw = db.prepare(`SELECT value FROM settings WHERE key = ?`).get("default.framework");
+    assert.equal(fw, undefined, "cold-clone DB should not auto-enable OpenWar");
   } finally {
     cleanup();
   }

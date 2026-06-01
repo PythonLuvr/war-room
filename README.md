@@ -62,7 +62,7 @@ Full walkthrough per mode: [`docs/sync-hosting.md`](./docs/sync-hosting.md). Syn
 
 War Room ships with [**OpenWar**](https://github.com/pythonluvr/openwar) as the bundled default agent framework. OpenWar is a system prompt that makes any agent (Claude, GPT, Gemini, custom CLI) behave like a senior peer: confirms briefs before acting, breaks work into phases, asks before destructive actions, refuses to invent next steps not grounded in the brief.
 
-The framework is opt-in per channel and globally. The default selection lives in `system_settings.default_framework`; new installs are seeded to `openwar`. Frameworks are plain markdown files at `presets/frameworks/*.md`; drop a new one in and it shows up automatically in the wizard picker and channel header chip. No registration code, no manifest.
+The framework is opt-in per channel and globally. The default selection lives in `system_settings.default_framework`; new installs leave it unset until you opt in. Frameworks are plain markdown files at `presets/frameworks/*.md`; drop a new one in and it shows up automatically in the wizard picker and channel header chip. No registration code, no manifest.
 
 Update bundled frameworks from upstream:
 
