@@ -72,6 +72,7 @@ export function Rail() {
       <button
         onClick={() => setCreating(true)}
         title="Create server"
+        aria-label="Create server"
         className="w-11 h-11 rounded-full bg-neutral-900 border border-neutral-800 hover:border-emerald-500/40 hover:bg-emerald-500/10 text-neutral-400 hover:text-emerald-300 flex items-center justify-center transition-all"
       >
         <Plus className="w-4 h-4" />
@@ -81,6 +82,7 @@ export function Rail() {
 
       <button
         title="Invite teammates"
+        aria-label="Invite teammates"
         onClick={() => setInviting(true)}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-600 hover:text-amber-300 flex items-center justify-center"
       >
@@ -88,6 +90,7 @@ export function Rail() {
       </button>
       <button
         title="Sync status"
+        aria-label="Sync status"
         onClick={() => setSettingsOpen("sync")}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-600 hover:text-neutral-300 flex items-center justify-center"
       >
@@ -95,6 +98,7 @@ export function Rail() {
       </button>
       <button
         title="Settings"
+        aria-label="Settings"
         onClick={() => setSettingsOpen("general")}
         className="w-11 h-11 rounded-full hover:bg-neutral-900 text-neutral-500 hover:text-neutral-300 flex items-center justify-center"
       >
@@ -170,6 +174,7 @@ function ServerIcon({
         onEdit();
       }}
       title={`${server.name} · right-click to edit`}
+      aria-label={`Open ${server.name} server`}
       className="relative group"
     >
       {active && (
@@ -239,6 +244,7 @@ function CreateServerModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close create server dialog"
             className="text-neutral-500 hover:text-neutral-300 p-1"
           >
             <X className="w-4 h-4" />
@@ -288,6 +294,7 @@ function CreateServerModal({
               <button
                 key={c}
                 onClick={() => setColor(c)}
+                aria-label={`Set server color to ${c}`}
                 className={`w-8 h-8 rounded-lg bg-gradient-to-br border ${COLOR_MAP[c]} ${
                   color === c ? "ring-2 ring-white/40 ring-offset-2 ring-offset-[#0d0d0f]" : ""
                 }`}
@@ -342,7 +349,11 @@ function EditServerModal({
               Rename, change the icon, or recolor the wrapper.
             </p>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-300 p-1">
+          <button
+            onClick={onClose}
+            aria-label="Close edit server dialog"
+            className="text-neutral-500 hover:text-neutral-300 p-1"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -445,6 +456,7 @@ function EditServerModal({
                 key={c}
                 onClick={() => setColor(c)}
                 disabled={isWarRoom}
+                aria-label={`Set server color to ${c}`}
                 className={`w-8 h-8 rounded-lg bg-gradient-to-br border ${COLOR_MAP[c]} ${
                   color === c ? "ring-2 ring-white/40 ring-offset-2 ring-offset-[#0d0d0f]" : ""
                 } disabled:opacity-40 disabled:cursor-not-allowed`}

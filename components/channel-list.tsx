@@ -318,6 +318,7 @@ export function ChannelList() {
                     </button>
                     <button
                       title={`Create channel in ${g.label}`}
+                      aria-label={`Create channel in ${g.label}`}
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => {
                         setCollapsed({ ...collapsed, [g.label]: false });
@@ -330,6 +331,7 @@ export function ChannelList() {
                     {g.userCreated && (
                       <button
                         title={`Delete category "${g.label}"`}
+                        aria-label={`Delete category "${g.label}"`}
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => deleteGroup(g.label)}
                         className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 p-0.5"
@@ -459,7 +461,11 @@ function InlineCreate({
         placeholder={placeholder}
         className="flex-1 bg-neutral-900 border border-neutral-800 rounded text-xs px-2 py-1 focus:outline-none focus:border-neutral-700"
       />
-      <button onClick={onCancel} className="p-1 text-neutral-600 hover:text-neutral-300">
+      <button
+        onClick={onCancel}
+        aria-label="Cancel new category"
+        className="p-1 text-neutral-600 hover:text-neutral-300"
+      >
         <X className="w-3 h-3" />
       </button>
     </div>
@@ -565,6 +571,7 @@ function ChannelRow({
         onClick={onOpenMenu}
         className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-neutral-200 hover:bg-neutral-800 rounded p-0.5"
         title="Channel options (or right-click)"
+        aria-label="Channel options"
       >
         <MoreVertical className="w-3.5 h-3.5" />
       </button>
