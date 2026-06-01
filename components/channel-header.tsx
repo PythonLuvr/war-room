@@ -215,6 +215,7 @@ function IconBtn({
   return (
     <button
       title={title}
+      aria-label={title}
       onClick={onClick}
       className="w-8 h-8 rounded-md hover:bg-neutral-900 hover:text-neutral-300 flex items-center justify-center"
     >

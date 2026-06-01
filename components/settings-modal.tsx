@@ -59,7 +59,11 @@ export function SettingsModal({
             <SettingsIcon className="w-5 h-5 text-neutral-400" />
             <h2 className="text-lg font-semibold">Settings</h2>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200 p-1">
+          <button
+            onClick={onClose}
+            aria-label="Close settings"
+            className="text-neutral-500 hover:text-neutral-200 p-1"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -656,6 +660,7 @@ function ProfileEditor({
                     onClick={() => setIconUrl("")}
                     className={`relative w-11 h-11 rounded-full overflow-hidden border-2 bg-neutral-950 ${iconUrl === "" ? "border-amber-400" : "border-neutral-800 hover:border-neutral-700"}`}
                     title="Built-in"
+                    aria-label="Use built-in logo"
                   >
                     {adapter.defaultIconUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -670,6 +675,7 @@ function ProfileEditor({
                       key={p.url}
                       onClick={() => setIconUrl(p.url)}
                       title={p.label}
+                      aria-label={`Use ${p.label} logo`}
                       className={`w-11 h-11 rounded-full overflow-hidden border-2 bg-neutral-950 ${iconUrl === p.url ? "border-amber-400" : "border-neutral-800 hover:border-neutral-700"}`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -702,6 +708,7 @@ function ProfileEditor({
                       key={opt.value}
                       onClick={() => setAccent(opt.value)}
                       title={opt.label}
+                      aria-label={`Use ${opt.label} accent color`}
                       className={`w-7 h-7 rounded-full border-2 ${opt.swatch} ${accent === opt.value ? "border-white" : "border-transparent hover:border-neutral-700"}`}
                     />
                   ))}
